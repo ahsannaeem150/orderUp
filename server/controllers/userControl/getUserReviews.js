@@ -1,6 +1,5 @@
 import { imageModel } from "../../models/imageModel.js";
 import { menuModel } from "../../models/itemModel.js";
-import { restaurantModel } from "../../models/restaurantModel.js";
 import { reviewModel } from "../../models/reviewModel.js";
 import { userModel } from "../../models/userModel.js";
 export const getReviewsController = async (req, res) => {
