@@ -10,6 +10,7 @@ import multer from "multer";
 
 //DOTENV
 dotenv.config();
+//hi
 
 //MONGO CONNECTION
 connectDB();
