@@ -17,9 +17,8 @@ const AuthProvider = ({ children }) => {
   });
 
   //SET INITIAL AXIOS URL
-
-  axios.defaults.baseURL = "https://orderup-zfum.onrender.com/api/";
-  // axios.defaults.baseURL = "http://192.168.100.51:8080/api";
+  // axios.defaults.baseURL = "https://orderup-zfum.onrender.com/api/";
+  axios.defaults.baseURL = "http://192.168.100.51:8080/api";
   //GET initial storage data
   useEffect(() => {
     const loadLocalStorageData = async () => {

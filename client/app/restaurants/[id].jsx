@@ -7,13 +7,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  StatusBar,
 } from "react-native";
 import { AuthContext } from "../context/authContext";
 import { useFetchItems } from "../hooks/useFetchItems";
 import { router } from "expo-router";
 const MenuItemsScreen = () => {
   const { restaurant, setItem } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
   const { items, fetchItems } = useFetchItems(
     `/auth/restaurant/${restaurant._id}/items`
   );
@@ -23,12 +24,12 @@ const MenuItemsScreen = () => {
     router.navigate(`/item/${item._id}`);
   };
   useEffect(() => {
-    const fetch = async ()=>{
-      setLoading(true)
+    const fetch = async () => {
+      setLoading(true);
       await fetchItems();
-      setLoading(false)
-    }
-    fetch()
+      setLoading(false);
+    };
+    fetch();
   }, []);
 
   const renderMenuItem = ({ item }) => (
@@ -62,15 +63,20 @@ const MenuItemsScreen = () => {
           </Text>
         </View>
       </View>
-      {loading ? <View style={{ }}>
-        <Text>HELLO</Text>
-      </View> : <FlatList
-        data={items}
-        keyExtractor={(item) => item._id}
-        renderItem={renderMenuItem}
-        contentContainerStyle={styles.listContent}
-      />}
-      
+      {loading ? (
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item._id}
+          renderItem={renderMenuItem}
+          contentContainerStyle={styles.listContent}
+        />
+      )}
     </View>
   );
 };
@@ -80,7 +86,7 @@ export default MenuItemsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    marginTop: StatusBar.currentHeight,
     padding: 16,
   },
   headerContainer: {

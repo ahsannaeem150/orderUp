@@ -9,16 +9,15 @@ import {
 import React, { useState } from "react";
 import { icons } from "../../constants";
 
-const FormField = ({
-  title,
+const SearchField = ({
   value,
   placeHolder,
   handleChangeText,
-  isPassword = false,
+  title,
   otherStyle,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
-  const [showPassword, setShowPassword] = useState(isPassword);
+  console.log("hi");
 
   return (
     <View style={[otherStyle, styles.container]}>
@@ -28,7 +27,7 @@ const FormField = ({
           styles.inputContainer,
           {
             borderColor: isFocused ? "gray" : "white",
-            width: "80%",
+            width: "100%",
           },
         ]}
       >
@@ -37,20 +36,13 @@ const FormField = ({
           value={value}
           placeholder={placeHolder}
           placeholderTextColor="#7b7b8b"
-          onChangeText={handleChangeText}
-          secureTextEntry={showPassword}
+          onChangeText={(text) => {
+            handleChangeText(text);
+          }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
         />
-        {isPassword ? (
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Image
-              style={styles.icon}
-              resizeMode="contain"
-              source={showPassword ? icons.eye : icons.eyeHide}
-            />
-          </TouchableOpacity>
-        ) : null}
+        <Image style={styles.icon} resizeMode="contain" source={icons.search} />
       </View>
     </View>
   );
@@ -88,4 +80,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FormField;
+export default SearchField;

@@ -10,11 +10,12 @@ import {
   ActivityIndicator,
   StatusBar,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import { AuthContext } from "../context/authContext";
 import { images } from "../../constants";
 import RestaurantCard from "../components/RestaurantCard";
-import FormField from "../components/FormField";
+import SearchField from "../components/SearchField";
 import { useFetchRestaurants } from "../hooks/useFetchRestaurants";
 import RestaurantHorizontalList from "../components/RestaurantHorizontalList";
 import { router } from "expo-router";
@@ -23,6 +24,8 @@ const HorizontalRestaurantList = () => {
   const [refreshing, setRefreshing] = useState(false);
   const { state } = useContext(AuthContext);
   const { restaurant, setRestaurant } = useContext(AuthContext);
+  const [search, setSearch] = useState("");
+  const [searchedRestaurants, setSearchedRestaurants] = useState([]);
   const { restaurants, fetchRestaurants } =
     useFetchRestaurants("/auth/restaurants");
   const [loading, setLoading] = useState(true);
@@ -47,6 +50,14 @@ const HorizontalRestaurantList = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    setSearchedRestaurants(
+      restaurants?.filter((restaurant) =>
+        restaurant.name.toLowerCase().includes(search.toLowerCase())
+      )
+    );
+  }, [search]);
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -56,9 +67,9 @@ const HorizontalRestaurantList = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <FlatList
-        data={restaurants}
+        data={search.length == 0 ? restaurants : searchedRestaurants}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <View style={{ flex: 1, alignItems: "center" }}>
@@ -76,7 +87,7 @@ const HorizontalRestaurantList = () => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        ListHeaderComponent={() => (
+        ListHeaderComponent={
           <View style={styles.headerContainer}>
             <View style={styles.headerContent}>
               <View>
@@ -94,21 +105,42 @@ const HorizontalRestaurantList = () => {
             </View>
 
             <View style={styles.searchContainer}>
-              <FormField
+              <SearchField
                 placeHolder={"Search for Restaurants"}
-                isSearch={true}
+                value={search}
+                handleChangeText={(text) => {
+                  setSearch(text);
+                }}
               />
             </View>
 
-            <View style={styles.topRestaurantsContainer}>
-              <Text style={styles.topRestaurantsTitle}>Top Restaurants</Text>
-            </View>
-            <RestaurantHorizontalList posts={restaurants} />
+            {search.length == 0 ? (
+              <>
+                <View style={styles.topRestaurantsContainer}>
+                  <Text style={styles.topRestaurantsTitle}>
+                    Top Restaurants
+                  </Text>
+                </View>
+                <RestaurantHorizontalList posts={restaurants} />
+              </>
+            ) : (
+              <></>
+            )}
+          </View>
+        }
+        ListEmptyComponent={() => (
+          <View
+            style={{
+              justifyContent: "center",
+              height: 500,
+              alignItems: "center",
+            }}
+          >
+            <Image source={images.empty} style={styles.image} />
           </View>
         )}
-        ListEmptyComponent={() => <Text>No restaurants found.</Text>}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -141,6 +173,12 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     marginTop: 6,
+  },
+  image: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 16,
   },
   logo: {
     width: 36,

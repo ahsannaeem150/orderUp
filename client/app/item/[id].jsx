@@ -7,27 +7,34 @@ import {
   StyleSheet,
   FlatList,
   TextInput,
+  ActivityIndicator,
+  StatusBar,
 } from "react-native";
 import { AuthContext } from "../context/authContext";
 import CustomButton from "../components/CustomButtons";
 import StarRating from "react-native-star-rating-widget";
 import axios from "axios";
 import { useFetchReviews } from "../hooks/useFetchItemReviews";
+import { images } from "../../constants";
 
 const ItemDetailsScreen = () => {
   const { state, item } = useContext(AuthContext);
   const [rating, setRating] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [review, setReview] = useState("");
   const [reRender, setReRender] = useState(false);
-  const { reviews, fetchReviews, loading } = useFetchReviews(
+  const { reviews, fetchReviews } = useFetchReviews(
     `/auth/restaurant/item/${item._id}/reviews`
   );
 
   useEffect(() => {
-    fetchReviews();
+    const fetch = async () => {
+      setLoading(true);
+      await fetchReviews();
+      setLoading(false);
+    };
+    fetch();
   }, [reRender]);
-
-  
 
   const handleSubmitPress = async () => {
     if (rating == 0) {
@@ -56,7 +63,7 @@ const ItemDetailsScreen = () => {
           <StarRating
             rating={item.rating}
             starSize={15}
-            onChange={()=>{console.log("hi")}}
+            onChange={() => {}}
             color="blue"
           />
         </View>
@@ -64,10 +71,6 @@ const ItemDetailsScreen = () => {
       <Text style={styles.comment}>{item.comment}</Text>
     </View>
   );
-
-  if (loading) {
-    return <Text>Loading...</Text>;
-  }
 
   return (
     <View style={styles.container}>
@@ -91,10 +94,10 @@ const ItemDetailsScreen = () => {
           style={{
             backgroundColor: "#f9f9f9",
             padding: 16,
-            paddingBottom:8,
+            height: 140,
+            paddingBottom: 8,
             borderRadius: 8,
-            flex:1,
-            marginBottom: 25,
+            marginBottom: 10,
             shadowColor: "#000",
             shadowOpacity: 0.1,
             shadowOffset: { width: 0, height: 2 },
@@ -102,39 +105,57 @@ const ItemDetailsScreen = () => {
             elevation: 3,
           }}
         >
-          <View style={styles.addReviewSection}>
-            <TextInput
-              style={styles.input}
-              placeholder="Leave a review..."
-              value={review}
-              onChangeText={(text) => setReview(text)}
-            />
+          <View style={{ flex: 1 }}>
+            <View style={styles.addReviewSection}>
+              <TextInput
+                style={styles.input}
+                placeholder="Leave a review..."
+                value={review}
+                onChangeText={(text) => setReview(text)}
+              />
 
-            <CustomButton
-              title={"Submit"}
-              otherStyles={{ width: "25%" }}
-              buttonStyle={{ borderRadius: 10 }}
-              onPress={()=>{handleSubmitPress()}}
-            />
-          </View>
-          <View style={{ flex: 1, alignSelf: "center" }}>
-            <StarRating
-              onChange={setRating}
-              starSize={25}
-              enableHalfStar={false}
-              rating={rating}
-              color="black"
-            />
+              <CustomButton
+                title={"Submit"}
+                otherStyles={{ width: "25%" }}
+                buttonStyle={{ borderRadius: 10 }}
+                onPress={() => {
+                  handleSubmitPress();
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, alignSelf: "center" }}>
+              <StarRating
+                onChange={setRating}
+                starSize={25}
+                enableHalfStar={false}
+                rating={rating}
+                color="black"
+              />
+            </View>
           </View>
         </View>
 
-        <FlatList
-          data={reviews}
-          keyExtractor={(item) => item._id.toString()}
-          renderItem={renderReview}
-          contentContainerStyle={styles.reviewsList}
-          style={styles.flatList}
-        />
+        {loading ? (
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+            <ActivityIndicator size="large" color="#0000ff" />
+          </View>
+        ) : reviews.length == 0 ? (
+          <Image
+            source={images.empty}
+            style={styles.image}
+            resizeMode="contain"
+          />
+        ) : (
+          <FlatList
+            data={reviews}
+            keyExtractor={(item) => item._id.toString()}
+            renderItem={renderReview}
+            contentContainerStyle={styles.reviewsList}
+            style={styles.flatList}
+          />
+        )}
       </View>
     </View>
   );
@@ -145,7 +166,7 @@ export default ItemDetailsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    marginTop: StatusBar.currentHeight,
     padding: 16,
     paddingBottom: 0,
   },
