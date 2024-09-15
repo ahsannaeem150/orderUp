@@ -18,6 +18,7 @@ export const useFetchRestaurants = (routePath) => {
 
   const fetchRestaurants = async () => {
     try {
+      console.log("FETCHING");
       const response = await axios.get(routePath);
       const restaurantWithImages = response.data.restaurants.map(
         (restaurant) => {
@@ -40,7 +41,6 @@ export const useFetchRestaurants = (routePath) => {
           return processedRestaurant;
         }
       );
-      console.log("FETCHING");
       setRestaurants(restaurantWithImages);
       setError(null);
     } catch (error) {

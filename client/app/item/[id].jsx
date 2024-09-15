@@ -27,6 +27,8 @@ const ItemDetailsScreen = () => {
     fetchReviews();
   }, [reRender]);
 
+  
+
   const handleSubmitPress = async () => {
     if (rating == 0) {
       alert("Please rate the item");
@@ -54,7 +56,7 @@ const ItemDetailsScreen = () => {
           <StarRating
             rating={item.rating}
             starSize={15}
-            onChange={() => {}}
+            onChange={()=>{console.log("hi")}}
             color="blue"
           />
         </View>
@@ -89,8 +91,10 @@ const ItemDetailsScreen = () => {
           style={{
             backgroundColor: "#f9f9f9",
             padding: 16,
+            paddingBottom:8,
             borderRadius: 8,
-            marginBottom: 16,
+            flex:1,
+            marginBottom: 25,
             shadowColor: "#000",
             shadowOpacity: 0.1,
             shadowOffset: { width: 0, height: 2 },
@@ -110,15 +114,16 @@ const ItemDetailsScreen = () => {
               title={"Submit"}
               otherStyles={{ width: "25%" }}
               buttonStyle={{ borderRadius: 10 }}
-              onPress={handleSubmitPress}
+              onPress={()=>{handleSubmitPress()}}
             />
           </View>
-          <View style={{ flex: 1, alignSelf: "center", marginBottom: 20 }}>
+          <View style={{ flex: 1, alignSelf: "center" }}>
             <StarRating
-              starSize={30}
-              rating={rating}
-              enableHalfStar={false}
               onChange={setRating}
+              starSize={25}
+              enableHalfStar={false}
+              rating={rating}
+              color="black"
             />
           </View>
         </View>
