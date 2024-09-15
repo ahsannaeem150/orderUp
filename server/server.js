@@ -26,6 +26,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(morgan("dev"));
 
 //ROUTES
+app.use("/api/welcome", (req, res) => {
+  res.status(200).send({ message: "Welcome to OrderUp API" });
+});
 app.use("/api/auth", userRoutes);
 app.use("/api/auth/", restaurantRoutes);
 
