@@ -25,7 +25,7 @@ const ItemCard = ({ item }) => {
           style={{
             width: 125,
             height: 150,
-            borderRadius: 33,
+            borderRadius: 10,
             marginVertical: 10,
             overflow: "hidden",
             boxShadow: "0 10px 15px rgba(0,0,0,0.4)",

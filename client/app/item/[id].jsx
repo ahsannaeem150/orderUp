@@ -115,7 +115,7 @@ const ItemDetailsScreen = () => {
           </View>
           <View style={{ flex: 1, alignSelf: "center", marginBottom: 20 }}>
             <StarRating
-              starSize={50}
+              starSize={30}
               rating={rating}
               enableHalfStar={false}
               onChange={setRating}

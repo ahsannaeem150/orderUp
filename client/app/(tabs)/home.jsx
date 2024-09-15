@@ -71,7 +71,6 @@ const HorizontalRestaurantList = () => {
               thumbnail={item.thumbnail}
               address={item.address.address}
             />
-            <View style={styles.specialDivider}></View>
           </View>
         )}
         refreshControl={
@@ -118,7 +117,7 @@ export default HorizontalRestaurantList;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    marginBottom: 45,
     marginTop: StatusBar.currentHeight,
   },
   headerContainer: {

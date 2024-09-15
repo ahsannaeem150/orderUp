@@ -79,13 +79,13 @@ export default TabBar;
 const styles = StyleSheet.create({
   tabBar: {
     position: "absolute",
-    bottom: 25,
+    bottom: 5,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "white",
     marginHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 7,
     borderRadius: 25,
     borderCurve: "continuous",
     shadowColor: "color",
