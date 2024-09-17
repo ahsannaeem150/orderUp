@@ -1,12 +1,131 @@
-import { View, Text } from "react-native";
-import React from "react";
+import React, { useContext } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+  Image,
+} from "react-native";
+import { AuthContext } from "../context/authContext";
+import Icon from "react-native-vector-icons/Ionicons";
 
 const Orders = () => {
+  const { cart, setCart } = useContext(AuthContext);
+  const deleteRestaurant = (restaurantId) => {
+    const updatedCart = cart.orderList.filter((orderItem) => {
+      return orderItem.restaurant._id !== restaurantId;
+    });
+    setCart({ orderList: updatedCart });
+  };
+  const renderItem = ({ item }) => (
+    <View
+      style={[
+        {
+          flex: 1,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        },
+        styles.card,
+      ]}
+    >
+      <TouchableOpacity
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+        onPress={() => {}}
+      >
+        <View style={styles.avatarContainer}>
+          <Image
+            source={{ uri: item.restaurant.logo }}
+            style={styles.avatar}
+            resizeMode="cover"
+          />
+        </View>
+        <View>
+          <Text style={styles.restaurantName}>{item.restaurant.name}</Text>
+          <Text style={styles.restaurantDetails}>
+            Items in cart: {item.order.length}
+          </Text>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => deleteRestaurant(item.restaurant._id)}
+        style={styles.deleteButton}
+      >
+        <Icon name="trash-outline" size={30} color="red" />
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
-    <View>
-      <Text>orders</Text>
+    <View style={styles.container}>
+      <Text style={styles.header}>Your Orders</Text>
+      <FlatList
+        data={cart.orderList}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.restaurant._id}
+      />
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    marginTop: StatusBar.currentHeight,
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#f8f8f8",
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  card: {
+    backgroundColor: "#fff",
+    padding: 15,
+    flex: 1,
+    alignItems: "center",
+    flexDirection: "row",
+    marginBottom: 15,
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  restaurantName: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  avatarContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginEnd: 20,
+    borderColor: "#9ca3af",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 0.5,
+  },
+  avatar: {
+    height: "100%",
+    width: "100%",
+    borderRadius: 8,
+  },
+  restaurantDetails: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 5,
+  },
+});
 
 export default Orders;

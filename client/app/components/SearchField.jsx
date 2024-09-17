@@ -17,8 +17,6 @@ const SearchField = ({
   otherStyle,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
-  console.log("hi");
-
   return (
     <View style={[otherStyle, styles.container]}>
       <Text style={styles.title}>{title}</Text>

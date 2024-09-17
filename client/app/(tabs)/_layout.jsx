@@ -12,8 +12,14 @@ const TabLayout = () => {
         name="home"
         options={{ title: "Home", headerShown: false }}
       />
-      <Tabs.Screen name="orders" options={{ title: "Orders" }} />
-      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+      <Tabs.Screen
+        name="orders"
+        options={{ title: "Orders", headerShown: false }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{ title: "Profile", headerShown: false }}
+      />
     </Tabs>
   );
 };

@@ -10,6 +10,7 @@ const AuthProvider = ({ children }) => {
   //global State
   const [restaurant, setRestaurant] = useState({ restaurant: undefined });
   const [item, setItem] = useState({ item: undefined });
+  const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState({
     user: undefined,
@@ -23,29 +24,55 @@ const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadLocalStorageData = async () => {
       let data = await AsyncStorage.getItem("@auth");
+      let cartDataString = await AsyncStorage.getItem("@cart");
+      let cartJson = JSON.parse(cartDataString);
       let loginData = JSON.parse(data);
       setState({
         ...loginData,
         user: loginData?.user,
         token: loginData?.token,
       });
+      console.log(cartJson);
+      console.log("TOKEN", loginData?.token);
+      setCart(cartJson);
       setLoading(false);
-      console.log("Log in authContext state=> ", state);
-      console.log("Log in authContext loading=> ", loading);
     };
-
     loadLocalStorageData();
   }, []);
+
+  // const updateCart = async () => {
+  //   try {
+  //     console.log("CART UPDATING");
+  //     await AsyncStorage.setItem("cart", JSON.stringify(cart));
+  //     console.log("CART UPDATED");
+
+  //     let cartDataString = await AsyncStorage.getItem("cart");
+
+  //     if (cartDataString === null) {
+  //       console.log("No cart data found in AsyncStorage");
+  //     } else {
+  //       let cartJson = JSON.parse(cartDataString);
+  //       console.log("Retrieved cart:", cartJson);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error updating or retrieving cart:", error);
+  //   }
+  // };
+
   useEffect(() => {
-    console.log("useEffect loading=> ", loading);
-  }, [loading]);
-  //UPDATE STORAGE INFO ON EVERY STATE CHANGE
-  useEffect(() => {
-    const updateStorage = async () => {
-      await AsyncStorage.setItem("@auth", JSON.stringify(state));
+    const updateCart = async () => {
+      try {
+        if (cart !== null) {
+          await AsyncStorage.setItem("@cart", JSON.stringify(cart));
+          console.log("CART UPDATED:", cart);
+        }
+      } catch (error) {
+        console.error("Error updating cart:", error);
+      }
     };
-    updateStorage();
-  }, [state]);
+    updateCart();
+  }, [cart]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -57,6 +84,8 @@ const AuthProvider = ({ children }) => {
         setLoading,
         item,
         setItem,
+        cart,
+        setCart,
       }}
     >
       {children}

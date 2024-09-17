@@ -16,9 +16,11 @@ import StarRating from "react-native-star-rating-widget";
 import axios from "axios";
 import { useFetchReviews } from "../hooks/useFetchItemReviews";
 import { images } from "../../constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ItemDetailsScreen = () => {
-  const { state, item } = useContext(AuthContext);
+  const { state, item, restaurant, cart, setCart, updateCart } =
+    useContext(AuthContext);
   const [rating, setRating] = useState(0);
   const [loading, setLoading] = useState(true);
   const [review, setReview] = useState("");
@@ -54,6 +56,82 @@ const ItemDetailsScreen = () => {
     }
   };
 
+  const handleAddToCartPress = () => {
+    if (cart == null) {
+      setCart({
+        orderList: [
+          {
+            restaurant: {
+              _id: restaurant._id,
+              name: restaurant.name,
+              logo: restaurant.logo,
+              phone: restaurant.phone,
+            },
+            order: [{ _id: item._id, quantity: 1 }],
+          },
+        ],
+      });
+      return;
+    }
+
+    // FIND RESTAURANT IN CART
+    let restaurantInCart = cart?.orderList?.find((cartItem) => {
+      return cartItem?.restaurant._id == restaurant._id;
+    });
+
+    // IF NO RESTAURANT, THEN ADD RESTAURANT
+    if (!restaurantInCart) {
+      setCart({
+        orderList: [
+          ...cart.orderList,
+          {
+            restaurant: {
+              _id: restaurant._id,
+              name: restaurant.name,
+              logo: restaurant.logo,
+              phone: restaurant.phone,
+            },
+            order: [{ _id: item._id, quantity: 1 }],
+          },
+        ],
+      });
+    } else {
+      const itemInCart = restaurantInCart.order.find(
+        (menuItem) => menuItem._id == item._id
+      );
+
+      // IF ITEM IS ALREADY IN CART, THEN INCREMENT QUANTITY
+      if (itemInCart) {
+        console.log("ITEM IN CART");
+        const updatedCart = cart.orderList.map((restItem) => {
+          if (restItem.restaurant._id == restaurant._id) {
+            const updatedOrder = restItem.order.map((menuItem) => {
+              if (menuItem._id == item._id) {
+                return { ...menuItem, quantity: menuItem.quantity + 1 };
+              }
+              return menuItem;
+            });
+            return { ...restItem, order: updatedOrder };
+          }
+          return restItem;
+        });
+        setCart({ orderList: updatedCart });
+      } else {
+        console.log("ADDING NEW ITEM TO RESTAURANT ORDER");
+        const updatedCart = cart.orderList.map((restItem) => {
+          if (restItem.restaurant._id == restaurant._id) {
+            return {
+              ...restItem,
+              order: [...restItem.order, { _id: item._id, quantity: 1 }],
+            };
+          }
+          return restItem;
+        });
+        setCart({ orderList: updatedCart });
+      }
+    }
+  };
+
   const renderReview = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -85,6 +163,9 @@ const ItemDetailsScreen = () => {
           title={"Add to Cart"}
           otherStyles={{ width: "100%" }}
           buttonStyle={{ borderRadius: 10 }}
+          onPress={() => {
+            handleAddToCartPress();
+          }}
         />
       </View>
 
