@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { AuthContext } from "../context/authContext";
 import Icon from "react-native-vector-icons/Ionicons";
+import { images } from "../../constants";
 
 const Orders = () => {
   const { cart, setCart } = useContext(AuthContext);
@@ -65,11 +66,20 @@ const Orders = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Your Orders</Text>
-      <FlatList
+      {cart == null ? <View
+            style={{
+              justifyContent: "center",
+              height: 500,
+              alignItems: "center",
+            }}
+          >
+            <Image source={images.empty} style={styles.image} />
+          </View>: <FlatList
         data={cart.orderList}
         renderItem={renderItem}
         keyExtractor={(item) => item.restaurant._id}
-      />
+      />}
+      
     </View>
   );
 };
@@ -86,6 +96,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 20,
     textAlign: "center",
+  },
+  image: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 16,
   },
   card: {
     backgroundColor: "#fff",
