@@ -50,7 +50,10 @@ const Orders = () => {
         <View>
           <Text style={styles.restaurantName}>{item.restaurant.name}</Text>
           <Text style={styles.restaurantDetails}>
-            Items in cart: {item.order.length}
+            Items in cart:{" "}
+            {item.order.reduce((quant, item) => {
+              return quant + item.quantity;
+            }, 0)}
           </Text>
         </View>
       </TouchableOpacity>
@@ -66,20 +69,23 @@ const Orders = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Your Orders</Text>
-      {cart == null ? <View
-            style={{
-              justifyContent: "center",
-              height: 500,
-              alignItems: "center",
-            }}
-          >
-            <Image source={images.empty} style={styles.image} />
-          </View>: <FlatList
-        data={cart.orderList}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.restaurant._id}
-      />}
-      
+      {cart == null ? (
+        <View
+          style={{
+            justifyContent: "center",
+            height: 500,
+            alignItems: "center",
+          }}
+        >
+          <Image source={images.empty} style={styles.image} />
+        </View>
+      ) : (
+        <FlatList
+          data={cart.orderList}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.restaurant._id}
+        />
+      )}
     </View>
   );
 };
@@ -89,7 +95,6 @@ const styles = StyleSheet.create({
     marginTop: StatusBar.currentHeight,
     flex: 1,
     padding: 20,
-    backgroundColor: "#f8f8f8",
   },
   header: {
     fontSize: 24,
