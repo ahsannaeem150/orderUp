@@ -67,7 +67,15 @@ const ItemDetailsScreen = () => {
               logo: restaurant.logo,
               phone: restaurant.phone,
             },
-            order: [{ _id: item._id, quantity: 1 }],
+            order: [
+              {
+                _id: item._id,
+                name: item.name,
+                image: item.image,
+                price: item.price,
+                quantity: 1,
+              },
+            ],
           },
         ],
       });
@@ -91,7 +99,15 @@ const ItemDetailsScreen = () => {
               logo: restaurant.logo,
               phone: restaurant.phone,
             },
-            order: [{ _id: item._id, quantity: 1 }],
+            order: [
+              {
+                _id: item._id,
+                name: item.name,
+                image: item.image,
+                price: item.price,
+                quantity: 1,
+              },
+            ],
           },
         ],
       });
@@ -122,7 +138,16 @@ const ItemDetailsScreen = () => {
           if (restItem.restaurant._id == restaurant._id) {
             return {
               ...restItem,
-              order: [...restItem.order, { _id: item._id, quantity: 1 }],
+              order: [
+                ...restItem.order,
+                {
+                  _id: item._id,
+                  name: item.name,
+                  image: item.image,
+                  price: item.price,
+                  quantity: 1,
+                },
+              ],
             };
           }
           return restItem;

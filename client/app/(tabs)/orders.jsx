@@ -11,16 +11,21 @@ import {
 import { AuthContext } from "../context/authContext";
 import Icon from "react-native-vector-icons/Ionicons";
 import { images } from "../../constants";
+import { router } from "expo-router";
 
 const Orders = () => {
   const { cart, setCart } = useContext(AuthContext);
+
+  const handlePress = (id, index) => {
+    router.push({ pathname: `order/${id}`, params: { index } });
+  };
   const deleteRestaurant = (restaurantId) => {
     const updatedCart = cart.orderList.filter((orderItem) => {
       return orderItem.restaurant._id !== restaurantId;
     });
     setCart({ orderList: updatedCart });
   };
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item, index }) => (
     <View
       style={[
         {
@@ -38,7 +43,9 @@ const Orders = () => {
           flexDirection: "row",
           alignItems: "center",
         }}
-        onPress={() => {}}
+        onPress={() => {
+          handlePress(item.restaurant._id, index);
+        }}
       >
         <View style={styles.avatarContainer}>
           <Image
