@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   View,
@@ -12,14 +12,21 @@ import {
 import { AuthContext } from "../context/authContext";
 import Icon from "react-native-vector-icons/Ionicons";
 import { images } from "../../constants";
+import CustomButton from "../components/CustomButtons";
 
 const Order = () => {
-  const { cart, setCart } = useContext(AuthContext);
+  const { state, cart, setCart, setCheckout } = useContext(AuthContext);
   const { id, index: restaurantIndex } = useLocalSearchParams();
+  const handleCheckoutPress = () => {
+    setCheckout({
+      restaurant: { restaurantId: id, restaurantIndex: restaurantIndex },
+      order: cart.orderList[restaurantIndex],
+    });
+    router.push("/checkout");
+  };
   const orderDetails = cart.orderList.find(
     (order) => order.restaurant._id == id
   );
-  console.log(orderDetails.order);
 
   // Function to increase quantity
   const increaseQuantity = (index) => {
@@ -195,9 +202,14 @@ const Order = () => {
             </View>
           )}
         />
-        <TouchableOpacity style={styles.checkoutButton}>
+        <CustomButton
+          title={"Checkout"}
+          onPress={() => {
+            handleCheckoutPress();
+          }}
+        >
           <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
-        </TouchableOpacity>
+        </CustomButton>
       </View>
     </View>
   );

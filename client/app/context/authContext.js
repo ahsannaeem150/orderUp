@@ -11,6 +11,7 @@ const AuthProvider = ({ children }) => {
   const [restaurant, setRestaurant] = useState({ restaurant: undefined });
   const [item, setItem] = useState({ item: undefined });
   const [cart, setCart] = useState(null);
+  const [checkout, setCheckout] = useState(null);
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState({
     user: undefined,
@@ -88,6 +89,8 @@ const AuthProvider = ({ children }) => {
         setItem,
         cart,
         setCart,
+        checkout,
+        setCheckout,
       }}
     >
       {children}

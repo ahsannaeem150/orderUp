@@ -14,12 +14,10 @@ const App = () => {
     async function prepare() {
       try {
         console.log("State =>", state, "Loading=>", loading);
-        // delay for two seconds to simulate a slow loading
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         console.warn(e);
       } finally {
-        // Tell the application to render
         setAppIsReady(true);
         if (!loading && state.user !== undefined) {
           router.replace("./home");
