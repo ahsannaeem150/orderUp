@@ -76,7 +76,7 @@ const Orders = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Your Orders</Text>
-      {cart == null ? (
+      {cart == null || cart.orderList.length == 0 ? (
         <View
           style={{
             justifyContent: "center",

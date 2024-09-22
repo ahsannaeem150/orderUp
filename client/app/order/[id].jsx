@@ -95,6 +95,49 @@ const Order = () => {
       </TouchableOpacity>
     </View>
   );
+  const priceList = ({ item, index }) => (
+    <View
+      style={{
+        justifyContent: "space-between",
+        flexDirection: "row",
+        alignItems: "center",
+        width: "100%",
+      }}
+    >
+      <View style={{ flexDirection: "row", width: "10%" }}></View>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          width: "40%",
+        }}
+      >
+        <Text>{item.name}</Text>
+      </View>
+
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          width: "30%",
+          justifyContent: "flex-end",
+        }}
+      >
+        <Text>x</Text>
+        <Text>{item.quantity}</Text>
+      </View>
+
+      <View
+        style={{
+          alignItems: "center",
+          width: "20%",
+          justifyContent: "flex-end",
+        }}
+      >
+        <Text style={styles.priceText}>{item.price * item.quantity}</Text>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -118,10 +161,40 @@ const Order = () => {
         />
       )}
       <View style={styles.totalContainer}>
-        <Text style={styles.totalText}>
-          Rs.
-          {/* {cart.reduce((acc, item) => acc + item.price * item.quantity, 0)} */}
-        </Text>
+        <FlatList
+          data={orderDetails.order}
+          keyExtractor={(item) => item._id}
+          renderItem={priceList}
+          contentContainerStyle={styles.totalList}
+          ListFooterComponent={() => (
+            <View
+              style={{
+                borderTopWidth: 1,
+                marginTop: 20,
+                borderTopColor: "#e0e0e0",
+                width: "100%",
+                flexDirection: "row",
+              }}
+            >
+              <View style={{ width: "80%" }}></View>
+              <View
+                style={[
+                  styles.totalContainer,
+                  { marginBottom: 0, width: "20%", borderTopWidth: 0 },
+                ]}
+              >
+                <Text style={styles.totalText}>
+                  {cart.orderList[restaurantIndex].order.reduce(
+                    (total, order) => {
+                      return total + order.quantity * order.price;
+                    },
+                    0
+                  )}
+                </Text>
+              </View>
+            </View>
+          )}
+        />
         <TouchableOpacity style={styles.checkoutButton}>
           <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
         </TouchableOpacity>
@@ -215,7 +288,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   totalText: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "600",
     color: "#333",
   },
