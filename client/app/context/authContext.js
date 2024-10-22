@@ -82,14 +82,14 @@ const AuthProvider = ({ children }) => {
     getCartFromAsyncStorage();
   }, []);
 
-  const updateCart = async (cart) => {
+  const updateStorageAttribute = async (data, key) => {
     try {
-      if (cart) {
-        await AsyncStorage.setItem("@cart", JSON.stringify(cart));
-        console.log("CART STORED IN ASYNCSTORAGE");
+      if (data) {
+        await AsyncStorage.setItem(`@${key}`, JSON.stringify(data));
+        console.log(`${key} STORED IN ASYNCSTORAGE`);
       }
     } catch (error) {
-      console.error("Error updating cart:", error);
+      console.error(`Error updating ${key}:`, error);
     }
   };
 
@@ -105,7 +105,7 @@ const AuthProvider = ({ children }) => {
     if (nextAppState === "background") {
       console.log("App is going to the background");
       if (cart !== null && state.token) {
-        updateCart(cart);
+        updateStorageAttribute(cart, "cart");
         setCartInAsyncStorage();
       } else {
         console.warn("Cart is null, skipping AsyncStorage update");
