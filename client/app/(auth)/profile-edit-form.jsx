@@ -10,7 +10,7 @@ import axios from "axios";
 
 const ProfileEditForm = () => {
   //GlobalState
-  const { state, setState } = useContext(AuthContext);
+  const { state, setState, updateState } = useContext(AuthContext);
   //Local State
   const [username, setUsername] = useState(state.user?.name);
   const [phone, setPhone] = useState(state.user?.phone);
@@ -43,7 +43,8 @@ const ProfileEditForm = () => {
       console.log("Data sent => ", data);
       //Set the user to Global state
       setState({ user: data.user, token: state.token });
-      console.log("STate", state);
+      updateState({ user: data.user, token: state.token });
+      console.log("State", state);
       router.navigate("/profile");
     } catch (error) {
       console.log(error);

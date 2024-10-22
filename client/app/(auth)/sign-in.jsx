@@ -10,7 +10,7 @@ import axios from "axios";
 
 const SignIn = () => {
   //GlobalState
-  const { state, setState } = useContext(AuthContext);
+  const { state, setState, updateState } = useContext(AuthContext);
   //Local State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,16 +34,16 @@ const SignIn = () => {
       console.log("SIGN IN LOG Data => ", data);
       //Set the user to Global state
       setState({ user: data.user, token: data.token });
+      updateState({ user: data.user, token: data.token });
       setLoading(false);
 
       //Store the token in AsyncStorage
-      await AsyncStorage.setItem("@auth", JSON.stringify(data));
       router.replace("/home");
       console.log(data && data.message);
       alert(data && data.message);
     } catch (error) {
-      console.log(error.response.data.message);
-      Alert.alert(error.response.data.message);
+      console.log(error?.response?.data?.message);
+      Alert.alert(error?.response?.data?.message);
     } finally {
       setLoading(false);
     }

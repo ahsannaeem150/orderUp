@@ -20,10 +20,10 @@ const Orders = () => {
     router.push({ pathname: `order/${id}`, params: { index } });
   };
   const deleteRestaurant = (restaurantId) => {
-    const updatedCart = cart.orderList.filter((orderItem) => {
+    const updatedCart = cart.filter((orderItem) => {
       return orderItem.restaurant._id !== restaurantId;
     });
-    setCart({ orderList: updatedCart });
+    setCart(updatedCart);
   };
   const renderItem = ({ item, index }) => (
     <View
@@ -76,7 +76,7 @@ const Orders = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Your Orders</Text>
-      {cart == null || cart.orderList.length == 0 ? (
+      {cart == null || cart.length == 0 ? (
         <View
           style={{
             justifyContent: "center",
@@ -88,7 +88,7 @@ const Orders = () => {
         </View>
       ) : (
         <FlatList
-          data={cart.orderList}
+          data={cart}
           renderItem={renderItem}
           keyExtractor={(item) => item.restaurant._id}
         />

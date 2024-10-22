@@ -7,29 +7,42 @@ import {
   TextInput,
   Image,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import React, { useContext, useState } from "react";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { CheckBox } from "@rneui/themed";
 
 import { AuthContext } from "../context/authContext";
-import FormField from "../components/FormField";
 import CheckoutInput from "../components/CheckoutInput";
-import { images } from "../../constants";
 import CheckboxInput from "../components/CheckboxInput";
-import CustomButton from "../components/CustomButtons";
 import BlackButton from "../components/BlackButton";
 
 const checkout = () => {
-  const { state, checkout } = useContext(AuthContext);
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
+  const { state, checkout, setCart } = useContext(AuthContext);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const [name, setName] = useState(state.user.name);
   const [phone, setPhone] = useState(state.user.phone);
   const [city, setCity] = useState(state.user.address?.city);
   const [address, setAddress] = useState(state.user.address?.address);
+
+  const handleCheckoutPress = () => {
+    if (!name) {
+      return Alert.alert("Please enter name");
+    }
+    if (!phone) {
+      return Alert.alert("Please enter phone");
+    }
+    if (!city) {
+      return Alert.alert("Please enter city");
+    }
+    if (!address) {
+      return Alert.alert("Please enter address");
+    }
+  };
   return (
-    <ScrollView>
+    <ScrollView style={{ height: "100%" }}>
       <View style={styles.container}>
         <Text style={styles.title}>Checkout</Text>
         <View style={styles.header}>
@@ -227,6 +240,9 @@ const checkout = () => {
               </View>
               <View style={{ flex: 0.5 }}>
                 <BlackButton
+                  onPress={() => {
+                    handleCheckoutPress();
+                  }}
                   title={"Checkout"}
                   buttonStyle={{ backgroundColor: "black" }}
                 />

@@ -20,31 +20,30 @@ const Order = () => {
   const handleCheckoutPress = () => {
     setCheckout({
       restaurant: { restaurantId: id, restaurantIndex: restaurantIndex },
-      order: cart.orderList[restaurantIndex],
+      order: cart[restaurantIndex],
     });
+
     router.push("/checkout");
   };
-  const orderDetails = cart.orderList.find(
-    (order) => order.restaurant._id == id
-  );
+  const orderDetails = cart.find((order) => order.restaurant._id == id);
 
   // Function to increase quantity
   const increaseQuantity = (index) => {
     setCart((prev) => {
-      const newOrderList = [...prev.orderList];
+      const newOrderList = [...prev];
       const restaurant = newOrderList[restaurantIndex];
       const order = restaurant.order[index];
       if (order) {
         order.quantity += 1;
       }
-      return { orderList: newOrderList };
+      return newOrderList;
     });
   };
 
   // Function to decrease quantity
   const decreaseQuantity = (index) => {
     setCart((prev) => {
-      const newOrderList = [...prev.orderList];
+      const newOrderList = [...prev];
       const restaurant = newOrderList[restaurantIndex];
       const order = restaurant.order[index];
       if (order) {
@@ -53,21 +52,21 @@ const Order = () => {
           order.quantity -= 1;
         }
       }
-      return { orderList: newOrderList };
+      return newOrderList;
     });
   };
 
   // Function to delete an item
   const deleteItem = (index) => {
     setCart((prev) => {
-      const newOrderList = [...prev.orderList];
+      const newOrderList = [...prev];
       const restaurant = newOrderList[restaurantIndex];
       restaurant.order.splice(index, 1);
       if (restaurant.order.length == 0) {
         newOrderList.splice(restaurantIndex, 1);
         router.back();
       }
-      return { orderList: newOrderList };
+      return newOrderList;
     });
   };
 
@@ -191,12 +190,9 @@ const Order = () => {
                 ]}
               >
                 <Text style={styles.totalText}>
-                  {cart.orderList[restaurantIndex].order.reduce(
-                    (total, order) => {
-                      return total + order.quantity * order.price;
-                    },
-                    0
-                  )}
+                  {cart[restaurantIndex].order.reduce((total, order) => {
+                    return total + order.quantity * order.price;
+                  }, 0)}
                 </Text>
               </View>
             </View>

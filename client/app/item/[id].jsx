@@ -19,8 +19,7 @@ import { images } from "../../constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ItemDetailsScreen = () => {
-  const { state, item, restaurant, cart, setCart, updateCart } =
-    useContext(AuthContext);
+  const { state, item, restaurant, cart, setCart } = useContext(AuthContext);
   const [rating, setRating] = useState(0);
   const [loading, setLoading] = useState(true);
   const [review, setReview] = useState("");
@@ -58,103 +57,81 @@ const ItemDetailsScreen = () => {
 
   const handleAddToCartPress = () => {
     if (cart == null) {
-      setCart({
-        orderList: [
-          {
-            restaurant: {
-              _id: restaurant._id,
-              name: restaurant.name,
-              logo: restaurant.logo,
-              phone: restaurant.phone,
-            },
-            order: [
-              {
-                _id: item._id,
-                name: item.name,
-                image: item.image,
-                price: item.price,
-                quantity: 1,
-              },
-            ],
+      const newCart = [
+        {
+          restaurant: {
+            _id: restaurant._id,
+            name: restaurant.name,
+            logo: restaurant.logo,
+            phone: restaurant.phone,
           },
-        ],
-      });
+          order: [
+            {
+              _id: item._id,
+              name: item.name,
+              image: item.image,
+              price: item.price,
+              quantity: 1,
+            },
+          ],
+        },
+      ];
+      setCart(newCart);
       return;
     }
+    const tempCart = [...cart];
 
     // FIND RESTAURANT IN CART
-    let restaurantInCart = cart?.orderList?.find((cartItem) => {
+    let restaurantInCart = tempCart?.find((cartItem) => {
       return cartItem?.restaurant._id == restaurant._id;
     });
 
     // IF NO RESTAURANT, THEN ADD RESTAURANT
     if (!restaurantInCart) {
-      setCart({
-        orderList: [
-          ...cart.orderList,
-          {
-            restaurant: {
-              _id: restaurant._id,
-              name: restaurant.name,
-              logo: restaurant.logo,
-              phone: restaurant.phone,
-            },
-            order: [
-              {
-                _id: item._id,
-                name: item.name,
-                image: item.image,
-                price: item.price,
-                quantity: 1,
-              },
-            ],
+      const newCart = [
+        ...tempCart,
+        {
+          restaurant: {
+            _id: restaurant._id,
+            name: restaurant.name,
+            logo: restaurant.logo,
+            phone: restaurant.phone,
           },
-        ],
-      });
-    } else {
-      const itemInCart = restaurantInCart.order.find(
-        (menuItem) => menuItem._id == item._id
-      );
-
-      // IF ITEM IS ALREADY IN CART, THEN INCREMENT QUANTITY
-      if (itemInCart) {
-        console.log("ITEM IN CART");
-        const updatedCart = cart.orderList.map((restItem) => {
-          if (restItem.restaurant._id == restaurant._id) {
-            const updatedOrder = restItem.order.map((menuItem) => {
-              if (menuItem._id == item._id) {
-                return { ...menuItem, quantity: menuItem.quantity + 1 };
-              }
-              return menuItem;
-            });
-            return { ...restItem, order: updatedOrder };
-          }
-          return restItem;
-        });
-        setCart({ orderList: updatedCart });
-      } else {
-        console.log("ADDING NEW ITEM TO RESTAURANT ORDER");
-        const updatedCart = cart.orderList.map((restItem) => {
-          if (restItem.restaurant._id == restaurant._id) {
-            return {
-              ...restItem,
-              order: [
-                ...restItem.order,
-                {
-                  _id: item._id,
-                  name: item.name,
-                  image: item.image,
-                  price: item.price,
-                  quantity: 1,
-                },
-              ],
-            };
-          }
-          return restItem;
-        });
-        setCart({ orderList: updatedCart });
-      }
+          order: [
+            {
+              _id: item._id,
+              name: item.name,
+              image: item.image,
+              price: item.price,
+              quantity: 1,
+            },
+          ],
+        },
+      ];
+      setCart(newCart);
+      return;
     }
+
+    const itemInCart = restaurantInCart.order.find(
+      (menuItem) => menuItem._id == item._id
+    );
+
+    // IF ITEM IS ALREADY IN CART, THEN INCREMENT QUANTITY
+    if (itemInCart) {
+      console.log("ITEM IN CART");
+      itemInCart.quantity += 1;
+    } else {
+      console.log("ADDING NEW ITEM TO RESTAURANT ORDER");
+      restaurantInCart.order.push({
+        _id: item._id,
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        quantity: 1,
+      });
+    }
+    console.log("hi");
+    setCart(tempCart);
   };
 
   const renderReview = ({ item }) => (

@@ -12,12 +12,13 @@ import { Buffer } from "buffer";
 import ProfileInfoCard from "../components/ProfileInfoCard";
 
 const Profile = () => {
-  const { state, setState } = useContext(AuthContext);
+  const { state, setState, updateState } = useContext(AuthContext);
   const [imageUri, setImageUri] = useState(null);
 
   const logout = async () => {
     setTimeout(() => {
       setState({ user: undefined, token: "" });
+      updateState({ user: undefined, token: "" });
     }, 500);
     router.replace("/sign-in");
   };
@@ -55,7 +56,7 @@ const Profile = () => {
       }
     };
     getProfilePicture();
-  }, [imageUri, state]);
+  }, []);
   return (
     <View style={styles.container}>
       <View style={styles.profileImageContainer}>
@@ -103,7 +104,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
-    marginTop: 20,
+    marginTop: "20%",
     padding: 20,
   },
   profileImageContainer: {

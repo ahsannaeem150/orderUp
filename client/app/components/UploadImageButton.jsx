@@ -6,7 +6,7 @@ import axios from "axios";
 import { AuthContext } from "../context/authContext";
 
 const UploadImageButton = ({ style }) => {
-  const { state, setState } = useContext(AuthContext);
+  const { state, setState, updateState } = useContext(AuthContext);
   const [selectedImage, setSelectedImage] = useState(null);
 
   const pickImageAsync = async () => {
@@ -52,6 +52,7 @@ const UploadImageButton = ({ style }) => {
 
         console.log("Returned User=>", response.data.user);
         setState({ ...state, user: response.data.user });
+        updateState({ ...state, user: response.data.user });
       }
     } catch (error) {
       console.log(error.response?.data?.message || error.message);
