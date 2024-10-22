@@ -9,6 +9,14 @@ const TabBar = ({ state, descriptors, navigation }) => {
     home: (props) => (
       <AntDesign name="home" size={26} color={secondaryColor} {...props} />
     ),
+    cart: (props) => (
+      <AntDesign
+        name="shoppingcart"
+        size={26}
+        color={secondaryColor}
+        {...props}
+      />
+    ),
     orders: (props) => (
       <AntDesign name="hourglass" size={26} color={secondaryColor} {...props} />
     ),

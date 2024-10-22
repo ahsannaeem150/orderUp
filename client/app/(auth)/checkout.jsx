@@ -54,7 +54,7 @@ const checkout = () => {
       if (prev) {
         return [...prev, activeOrder[0]];
       }
-      return activeOrder[0];
+      return [activeOrder[0]];
     });
     Alert.alert("Order Confirmed");
     router.dismissAll();

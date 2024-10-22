@@ -13,8 +13,18 @@ import Icon from "react-native-vector-icons/Ionicons";
 import { images } from "../../constants";
 import { router } from "expo-router";
 
-const Orders = () => {
-  const { activeOrders, setActiveOrders } = useContext(AuthContext);
+const Cart = () => {
+  const { cart, setCart } = useContext(AuthContext);
+
+  const handlePress = (id, index) => {
+    router.push({ pathname: `order/${id}`, params: { index } });
+  };
+  const deleteRestaurant = (restaurantId) => {
+    const updatedCart = cart.filter((orderItem) => {
+      return orderItem.restaurant._id !== restaurantId;
+    });
+    setCart(updatedCart);
+  };
 
   const renderActiveOrders = ({ item, index }) => (
     <View
@@ -48,23 +58,74 @@ const Orders = () => {
         <View>
           <Text style={styles.restaurantName}>{item.restaurant.name}</Text>
           <Text style={styles.restaurantDetails}>
-            Items in order:{" "}
+            Items in cart:{" "}
             {item.order.reduce((quant, item) => {
               return quant + item.quantity;
             }, 0)}
           </Text>
         </View>
       </TouchableOpacity>
-      <View style={styles.deleteButton}>
-        <Text style={{ color: "red" }}>PENDING</Text>
-      </View>
+      <TouchableOpacity
+        onPress={() => deleteRestaurant(item.restaurant._id)}
+        style={styles.deleteButton}
+      >
+        <Icon name="trash-outline" size={30} color="red" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderItem = ({ item, index }) => (
+    <View
+      style={[
+        {
+          flex: 1,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        },
+        styles.card,
+      ]}
+    >
+      <TouchableOpacity
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+        onPress={() => {
+          handlePress(item.restaurant._id, index);
+        }}
+      >
+        <View style={styles.avatarContainer}>
+          <Image
+            source={{ uri: item.restaurant.logo }}
+            style={styles.avatar}
+            resizeMode="cover"
+          />
+        </View>
+        <View>
+          <Text style={styles.restaurantName}>{item.restaurant.name}</Text>
+          <Text style={styles.restaurantDetails}>
+            Items in cart:{" "}
+            {item.order.reduce((quant, item) => {
+              return quant + item.quantity;
+            }, 0)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => deleteRestaurant(item.restaurant._id)}
+        style={styles.deleteButton}
+      >
+        <Icon name="trash-outline" size={30} color="red" />
+      </TouchableOpacity>
     </View>
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Your Orders</Text>
-      {activeOrders == null || activeOrders.length == 0 ? (
+      {cart == null || cart.length == 0 ? (
         <View
           style={{
             justifyContent: "center",
@@ -76,8 +137,8 @@ const Orders = () => {
         </View>
       ) : (
         <FlatList
-          data={activeOrders}
-          renderItem={renderActiveOrders}
+          data={cart}
+          renderItem={renderItem}
           keyExtractor={(item) => item.restaurant._id}
         />
       )}
@@ -144,4 +205,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Orders;
+export default Cart;
