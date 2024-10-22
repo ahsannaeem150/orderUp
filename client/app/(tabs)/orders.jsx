@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,8 @@ import { images } from "../../constants";
 import { router } from "expo-router";
 
 const Orders = () => {
-  const { cart, setCart } = useContext(AuthContext);
+  const { cart, setCart, activeOrders, setActiveOrders } =
+    useContext(AuthContext);
 
   const handlePress = (id, index) => {
     router.push({ pathname: `order/${id}`, params: { index } });
@@ -25,6 +26,59 @@ const Orders = () => {
     });
     setCart(updatedCart);
   };
+
+  useEffect(() => {
+    console.log("active =>", activeOrders);
+  }, [activeOrders]);
+
+  const renderActiveOrders = ({ item, index }) => (
+    <View
+      style={[
+        {
+          flex: 1,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        },
+        styles.card,
+      ]}
+    >
+      <TouchableOpacity
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+        onPress={() => {
+          handlePress(item.restaurant._id, index);
+        }}
+      >
+        <View style={styles.avatarContainer}>
+          <Image
+            source={{ uri: item.restaurant.logo }}
+            style={styles.avatar}
+            resizeMode="cover"
+          />
+        </View>
+        <View>
+          <Text style={styles.restaurantName}>{item.restaurant.name}</Text>
+          <Text style={styles.restaurantDetails}>
+            Items in cart:{" "}
+            {item.order.reduce((quant, item) => {
+              return quant + item.quantity;
+            }, 0)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => deleteRestaurant(item.restaurant._id)}
+        style={styles.deleteButton}
+      >
+        <Icon name="trash-outline" size={30} color="red" />
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderItem = ({ item, index }) => (
     <View
       style={[

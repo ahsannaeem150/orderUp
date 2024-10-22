@@ -17,9 +17,11 @@ import { AuthContext } from "../context/authContext";
 import CheckoutInput from "../components/CheckoutInput";
 import CheckboxInput from "../components/CheckboxInput";
 import BlackButton from "../components/BlackButton";
+import { router } from "expo-router";
 
 const checkout = () => {
-  const { state, checkout, setCart } = useContext(AuthContext);
+  const { state, checkout, setCart, activeOrders, setActiveOrders } =
+    useContext(AuthContext);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const [name, setName] = useState(state.user.name);
@@ -40,6 +42,23 @@ const checkout = () => {
     if (!address) {
       return Alert.alert("Please enter address");
     }
+
+    setActiveOrders((prev) => {
+      let activeOrder = [];
+      //Remove order from the cart
+      setCart((prev) => {
+        activeOrder = prev.splice(checkout.restaurant.restaurantIndex);
+        return prev;
+      });
+      //Assign the removed order from cart to ActiveOrders
+      if (prev) {
+        return [...prev, activeOrder[0]];
+      }
+      return activeOrder[0];
+    });
+    Alert.alert("Order Confirmed");
+    router.dismissAll();
+    router.replace("orders");
   };
   return (
     <ScrollView style={{ height: "100%" }}>
