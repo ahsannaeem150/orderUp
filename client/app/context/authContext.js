@@ -19,7 +19,7 @@ const AuthProvider = ({ children }) => {
 
   const appState = useRef(AppState.currentState);
 
-  axios.defaults.baseURL = "http://192.168.90.185:8080/api";
+  axios.defaults.baseURL = "http://192.168.100.51:8080/api";
 
   //LOAD STATE INFO
   useEffect(() => {
@@ -38,7 +38,12 @@ const AuthProvider = ({ children }) => {
   }, []);
 
   // reusable function to store cart and activeorders in async storage
-  const setAttributeInAsyncStorage = async (collection , collectionName , collectionListName ) => { //cart , "cart" , "restaurantsInCartList"
+  const setAttributeInAsyncStorage = async (
+    collection,
+    collectionName,
+    collectionListName
+  ) => {
+    //cart , "cart" , "restaurantsInCartList"
     const restaurantsInCollection = [];
 
     for (const orderItem of collection) {
@@ -59,14 +64,21 @@ const AuthProvider = ({ children }) => {
     );
   };
 
-  const getAttributeFromAsyncStorage = async (setCollection, collectionName,collectionListName) => { //setCart , "cart" , "restaurantsInCartList"
+  const getAttributeFromAsyncStorage = async (
+    setCollection,
+    collectionName,
+    collectionListName
+  ) => {
+    //setCart , "cart" , "restaurantsInCartList"
     let restaurantsInCollectionString = await AsyncStorage.getItem(
       `@${collectionListName}`
     );
     let restaurantsInCollectionJson = JSON.parse(restaurantsInCollectionString);
     if (restaurantsInCollectionJson) {
       restaurantsInCollectionJson.map(async (restaurantId) => {
-        orderItemString = await AsyncStorage.getItem(`@${collectionName}_${restaurantId}`);
+        orderItemString = await AsyncStorage.getItem(
+          `@${collectionName}_${restaurantId}`
+        );
         orderItemJson = JSON.parse(orderItemString);
         setCollection((prev) => {
           if (prev) {
@@ -80,8 +92,12 @@ const AuthProvider = ({ children }) => {
 
   //LOAD CART INFO
   useEffect(() => {
-    getAttributeFromAsyncStorage(setCart , "cart" , "restaurantsInCartList");
-    getAttributeFromAsyncStorage(setActiveOrders , "activeOrders" , "restaurantsInActiveOrdersList");
+    getAttributeFromAsyncStorage(setCart, "cart", "restaurantsInCartList");
+    getAttributeFromAsyncStorage(
+      setActiveOrders,
+      "activeOrders",
+      "restaurantsInActiveOrdersList"
+    );
   }, []);
 
   const updateStorageAttribute = async (data, key) => {
@@ -106,14 +122,19 @@ const AuthProvider = ({ children }) => {
 
     if (nextAppState === "background") {
       console.log("App is going to the background");
-      if (state.token) { //if user Logged In
-        if(activeOrders){
-          console.log("Setting Active Orders")
-          setAttributeInAsyncStorage(activeOrders , "activeOrders" , "restaurantsInActiveOrdersList")
+      if (state.token) {
+        //if user Logged In
+        if (activeOrders) {
+          console.log("Setting Active Orders");
+          setAttributeInAsyncStorage(
+            activeOrders,
+            "activeOrders",
+            "restaurantsInActiveOrdersList"
+          );
         }
-        if(cart){
-          console.log("Setting Cart")
-          setAttributeInAsyncStorage(cart , "cart" , "restaurantsInCartList");
+        if (cart) {
+          console.log("Setting Cart");
+          setAttributeInAsyncStorage(cart, "cart", "restaurantsInCartList");
         }
       } else {
         console.warn("Cart is null, skipping AsyncStorage update");

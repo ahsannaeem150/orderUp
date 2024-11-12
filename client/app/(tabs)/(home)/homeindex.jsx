@@ -12,13 +12,14 @@ import {
   TouchableOpacity,
   TextInput,
 } from "react-native";
-import { AuthContext } from "../context/authContext";
-import { images } from "../../constants";
-import RestaurantCard from "../components/RestaurantCard";
-import SearchField from "../components/SearchField";
-import { useFetchRestaurants } from "../hooks/useFetchRestaurants";
-import RestaurantHorizontalList from "../components/RestaurantHorizontalList";
+
 import { router } from "expo-router";
+import { AuthContext } from "../../context/authContext";
+import { images } from "../../../constants";
+import RestaurantCard from "../../components/RestaurantCard";
+import SearchField from "../../components/SearchField";
+import { useFetchRestaurants } from "../../hooks/useFetchRestaurants";
+import RestaurantHorizontalList from "../../components/RestaurantHorizontalList";
 
 const HorizontalRestaurantList = () => {
   const [refreshing, setRefreshing] = useState(false);

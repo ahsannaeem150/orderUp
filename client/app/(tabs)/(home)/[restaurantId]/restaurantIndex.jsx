@@ -9,9 +9,10 @@ import {
   ActivityIndicator,
   StatusBar,
 } from "react-native";
-import { AuthContext } from "../context/authContext";
-import { useFetchItems } from "../hooks/useFetchItems";
 import { router } from "expo-router";
+import { AuthContext } from "../../../context/authContext";
+import { useFetchItems } from "../../../hooks/useFetchItems";
+import PageHeader from "../../../components/PageHeader";
 const MenuItemsScreen = () => {
   const { restaurant, setItem } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
@@ -54,6 +55,7 @@ const MenuItemsScreen = () => {
 
   return (
     <View style={styles.container}>
+      <PageHeader />
       <View style={styles.headerContainer}>
         <Image source={{ uri: restaurant.logo }} style={styles.logo} />
         <View style={styles.headerTextContainer}>
@@ -88,6 +90,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: StatusBar.currentHeight,
     padding: 16,
+    backgroundColor: "#FFFF",
   },
   headerContainer: {
     flexDirection: "row",

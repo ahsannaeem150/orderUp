@@ -6,7 +6,7 @@ const TabBar = ({ state, descriptors, navigation }) => {
   const primaryColor = "blue";
   const secondaryColor = "black";
   const icons = {
-    home: (props) => (
+    "(home)": (props) => (
       <AntDesign name="home" size={26} color={secondaryColor} {...props} />
     ),
     cart: (props) => (
@@ -27,6 +27,7 @@ const TabBar = ({ state, descriptors, navigation }) => {
   return (
     <View style={styles.tabBar}>
       {state.routes.map((route, index) => {
+        console.log("Route=>", route);
         const { options } = descriptors[route.key];
         const label =
           options.tabBarLabel !== undefined
@@ -58,6 +59,7 @@ const TabBar = ({ state, descriptors, navigation }) => {
           });
         };
 
+        console.log("WARNING", route.name);
         return (
           <TouchableOpacity
             key={route.key}

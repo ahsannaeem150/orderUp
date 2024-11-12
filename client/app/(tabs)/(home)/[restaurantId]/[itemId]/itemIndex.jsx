@@ -3,20 +3,18 @@ import {
   View,
   Text,
   Image,
-  TouchableOpacity,
   StyleSheet,
   FlatList,
   TextInput,
   ActivityIndicator,
   StatusBar,
 } from "react-native";
-import { AuthContext } from "../context/authContext";
-import CustomButton from "../components/CustomButtons";
+import { AuthContext } from "../../../../context/authContext";
+import CustomButton from "../../../../components/CustomButtons";
 import StarRating from "react-native-star-rating-widget";
 import axios from "axios";
-import { useFetchReviews } from "../hooks/useFetchItemReviews";
-import { images } from "../../constants";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFetchReviews } from "../../../../hooks/useFetchItemReviews";
+import { images } from "../../../../../constants";
 
 const ItemDetailsScreen = () => {
   const { state, item, restaurant, cart, setCart } = useContext(AuthContext);
