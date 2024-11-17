@@ -35,9 +35,13 @@ const RestaurantCard = ({
             </View>
           </View>
         </TouchableOpacity>
-        <View style={styles.divider} />
+        <View style={[styles.divider, { marginVertical: 5 }]} />
 
-        <TouchableOpacity activeOpacity={0.7} style={styles.thumbnailContainer}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.thumbnailContainer}
+          onPress={() => headerPressHandler()}
+        >
           <Image
             source={{ uri: thumbnail }}
             style={styles.thumbnail}
@@ -61,7 +65,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderColor: "#9ca3af",
     paddingHorizontal: 16,
-    marginBottom: 15,
   },
   header: {
     flexDirection: "row",

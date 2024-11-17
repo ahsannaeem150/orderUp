@@ -37,7 +37,13 @@ const FormField = ({
           value={value}
           placeholder={placeHolder}
           placeholderTextColor="#7b7b8b"
-          onChangeText={handleChangeText}
+          onChangeText={(value) => {
+            if (value.includes(" ")) {
+              handleChangeText(value.trim());
+            } else {
+              handleChangeText(value);
+            }
+          }}
           secureTextEntry={showPassword}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}

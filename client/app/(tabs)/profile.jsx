@@ -20,7 +20,7 @@ const Profile = () => {
       setState({ user: undefined, token: "" });
       updateState({ user: undefined, token: "" });
     }, 500);
-    router.replace("/sign-in");
+    router.replace("../(auth)/sign-in");
   };
 
   console.log("Profile lg state=>", state);

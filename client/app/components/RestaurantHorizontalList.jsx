@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 
-const ItemCard = ({ item }) => {
+const ItemCard = ({ item, onPress }) => {
   return (
     <View style={{ marginRight: 20 }}>
       <TouchableOpacity
@@ -17,6 +17,9 @@ const ItemCard = ({ item }) => {
           alignItems: "center",
         }}
         activeOpacity={0.7}
+        onPress={() => {
+          onPress(item);
+        }}
       >
         <ImageBackground
           source={{
@@ -37,13 +40,15 @@ const ItemCard = ({ item }) => {
   );
 };
 
-const RestaurantHorizontalList = ({ posts }) => {
+const RestaurantHorizontalList = ({ posts, onRestaurantClick }) => {
   return (
     <FlatList
       data={posts}
       horizontal
       keyExtractor={(item) => item._id}
-      renderItem={({ item }) => <ItemCard item={item} />}
+      renderItem={({ item }) => (
+        <ItemCard item={item} onPress={onRestaurantClick} />
+      )}
     />
   );
 };

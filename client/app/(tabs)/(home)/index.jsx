@@ -32,7 +32,7 @@ const HorizontalRestaurantList = () => {
   const [loading, setLoading] = useState(true);
   const handleNavigatePress = (restaurant) => {
     setRestaurant(restaurant);
-    router.push(`restaurants/${restaurant._id}`);
+    router.push(`/(home)/${restaurant._id}`);
   };
 
   const onRefresh = useCallback(() => {
@@ -122,7 +122,10 @@ const HorizontalRestaurantList = () => {
                     Top Restaurants
                   </Text>
                 </View>
-                <RestaurantHorizontalList posts={restaurants} />
+                <RestaurantHorizontalList
+                  posts={restaurants}
+                  onRestaurantClick={handleNavigatePress}
+                />
               </>
             ) : (
               <></>
@@ -151,7 +154,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginBottom: 45,
-    marginTop: StatusBar.currentHeight,
   },
   headerContainer: {
     flex: 1,

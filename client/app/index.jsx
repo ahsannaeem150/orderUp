@@ -20,7 +20,7 @@ const App = () => {
       } finally {
         setAppIsReady(true);
         if (!loading && state.user !== undefined) {
-          router.replace("./homeindex");
+          router.replace("(home)");
         }
         if (!loading && state.user === undefined) {
           router.replace("./sign-in");

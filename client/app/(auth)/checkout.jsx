@@ -20,8 +20,7 @@ import BlackButton from "../components/BlackButton";
 import { router } from "expo-router";
 
 const checkout = () => {
-  const { state, checkout, setCart, activeOrders, setActiveOrders } =
-    useContext(AuthContext);
+  const { state, setCart, cart } = useContext(AuthContext);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const [name, setName] = useState(state.user.name);
@@ -77,41 +76,43 @@ const checkout = () => {
             Your Order
           </Text>
           <View style={styles.headerCard}>
-            {checkout.order.order.map((orderItem) => {
-              return (
-                <View
-                  key={orderItem.name}
-                  style={{ flexDirection: "row", flex: 1, padding: 10 }}
-                >
-                  <View style={{ flex: 3 }}>
-                    <Text style={{ fontFamily: "Poppins-Regular" }}>
-                      {orderItem.name}
-                    </Text>
-                  </View>
+            {cart.map((orderItem) => {
+              return orderItem.order.map((order) => {
+                return (
                   <View
-                    style={{
-                      flex: 1,
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
+                    key={order.name}
+                    style={{ flexDirection: "row", flex: 1, padding: 10 }}
                   >
-                    <Text style={{ fontFamily: "Poppins-Regular" }}>
-                      {orderItem.quantity}
-                    </Text>
+                    <View style={{ flex: 3 }}>
+                      <Text style={{ fontFamily: "Poppins-Regular" }}>
+                        {order.name}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontFamily: "Poppins-Regular" }}>
+                        {order.quantity}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontFamily: "Poppins-Regular" }}>
+                        {order.price * order.quantity}
+                      </Text>
+                    </View>
                   </View>
-                  <View
-                    style={{
-                      flex: 1,
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontFamily: "Poppins-Regular" }}>
-                      {orderItem.price * orderItem.quantity}
-                    </Text>
-                  </View>
-                </View>
-              );
+                );
+              });
             })}
             <View
               style={{
@@ -134,10 +135,14 @@ const checkout = () => {
                 }}
               >
                 <Text style={{ fontFamily: "Poppins-SemiBold" }}>
-                  {checkout.order.order.reduce(
-                    (total, order) => total + order.price * order.quantity,
-                    0
-                  )}
+                  {cart.reduce((price, orderItem) => {
+                    return (
+                      price +
+                      orderItem.order.reduce((itemPrice, item) => {
+                        return itemPrice + item.price * item.quantity;
+                      }, 0)
+                    );
+                  }, 0)}
                 </Text>
               </View>
             </View>
@@ -251,10 +256,14 @@ const checkout = () => {
                   }}
                 >
                   Rs{" "}
-                  {checkout.order.order.reduce(
-                    (total, order) => total + order.price * order.quantity,
-                    0
-                  )}
+                  {cart.reduce((price, orderItem) => {
+                    return (
+                      price +
+                      orderItem.order.reduce((itemPrice, item) => {
+                        return itemPrice + item.price * item.quantity;
+                      }, 0)
+                    );
+                  }, 0)}
                 </Text>
               </View>
               <View style={{ flex: 0.5 }}>
@@ -279,8 +288,8 @@ export default checkout;
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: StatusBar.currentHeight,
     flex: 1,
+    marginTop: 10,
     justifyContent: "space-between",
   },
   header: {
@@ -291,7 +300,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     alignSelf: "center",
-    fontFamily: "Poppins-Regular",
+    fontFamily: "Poppins-SemiBold",
   },
   headerCard: {
     flex: 1,

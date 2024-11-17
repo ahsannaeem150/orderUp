@@ -1,57 +1,68 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
   Image,
-  StyleSheet,
   FlatList,
+  StyleSheet,
   TextInput,
+  Modal,
+  Pressable,
   ActivityIndicator,
-  StatusBar,
+  TouchableOpacity,
 } from "react-native";
 import { AuthContext } from "../../../../context/authContext";
-import CustomButton from "../../../../components/CustomButtons";
 import StarRating from "react-native-star-rating-widget";
 import axios from "axios";
 import { useFetchReviews } from "../../../../hooks/useFetchItemReviews";
 import { images } from "../../../../../constants";
+import { router, useLocalSearchParams } from "expo-router";
+import { useFetchItems } from "../../../../hooks/useFetchItems";
+import RelatedItemsList from "../../../../components/RelatedItemsList";
+import PageHeader from "../../../../components/PageHeader";
 
 const ItemDetailsScreen = () => {
   const { state, item, restaurant, cart, setCart } = useContext(AuthContext);
   const [rating, setRating] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [review, setReview] = useState("");
-  const [reRender, setReRender] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
+  const [showAllReviews, setShowAllReviews] = useState(false); // State for toggling review visibility
+  const { restaurantId, itemId } = useLocalSearchParams();
+
   const { reviews, fetchReviews } = useFetchReviews(
     `/auth/restaurant/item/${item._id}/reviews`
   );
+  const { items, fetchItems } = useFetchItems(
+    `/auth/restaurant/${restaurant._id ? restaurant._id : restaurantId}/items`
+  );
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchData = async () => {
       setLoading(true);
+      if (items == null) {
+        await fetchItems();
+      }
       await fetchReviews();
       setLoading(false);
     };
-    fetch();
-  }, [reRender]);
+    fetchData();
+  }, []);
 
-  const handleSubmitPress = async () => {
-    if (rating == 0) {
-      alert("Please rate the item");
-      return;
-    }
-
-    if (review) {
-      await axios.post(
-        `/auth/restaurant/item/${item._id}/reviews/${state.user._id}`,
-        { review, rating }
+  useEffect(() => {
+    if (reviews != null && reviews.length > 0) {
+      const totalRating = reviews.reduce(
+        (sum, review) => sum + review.rating,
+        0
       );
-      setReview("");
-      setRating(0);
-      alert("Review Added");
-      setReRender((prev) => !prev);
+      let calculatedRating = totalRating / reviews.length;
+
+      calculatedRating = Math.round(calculatedRating * 2) / 2;
+
+      setAverageRating(parseFloat(calculatedRating.toFixed(1)));
     }
-  };
+  }, [reviews]);
 
   const handleAddToCartPress = () => {
     if (cart == null) {
@@ -75,6 +86,7 @@ const ItemDetailsScreen = () => {
         },
       ];
       setCart(newCart);
+      alert("Added To cart Succesfully");
       return;
     }
     const tempCart = [...cart];
@@ -107,6 +119,7 @@ const ItemDetailsScreen = () => {
         },
       ];
       setCart(newCart);
+      alert("Added To cart Succesfully");
       return;
     }
 
@@ -132,255 +145,252 @@ const ItemDetailsScreen = () => {
     setCart(tempCart);
   };
 
+  const handleSubmitReview = async () => {
+    if (rating === 0) {
+      alert("Please provide a rating.");
+      return;
+    }
+    if (review) {
+      await axios.post(
+        `/auth/restaurant/item/${item._id}/reviews/${state.user._id}`,
+        { review, rating }
+      );
+      alert("Review added successfully!");
+      setReview("");
+      setRating(0);
+      setIsModalVisible(false);
+      fetchReviews();
+    }
+  };
+
   const renderReview = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.header}>
+    <View style={styles.reviewCard}>
+      <View style={styles.reviewHeader}>
         <Image source={{ uri: item.image }} style={styles.profileImage} />
-        <View style={styles.headerText}>
-          <Text style={styles.name}>{item.reviewer}</Text>
+        <View style={styles.reviewDetails}>
+          <Text style={styles.reviewerName}>{item.reviewer}</Text>
           <StarRating
-            rating={item.rating}
+            rating={`${item.rating}`}
             starSize={15}
+            enableHalfStar={true}
             onChange={() => {}}
-            color="blue"
           />
         </View>
       </View>
-      <Text style={styles.comment}>{item.comment}</Text>
+      <Text style={styles.reviewText}>{item.comment}</Text>
     </View>
   );
 
+  const handleSeeAllReviews = () => {
+    setShowAllReviews(true);
+  };
+
+  const handleCollapseReviews = () => {
+    setShowAllReviews(false);
+  };
+
   return (
-    <View style={styles.container}>
-      <Image source={{ uri: item.image }} style={styles.image} />
-
-      <View style={styles.infoContainer}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemPrice}>${item.price}</Text>
-        <Text style={styles.itemDescription}>{item.description}</Text>
-
-        <CustomButton
-          title={"Add to Cart"}
-          otherStyles={{ width: "100%" }}
-          buttonStyle={{ borderRadius: 10 }}
-          onPress={() => {
-            handleAddToCartPress();
-          }}
-        />
-      </View>
-
-      <View style={styles.reviewsSection}>
-        <Text style={styles.reviewsHeader}>Reviews</Text>
-        <View
-          style={{
-            backgroundColor: "#f9f9f9",
-            padding: 16,
-            height: 140,
-            paddingBottom: 8,
-            borderRadius: 8,
-            marginBottom: 10,
-            shadowColor: "#000",
-            shadowOpacity: 0.1,
-            shadowOffset: { width: 0, height: 2 },
-            shadowRadius: 8,
-            elevation: 3,
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <View style={styles.addReviewSection}>
-              <TextInput
-                style={styles.input}
-                placeholder="Leave a review..."
-                value={review}
-                onChangeText={(text) => setReview(text)}
-              />
-
-              <CustomButton
-                title={"Submit"}
-                otherStyles={{ width: "25%" }}
-                buttonStyle={{ borderRadius: 10 }}
-                onPress={() => {
-                  handleSubmitPress();
-                }}
-              />
+    <View style={[styles.container, { marginBottom: 50 }]}>
+      <PageHeader
+        onCartPress={() => {
+          router.push("/cart");
+        }}
+        backHandler={() => {
+          router.back();
+        }}
+        title={item.name}
+        showCartBadge={true}
+      />
+      <FlatList
+        style={styles.flatListContainer}
+        ListHeaderComponent={
+          <View style={styles.topSection}>
+            <Image source={{ uri: item.image }} style={styles.itemImage} />
+            <Text style={styles.itemName}>{item.name}</Text>
+            <Text style={styles.itemPrice}>Rs {item.price}</Text>
+            <Text style={styles.itemDescription}>{item.description}</Text>
+            {loading ? (
+              <ActivityIndicator size="large" color="#0000ff" />
+            ) : reviews?.length > 0 ? (
+              <View style={styles.ratingContainer}>
+                <StarRating
+                  rating={`${averageRating}`}
+                  starSize={20}
+                  enableHalfStar={true}
+                  onChange={() => {}}
+                />
+                <Text style={styles.averageRatingText}>
+                  {averageRating} ({reviews?.length} reviews)
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.averageRatingText}>No Reviews</Text>
+            )}
+            <View
+              style={{
+                flex: 1,
+                flexDirection: "row",
+              }}
+            >
+              <TouchableOpacity
+                onPress={() => setIsModalVisible(true)}
+                style={[styles.addReviewButton, { marginRight: 10 }]}
+              >
+                <Text style={styles.addReviewButtonText}>Add Review</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleAddToCartPress()}
+                style={[
+                  styles.addReviewButton,
+                  { backgroundColor: "rgba(0, 95, 79, 0.9)" },
+                ]}
+              >
+                <Text style={styles.addReviewButtonText}>Add To Cart</Text>
+              </TouchableOpacity>
             </View>
-            <View style={{ flex: 1, alignSelf: "center" }}>
-              <StarRating
-                onChange={setRating}
-                starSize={25}
-                enableHalfStar={false}
-                rating={rating}
-                color="black"
-              />
+          </View>
+        }
+        data={showAllReviews ? reviews : reviews?.slice(0, 2)}
+        keyExtractor={(item) => item._id.toString()}
+        renderItem={renderReview}
+        ListFooterComponent={
+          <View style={styles.relatedSection}>
+            {!showAllReviews && reviews?.length > 2 && (
+              <TouchableOpacity onPress={handleSeeAllReviews}>
+                <Text style={styles.seeAllButton}>See All Reviews</Text>
+              </TouchableOpacity>
+            )}
+            {showAllReviews && (
+              <TouchableOpacity onPress={handleCollapseReviews}>
+                <Text style={styles.seeAllButton}>Collapse</Text>
+              </TouchableOpacity>
+            )}
+            <Text style={styles.sectionTitle}>Related Items</Text>
+            <RelatedItemsList
+              items={items}
+              onItemPress={(item) => handleAddToCartPress(item)}
+            />
+          </View>
+        }
+      />
+      <Modal
+        visible={isModalVisible}
+        onRequestClose={() => setIsModalVisible(false)}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Leave a Review</Text>
+            <StarRating
+              rating={`${rating}`}
+              starSize={25}
+              enableHalfStar={true}
+              onChange={(newRating) => setRating(newRating)}
+            />
+            <TextInput
+              style={styles.reviewInput}
+              value={review}
+              onChangeText={setReview}
+              placeholder="Write your review..."
+              multiline={true}
+            />
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={handleSubmitReview}
+                style={styles.modalButton}
+              >
+                <Text style={styles.modalButtonText}>Submit</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setIsModalVisible(false)}
+                style={styles.modalButton}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </Pressable>
             </View>
           </View>
         </View>
-
-        {loading ? (
-          <View
-            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-          >
-            <ActivityIndicator size="large" color="#0000ff" />
-          </View>
-        ) : reviews.length == 0 ? (
-          <Image
-            source={images.empty}
-            style={styles.image}
-            resizeMode="contain"
-          />
-        ) : (
-          <FlatList
-            data={reviews}
-            keyExtractor={(item) => item._id.toString()}
-            renderItem={renderReview}
-            contentContainerStyle={styles.reviewsList}
-            style={styles.flatList}
-          />
-        )}
-      </View>
+      </Modal>
     </View>
   );
 };
 
-export default ItemDetailsScreen;
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    marginTop: StatusBar.currentHeight,
-    padding: 16,
-    paddingBottom: 0,
-  },
-  image: {
-    width: "100%",
-    height: 200,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  infoContainer: {
-    marginBottom: 16,
-  },
-  itemName: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 4,
-  },
-  itemPrice: {
-    fontSize: 20,
-    fontWeight: "500",
-    color: "green",
-    marginBottom: 8,
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  flatListContainer: { flex: 1 },
+  topSection: { padding: 16, alignItems: "center" },
+  itemImage: { width: "90%", height: 200, borderRadius: 12 },
+  itemName: { fontSize: 24, fontWeight: "bold", marginVertical: 8 },
+  itemPrice: { fontSize: 20, color: "green", marginVertical: 4 },
   itemDescription: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#666",
-    marginBottom: 12,
+    textAlign: "center",
+    marginVertical: 4,
+    fontStyle: "italic",
+    maxWidth: "90%",
   },
-  reviewsSection: {
-    flex: 1,
-    marginTop: 24,
-  },
-  reviewsHeader: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 16,
-  },
-  reviewsList: {
-    paddingBottom: 24,
-  },
-  flatList: {
-    flex: 1,
-  },
-
-  avatarContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#9ca3af",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 0.5,
-  },
-
+  ratingContainer: { flexDirection: "row", alignItems: "center", marginTop: 8 },
+  averageRatingText: { marginLeft: 8, fontSize: 16, fontWeight: "500" },
+  reviewsSection: { padding: 16 },
+  sectionTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 12 },
   reviewCard: {
     backgroundColor: "#f9f9f9",
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  avatar: {
-    height: 40,
-    width: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  reviewerName: {
-    fontWeight: "600",
-    fontSize: 16,
-    color: "black",
-  },
-  addReviewSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: "#f1f1f1",
-    borderRadius: 8,
     padding: 12,
-    marginRight: 8,
+    borderRadius: 8,
+    marginBottom: 12,
+    elevation: 2,
   },
-  card: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-    marginVertical: 10,
-    width: "99%",
-    alignSelf: "center",
+  reviewHeader: { flexDirection: "row", marginBottom: 8 },
+  profileImage: { width: 40, height: 40, borderRadius: 20 },
+  reviewDetails: { marginLeft: 12 },
+  reviewerName: { fontSize: 16, fontWeight: "bold" },
+  reviewText: { fontSize: 14, color: "#333" },
+  addReviewButton: {
+    marginTop: 16,
+    padding: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    borderRadius: 5,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  headerText: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  name: {
+  addReviewButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  seeAllButton: {
     fontSize: 16,
-    marginLeft: 7,
-    fontWeight: "600",
-    color: "#333",
+    color: "#007BFF",
+    textAlign: "center",
+    marginTop: 12,
   },
-  comment: {
-    fontSize: 14,
-    color: "black",
-    fontFamily: "Poppins-Regular",
-    marginTop: 5,
-    marginLeft: 3,
+  relatedSection: { padding: 16 },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
+  modalContent: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 8,
+    width: "80%",
+  },
+  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 12 },
+  reviewInput: {
+    height: 100,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 8,
+    textAlignVertical: "top",
+    marginBottom: 12,
+  },
+  modalActions: { flexDirection: "row", justifyContent: "space-between" },
+  modalButton: {
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    padding: 10,
+    borderRadius: 5,
+    width: "48%",
+  },
+  modalButtonText: { color: "#fff", fontSize: 16, textAlign: "center" },
 });
+
+export default ItemDetailsScreen;

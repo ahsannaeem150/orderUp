@@ -27,7 +27,6 @@ const TabBar = ({ state, descriptors, navigation }) => {
   return (
     <View style={styles.tabBar}>
       {state.routes.map((route, index) => {
-        console.log("Route=>", route);
         const { options } = descriptors[route.key];
         const label =
           options.tabBarLabel !== undefined
@@ -59,7 +58,6 @@ const TabBar = ({ state, descriptors, navigation }) => {
           });
         };
 
-        console.log("WARNING", route.name);
         return (
           <TouchableOpacity
             key={route.key}
@@ -89,14 +87,15 @@ export default TabBar;
 const styles = StyleSheet.create({
   tabBar: {
     position: "absolute",
-    bottom: 5,
+    bottom: 3,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "white",
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     paddingVertical: 7,
-    borderRadius: 25,
+    borderRadius: 15,
+    borderColor: "black",
     borderCurve: "continuous",
     shadowColor: "color",
     shadowOffset: { width: 0, height: 10 },

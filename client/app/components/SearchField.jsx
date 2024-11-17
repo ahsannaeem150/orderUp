@@ -34,8 +34,12 @@ const SearchField = ({
           value={value}
           placeholder={placeHolder}
           placeholderTextColor="#7b7b8b"
-          onChangeText={(text) => {
-            handleChangeText(text);
+          onChangeText={(value) => {
+            if (value.includes(" ")) {
+              handleChangeText(value.trim());
+            } else {
+              handleChangeText(value);
+            }
           }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}

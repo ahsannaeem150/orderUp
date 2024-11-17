@@ -3,12 +3,7 @@ import React from "react";
 import { Stack } from "expo-router";
 
 const HomeLayout = () => {
-  return (
-    <Stack>
-      <Stack.Screen name="homeindex" options={{ headerShown: false }} />
-      <Stack.Screen name="[restaurantId]" options={{ headerShown: false }} />
-    </Stack>
-  );
+  return <Stack screenOptions={{ headerShown: false }}></Stack>;
 };
 
 export default HomeLayout;

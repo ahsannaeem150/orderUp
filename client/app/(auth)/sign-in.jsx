@@ -38,7 +38,7 @@ const SignIn = () => {
       setLoading(false);
 
       //Store the token in AsyncStorage
-      router.replace("/home");
+      router.replace("(home)");
       console.log(data && data.message);
       alert(data && data.message);
     } catch (error) {

@@ -14,7 +14,7 @@ import { AuthContext } from "../../../context/authContext";
 import { useFetchItems } from "../../../hooks/useFetchItems";
 import PageHeader from "../../../components/PageHeader";
 const MenuItemsScreen = () => {
-  const { restaurant, setItem } = useContext(AuthContext);
+  const { restaurant, setItem, cart } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const { items, fetchItems } = useFetchItems(
     `/auth/restaurant/${restaurant._id}/items`
@@ -22,12 +22,13 @@ const MenuItemsScreen = () => {
 
   const handlePress = (item) => {
     setItem(item);
-    router.navigate(`/item/${item._id}`);
+    router.push(`/(home)/[${restaurant._id}]/[${item._id}]/itemIndex`);
   };
   useEffect(() => {
     const fetch = async () => {
       setLoading(true);
       await fetchItems();
+
       setLoading(false);
     };
     fetch();
@@ -55,7 +56,16 @@ const MenuItemsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <PageHeader />
+      <PageHeader
+        backHandler={() => {
+          router.navigate("(home)");
+        }}
+        title={"Menu Items"}
+        showCartBadge={true}
+        onCartPress={() => {
+          router.push("/cart");
+        }}
+      />
       <View style={styles.headerContainer}>
         <Image source={{ uri: restaurant.logo }} style={styles.logo} />
         <View style={styles.headerTextContainer}>
@@ -88,9 +98,7 @@ export default MenuItemsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: StatusBar.currentHeight,
     padding: 16,
-    backgroundColor: "#FFFF",
   },
   headerContainer: {
     flexDirection: "row",
