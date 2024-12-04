@@ -16,9 +16,9 @@ import { router } from "expo-router";
 const Orders = () => {
   const { activeOrders, setActiveOrders } = useContext(AuthContext);
 
-  const handlePress = (restaurantId , index) =>{
-    router.push({ pathname: `activeorder/${restaurantId}`, params: { index } });
-  }
+  const handlePress = (restaurantId, index) => {
+    // router.push({ pathname: `activeorder/${restaurantId}`, params: { index } });
+  };
 
   const renderActiveOrders = ({ item, index }) => (
     <View
@@ -91,7 +91,6 @@ const Orders = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: StatusBar.currentHeight,
     flex: 1,
     padding: 20,
   },

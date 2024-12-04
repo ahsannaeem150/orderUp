@@ -22,7 +22,8 @@ import RelatedItemsList from "../../../../components/RelatedItemsList";
 import PageHeader from "../../../../components/PageHeader";
 
 const ItemDetailsScreen = () => {
-  const { state, item, restaurant, cart, setCart } = useContext(AuthContext);
+  const { state, item, restaurant, cart, setCart, setItem } =
+    useContext(AuthContext);
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [loading, setLoading] = useState(true);
@@ -63,6 +64,11 @@ const ItemDetailsScreen = () => {
       setAverageRating(parseFloat(calculatedRating.toFixed(1)));
     }
   }, [reviews]);
+
+  const handleNavigateToItemPress = (item) => {
+    setItem(item);
+    router.replace(`/(home)/[${restaurant._id}]/[${item._id}]/itemIndex`);
+  };
 
   const handleAddToCartPress = () => {
     if (cart == null) {
@@ -268,7 +274,7 @@ const ItemDetailsScreen = () => {
             <Text style={styles.sectionTitle}>Related Items</Text>
             <RelatedItemsList
               items={items}
-              onItemPress={(item) => handleAddToCartPress(item)}
+              onItemPress={(item) => handleNavigateToItemPress(item)}
             />
           </View>
         }
@@ -317,7 +323,7 @@ const ItemDetailsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, padding: 5, backgroundColor: "#fff" },
   flatListContainer: { flex: 1 },
   topSection: { padding: 16, alignItems: "center" },
   itemImage: { width: "90%", height: 200, borderRadius: 12 },

@@ -10,7 +10,6 @@ const AuthProvider = ({ children }) => {
   const [item, setItem] = useState({ item: undefined });
   const [cart, setCart] = useState(null);
   const [activeOrders, setActiveOrders] = useState(null);
-  const [checkout, setCheckout] = useState(null);
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState({
     user: undefined,
@@ -19,7 +18,7 @@ const AuthProvider = ({ children }) => {
 
   const appState = useRef(AppState.currentState);
 
-  axios.defaults.baseURL = "http://192.168.100.51:8080/api";
+  axios.defaults.baseURL = "http://192.168.218.32:8080/api";
 
   //LOAD STATE INFO
   useEffect(() => {
@@ -176,8 +175,6 @@ const AuthProvider = ({ children }) => {
         setItem,
         cart,
         setCart,
-        checkout,
-        setCheckout,
         activeOrders,
         setActiveOrders,
         updateState,

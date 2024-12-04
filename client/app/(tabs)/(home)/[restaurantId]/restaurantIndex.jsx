@@ -98,7 +98,8 @@ export default MenuItemsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: 5,
+    marginBottom: 30,
   },
   headerContainer: {
     flexDirection: "row",
