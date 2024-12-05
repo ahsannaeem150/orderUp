@@ -1,88 +1,82 @@
 import React, { useContext, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  StatusBar,
-  Image,
-} from "react-native";
+import { View, Text, FlatList, StyleSheet, Image } from "react-native";
 import { AuthContext } from "../context/authContext";
-import Icon from "react-native-vector-icons/Ionicons";
+import { useFetchActiveOrders } from "../hooks/useFetchActiveOrders"; // Import the custom hook
 import { images } from "../../constants";
-import { router } from "expo-router";
+import { io } from "socket.io-client"; // For real-time updates
 
 const Orders = () => {
-  const { activeOrders, setActiveOrders } = useContext(AuthContext);
+  const { state } = useContext(AuthContext); // Assuming user info is stored in AuthContext
+  const user = state.user;
 
-  const handlePress = (restaurantId, index) => {
-    // router.push({ pathname: `activeorder/${restaurantId}`, params: { index } });
+  // Fetch active orders using the custom hook
+  const { activeOrders, fetchActiveOrders, loading, error } =
+    useFetchActiveOrders(`/auth/orders/active/${user._id}`);
+
+  const socket = io("http://192.168.100.51:8080/user");
+
+  useEffect(() => {
+    fetchActiveOrders();
+
+    socket.emit("join-user-room", user._id);
+    socket.on("order-updated", (updatedOrder) => {});
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  // Render function for each active order
+  const renderActiveOrders = ({ item }) => {
+    const orderQuantity = item.items.reduce((quantity, item) => {
+      return quantity + item.quantity;
+    }, 0);
+
+    return (
+      <View style={styles.card}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View style={styles.avatarContainer}>
+            <Image
+              source={{ uri: item.restaurant?.logo }}
+              style={styles.avatar}
+              resizeMode="cover"
+            />
+          </View>
+          <View>
+            <Text style={styles.restaurantName}>{item.restaurant?.name}</Text>
+            <Text style={styles.restaurantDetails}>
+              Items in order: {orderQuantity}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.statusContainer}>
+          <Text style={styles.status}>{item.status}</Text>
+        </View>
+      </View>
+    );
   };
 
-  const renderActiveOrders = ({ item, index }) => (
-    <View
-      style={[
-        {
-          flex: 1,
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        },
-        styles.card,
-      ]}
-    >
-      <TouchableOpacity
-        style={{
-          flex: 1,
-          flexDirection: "row",
-          alignItems: "center",
-        }}
-        onPress={() => {
-          handlePress(item.restaurant._id, index);
-        }}
-      >
-        <View style={styles.avatarContainer}>
-          <Image
-            source={{ uri: item.restaurant.logo }}
-            style={styles.avatar}
-            resizeMode="cover"
-          />
-        </View>
-        <View>
-          <Text style={styles.restaurantName}>{item.restaurant.name}</Text>
-          <Text style={styles.restaurantDetails}>
-            Items in order:{" "}
-            {item.order.reduce((quant, item) => {
-              return quant + item.quantity;
-            }, 0)}
-          </Text>
-        </View>
-      </TouchableOpacity>
-      <View style={styles.deleteButton}>
-        <Text style={{ color: "red" }}>PENDING</Text>
-      </View>
-    </View>
-  );
+  if (loading) {
+    return <Text>Loading...</Text>;
+  }
+
+  if (error) {
+    return <Text>Error: {error.message}</Text>;
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Your Orders</Text>
-      {activeOrders == null || activeOrders.length == 0 ? (
-        <View
-          style={{
-            justifyContent: "center",
-            height: 500,
-            alignItems: "center",
-          }}
-        >
+      {activeOrders.length === 0 ? (
+        <View style={styles.emptyContainer}>
           <Image source={images.empty} style={styles.image} />
+          <Text>No active orders found!</Text>
         </View>
       ) : (
         <FlatList
           data={activeOrders}
           renderItem={renderActiveOrders}
-          keyExtractor={(item) => item.restaurant._id}
+          keyExtractor={(item) => item._id}
         />
       )}
     </View>
@@ -109,8 +103,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
     padding: 15,
-    flex: 1,
-    alignItems: "center",
     flexDirection: "row",
     marginBottom: 15,
     borderRadius: 10,
@@ -118,6 +110,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
+    justifyContent: "space-between", // Ensure there's space between elements
     elevation: 3,
   },
   restaurantName: {
@@ -128,12 +121,9 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 8,
-    borderWidth: 1,
-    marginEnd: 20,
-    borderColor: "#9ca3af",
+    marginRight: 20,
     justifyContent: "center",
     alignItems: "center",
-    padding: 0.5,
   },
   avatar: {
     height: "100%",
@@ -144,6 +134,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     marginTop: 5,
+  },
+  statusContainer: {
+    justifyContent: "center",
+    alignItems: "flex-end", // Align the status to the right side
+  },
+  status: {
+    fontSize: 16,
+    color: "red",
+    textAlign: "right", // Ensure text is aligned to the right
+  },
+  emptyContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    height: 500,
   },
 });
 

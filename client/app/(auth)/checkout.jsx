@@ -18,10 +18,10 @@ import CheckoutInput from "../components/CheckoutInput";
 import CheckboxInput from "../components/CheckboxInput";
 import BlackButton from "../components/BlackButton";
 import { router } from "expo-router";
+import axios from "axios";
 
 const checkout = () => {
-  const { state, setCart, cart, activeOrders, setActiveOrders } =
-    useContext(AuthContext);
+  const { state, setCart, cart, setActiveOrders } = useContext(AuthContext);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const [name, setName] = useState(state.user.name);
@@ -29,7 +29,7 @@ const checkout = () => {
   const [city, setCity] = useState(state.user.address?.city);
   const [address, setAddress] = useState(state.user.address?.address);
 
-  const handleCheckoutPress = () => {
+  const handleCheckoutPress = async () => {
     if (!name) {
       return Alert.alert("Please enter name");
     }
@@ -43,17 +43,50 @@ const checkout = () => {
       return Alert.alert("Please enter address");
     }
 
-    setActiveOrders((prev) => {
-      let activeOrder = [...cart];
-      setCart([]);
-      if (prev) {
-        return [...prev, ...activeOrder];
-      }
-      return [...activeOrder];
-    });
-    Alert.alert("Order Confirmed");
-    router.dismissAll();
-    router.replace("orders");
+    try {
+      const userId = state.user._id;
+
+      // Exclude images from the cart
+      const sanitizedCart = cart.map((restaurantCart) => ({
+        restaurant: {
+          _id: restaurantCart.restaurant._id,
+          name: restaurantCart.restaurant.name,
+          phone: restaurantCart.restaurant.phone,
+        },
+        order: restaurantCart.order.map((item) => ({
+          _id: item._id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+      }));
+
+      const response = await axios.post("/auth/checkout", {
+        userId,
+        name,
+        phone,
+        city,
+        address,
+        cart: sanitizedCart,
+      });
+
+      alert("Order placed successfully!");
+
+      setActiveOrders((prev) => {
+        let activeOrder = [...cart];
+        setCart([]);
+        if (prev) {
+          return [...prev, ...activeOrder];
+        }
+        return [...activeOrder];
+      });
+
+      router.dismissAll();
+      router.replace("orders");
+    } catch (error) {
+      console.error("Error during checkout:", error);
+      alert("Something went wrong. Please try again.");
+    }
   };
   return (
     <ScrollView style={{ height: "100%" }}>

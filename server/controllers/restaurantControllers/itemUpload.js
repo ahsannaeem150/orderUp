@@ -7,6 +7,7 @@ export const addMenuItemController = async (req, res) => {
   try {
     const { name, description, price, category, availability } = req.body;
     const restaurantId = req.params.id;
+    const restaurant = await restaurantModel.findById(restaurantId);
     if (!name) {
       return res.status(400).send({
         success: false,
@@ -44,6 +45,7 @@ export const addMenuItemController = async (req, res) => {
       category,
       availability,
       image: image ? image._id : null,
+      restaurant,
     });
 
     const savedItem = await newMenuItem.save();
@@ -54,7 +56,6 @@ export const addMenuItemController = async (req, res) => {
     });
 
     //GET RESTAURANT
-    const restaurant = await restaurantModel.findById(restaurantId);
     restaurant.menu.push(savedItem._id);
 
     await restaurant.save();

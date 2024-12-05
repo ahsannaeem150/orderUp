@@ -9,6 +9,12 @@ import { getRestaurantsController } from "../controllers/userControl/getRestaura
 import { getItemsController } from "../controllers/restaurantControllers/getItems.js";
 import { postUserReviewController } from "../controllers/userControl/postUserReviews.js";
 import { getReviewsController } from "../controllers/userControl/getUserReviews.js";
+import { checkoutController } from "../controllers/userControl/checkout.js";
+import { getOrderHistoryController } from "../controllers/userControl/getOrderHistory.js";
+import { getActiveOrdersController } from "../controllers/userControl/getActiveOrders.js";
+import { getRecommendationsController } from "../controllers/userControl/getRecommendations.js";
+import { restaurantModel } from "../models/restaurantModel.js";
+import { menuModel } from "../models/itemModel.js";
 //router object
 const router = express.Router();
 
@@ -35,5 +41,10 @@ router.post(
   postUserReviewController
 );
 router.get("/restaurant/item/:itemId/reviews", getReviewsController);
+router.post("/checkout", checkoutController);
+router.get("/orders/active/:userId", getActiveOrdersController);
+router.get("/orderHistory/:id", getOrderHistoryController);
+
+router.get("/recommendations/:itemID", getRecommendationsController);
 
 export default router;

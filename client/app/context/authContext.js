@@ -18,7 +18,7 @@ const AuthProvider = ({ children }) => {
 
   const appState = useRef(AppState.currentState);
 
-  axios.defaults.baseURL = "http://192.168.218.32:8080/api";
+  axios.defaults.baseURL = "http://192.168.100.51:8080/api";
 
   //LOAD STATE INFO
   useEffect(() => {
@@ -126,7 +126,7 @@ const AuthProvider = ({ children }) => {
         if (activeOrders) {
           console.log("Setting Active Orders");
           setAttributeInAsyncStorage(
-            activeOrders,
+            [],
             "activeOrders",
             "restaurantsInActiveOrdersList"
           );

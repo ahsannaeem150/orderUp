@@ -1,26 +1,14 @@
 import mongoose from "mongoose";
 
-const OrderSchema = new mongoose.Schema({
-  status: {
-    type: String,
-    enum: [
-      "Pending",
-      "Preparing",
-      "Out for Delivery",
-      "Completed",
-      "Cancelled",
-    ],
+const OrderHistorySchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
     required: true,
-    default: "Pending",
   },
   restaurantId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "restaurants",
-    required: true,
-  },
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users",
     required: true,
   },
   items: [
@@ -38,13 +26,24 @@ const OrderSchema = new mongoose.Schema({
   totalAmount: { type: Number, required: true },
   orderDate: { type: Date, default: Date.now },
   deliveryAddress: { type: String, required: true },
-  updatedAt: { type: Date, default: Date.now },
   status: {
     type: String,
-    enum: ["Pending", "Preparing", "Cancelled"],
-    default: "Pending",
+    enum: ["Completed", "Cancelled"],
+    required: true,
   },
+  completedAt: { type: Date, default: Date.now },
   cancellationReason: { type: String, default: "" },
+  deliveryDetails: {
+    status: {
+      type: String,
+      enum: ["Not Delivered", "Delivered"],
+      default: "Not Delivered",
+    },
+    deliveredAt: { type: Date, default: null },
+  },
 });
 
-export const orderModel = mongoose.model("orders", OrderSchema);
+export const OrderHistoryModel = mongoose.model(
+  "orderhistories",
+  OrderHistorySchema
+);

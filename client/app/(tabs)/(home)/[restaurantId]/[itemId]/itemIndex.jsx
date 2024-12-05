@@ -65,10 +65,10 @@ const ItemDetailsScreen = () => {
     }
   }, [reviews]);
 
-  const handleNavigateToItemPress = (item) => {
-    setItem(item);
-    router.replace(`/(home)/[${restaurant._id}]/[${item._id}]/itemIndex`);
-  };
+  // const handleNavigateToItemPress = (itemID, restaurantID) => {
+  //   console.log(restaurantID, itemID);
+  //   router.replace(`/(home)/[${restaurantID}]/[${itemID}]/itemIndex`);
+  // };
 
   const handleAddToCartPress = () => {
     if (cart == null) {
@@ -272,10 +272,7 @@ const ItemDetailsScreen = () => {
               </TouchableOpacity>
             )}
             <Text style={styles.sectionTitle}>Related Items</Text>
-            <RelatedItemsList
-              items={items}
-              onItemPress={(item) => handleNavigateToItemPress(item)}
-            />
+            <RelatedItemsList itemId={item._id} />
           </View>
         }
       />

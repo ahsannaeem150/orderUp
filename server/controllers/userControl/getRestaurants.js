@@ -3,7 +3,6 @@ import { restaurantModel } from "../../models/restaurantModel.js";
 
 export const getRestaurantsController = async (req, res) => {
   try {
-    console.log("HII");
     const restaurants = await restaurantModel.find();
 
     const restaurantsWithImages = await Promise.all(

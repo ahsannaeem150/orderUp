@@ -16,7 +16,7 @@ const AuthProvider = ({ children }) => {
   const [item, setItem] = useState([]);
 
   //SET INITIAL AXIOS URL
-  axios.defaults.baseURL = "http://192.168.43.64:8080/api";
+  axios.defaults.baseURL = "http://192.168.100.51:8080/api";
   //GET initial storage data
   useEffect(() => {
     const loadLocalStorageData = async () => {

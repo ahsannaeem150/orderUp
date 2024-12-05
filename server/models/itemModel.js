@@ -7,6 +7,7 @@ const MenuItemSchema = new mongoose.Schema({
   category: { type: String, enum: ["Food", "Drink"], default: "Food" },
   reviews: [{ type: mongoose.Schema.Types.ObjectId }],
   image: { type: mongoose.Schema.Types.ObjectId },
+  restaurant: { type: mongoose.Schema.Types.ObjectId, ref: "restaurants" },
   availability: { type: Boolean, default: true },
 });
 

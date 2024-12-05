@@ -5,8 +5,10 @@ import colors from "colors";
 import morgan from "morgan";
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
+import http from "http";
 import restaurantRoutes from "./routes/restaurantRoutes.js";
 import multer from "multer";
+import socketIoSetup from "./helpers/socketIO.js";
 
 //DOTENV
 dotenv.config();
@@ -18,6 +20,9 @@ connectDB();
 
 //REST OBJECT
 const app = express();
+const server = http.createServer(app);
+
+socketIoSetup(server);
 
 //middlewares
 app.use(cors());
@@ -36,6 +41,6 @@ app.use("/api/auth/", restaurantRoutes);
 const PORT = process.env.PORT || 8080;
 
 //listen
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log("Server running on", PORT.bgGreen.white);
 });
