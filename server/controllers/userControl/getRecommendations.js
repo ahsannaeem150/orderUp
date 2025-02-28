@@ -44,7 +44,6 @@ export const getRecommendationsController = async (req, res) => {
       })
     );
 
-    // Send the recommendations with images and other details
     return res.status(200).json({
       success: true,
       message: "Recommendations retrieved successfully",
@@ -56,26 +55,21 @@ export const getRecommendationsController = async (req, res) => {
   }
 };
 
-// Helper function to fetch recommendations from Python
 const getRecommendationsFromPython = async (itemID, topN) => {
   return new Promise((resolve, reject) => {
-    const __filename = fileURLToPath(import.meta.url); // Get the full file path
-    const __dirname = path.dirname(__filename); // Get the directory name from the file path
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
 
-    // Resolve the absolute path to the Python script
     const pythonScriptPath = path.resolve(__dirname, "recommendations.py");
-    // Assuming you use a spawn function to call the Python script
     const python = spawn("python", [pythonScriptPath, itemID, topN]);
 
     let data = "";
     let errorData = "";
 
-    // Capture stdout data from Python script
     python.stdout.on("data", (chunk) => {
       data += chunk.toString();
     });
 
-    // Capture stderr data from Python script (errors)
     python.stderr.on("data", (error) => {
       errorData += error.toString();
     });

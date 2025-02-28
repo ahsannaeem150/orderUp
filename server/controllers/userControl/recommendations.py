@@ -46,7 +46,7 @@ if __name__ == "__main__":
         # Load data and create user-item matrix
         order_histories = load_data()
         if not order_histories:
-            print("No order histories found", file=sys.stderr)  # Debugging info sent to stderr
+            print("No order histories found", file=sys.stderr)  
 
         user_item_matrix = create_user_item_matrix(order_histories)
 
@@ -54,10 +54,10 @@ if __name__ == "__main__":
         recommendations = get_related_items(input_item_id, user_item_matrix, top_n)
 
         if not recommendations:
-            print("No related items found", file=sys.stderr)  # Debugging info sent to stderr
+            print("No related items found", file=sys.stderr)  
 
         # Output recommendations as JSON
-        print(json.dumps(recommendations))  # Ensure that it prints the output as valid JSON
+        print(json.dumps(recommendations))  
 
     except Exception as e:
-        print(f"Error during recommendation generation: {e}", file=sys.stderr)  # Error info sent to stderr
+        print(f"Error during recommendation generation: {e}", file=sys.stderr)  
