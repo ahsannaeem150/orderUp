@@ -3,14 +3,7 @@ import mongoose from "mongoose";
 const OrderSchema = new mongoose.Schema({
   status: {
     type: String,
-    enum: [
-      "Pending",
-      "Preparing",
-      "Out for Delivery",
-      "Completed",
-      "Cancelled",
-    ],
-    required: true,
+    enum: ["Pending", "Preparing", "Ready", "Completed", "Cancelled"],
     default: "Pending",
   },
   restaurantId: {

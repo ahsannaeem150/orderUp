@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { createContext, useEffect, useState, useRef } from "react";
 import { AppState } from "react-native";
+import { io } from "socket.io-client"; // For real-time updates
 
 const AuthContext = createContext();
 
@@ -18,7 +19,39 @@ const AuthProvider = ({ children }) => {
 
   const appState = useRef(AppState.currentState);
 
-  axios.defaults.baseURL = "http://192.168.100.51:8080/api";
+  const url = "192.168.100.51";
+  axios.defaults.baseURL = `http://${url}:8080/api`;
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    const initializeSocket = async () => {
+      if (state.token) {
+        const newSocket = io(`http://${url}:8080/user`, {
+          auth: {
+            token: state.token,
+          },
+          transports: ["websocket"],
+          reconnection: true,
+          reconnectionAttempts: 5,
+        });
+
+        newSocket.on("connect_error", (err) => {
+          console.log("Socket connection error:", err.message);
+        });
+        setSocket(newSocket);
+      }
+    };
+
+    if (state.token) {
+      initializeSocket();
+    }
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [state.token]);
 
   //LOAD STATE INFO
   useEffect(() => {
@@ -178,6 +211,7 @@ const AuthProvider = ({ children }) => {
         activeOrders,
         setActiveOrders,
         updateState,
+        socket,
       }}
     >
       {children}

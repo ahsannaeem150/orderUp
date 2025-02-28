@@ -11,11 +11,9 @@ export const useFetchActiveOrders = (routePath) => {
     try {
       const response = await axios.get(routePath);
 
-      // If there are no active orders, ensure the state is set to an empty array
       if (response.data.length === 0) {
         setActiveOrders([]);
       } else {
-        // Process restaurant logos and other order details if available
         const ordersWithLogo = response.data.map((order) => {
           if (order.restaurant?.logo?.data) {
             const base64Data = Buffer.from(
@@ -33,11 +31,9 @@ export const useFetchActiveOrders = (routePath) => {
           }
           return order;
         });
-
         setActiveOrders(ordersWithLogo);
       }
-
-      setError(null); // Clear any previous errors
+      setError(null);
     } catch (error) {
       setError("Failed to fetch active orders");
       console.error(error);

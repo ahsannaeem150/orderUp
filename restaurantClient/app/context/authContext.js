@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { createContext, useEffect, useState } from "react";
+import io from "socket.io-client";
 
 //context
 const AuthContext = createContext();
@@ -16,7 +17,16 @@ const AuthProvider = ({ children }) => {
   const [item, setItem] = useState([]);
 
   //SET INITIAL AXIOS URL
-  axios.defaults.baseURL = "http://192.168.100.51:8080/api";
+  const url = "192.168.100.51";
+  axios.defaults.baseURL = `http://${url}:8080/api`;
+
+  const socket = io(`http://${url}:8080/restaurant`, {
+    auth: {
+      token: state.token,
+    },
+    transports: ["websocket"],
+  });
+
   //GET initial storage data
   useEffect(() => {
     const loadLocalStorageData = async () => {
@@ -47,7 +57,7 @@ const AuthProvider = ({ children }) => {
   }, [state]);
   return (
     <AuthContext.Provider
-      value={{ state, setState, loading, setLoading, item, setItem }}
+      value={{ state, setState, loading, setLoading, item, setItem, socket }}
     >
       {children}
     </AuthContext.Provider>

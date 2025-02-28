@@ -1,80 +1,136 @@
 import { Server } from "socket.io";
+import { MongoClient } from "mongodb";
 import { orderModel } from "../models/orderModel.js";
+import jwt from "jsonwebtoken";
+
+const setupChangeStream = async (io) => {
+  try {
+    const changeStream = orderModel.watch([], {
+      fullDocument: "updateLookup",
+      readPreference: "primary",
+    });
+
+    changeStream.on("change", async (change) => {
+      try {
+        let order;
+        if (["insert", "update"].includes(change.operationType)) {
+          order = await orderModel
+            .findById(change.documentKey._id)
+            .populate("userId", "name phone")
+            .lean();
+        }
+
+        if (!order) return;
+
+        if (change.operationType === "insert") {
+          io.of("/restaurant")
+            .to(order.restaurantId.toString())
+            .emit("order-created", order);
+        }
+
+        if (change.operationType === "update") {
+          io.of("/restaurant")
+            .to(order.restaurantId.toString())
+            .emit("order-updated", order);
+          io.of("/user")
+            .to(order.userId._id.toString())
+            .emit("order-updated", order);
+        }
+      } catch (error) {
+        console.error("Error processing change event:", error);
+      }
+    });
+
+    changeStream.on("error", (error) => {
+      console.error("Change Stream error:", error);
+      setTimeout(() => setupChangeStream(io), 5000);
+    });
+  } catch (err) {
+    console.error("Change Stream connection failed:", err);
+    setTimeout(() => setupChangeStream(io), 5000);
+  }
+};
 
 const socketIoSetup = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: "*", // Replace with your frontend URL
+      origin: "*",
+      methods: ["GET", "POST"],
     },
+  });
+
+  setupChangeStream(io);
+
+  // Authentication middleware
+  const authenticate = (socket, next) => {
+    try {
+      console.log("hello");
+      const token = socket.handshake.auth.token;
+      console.log(token);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log(decoded);
+      socket.user = decoded;
+      next();
+    } catch (err) {
+      next(new Error("Authentication failed"));
+    }
+  };
+
+  // User namespace
+  const userNamespace = io.of("/user");
+  userNamespace.use(authenticate);
+  userNamespace.on("connection", (socket) => {
+    console.log("User connected:", socket.user._id);
+
+    socket.on("join-user-room", (userId) => {
+      if (userId !== socket.user.id) {
+        return socket.emit("error", "Unauthorized room access");
+      }
+      socket.join(userId);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("User disconnected:", socket.user.id);
+    });
   });
 
   // Restaurant namespace
   const restaurantNamespace = io.of("/restaurant");
+  restaurantNamespace.use(authenticate);
   restaurantNamespace.on("connection", (socket) => {
-    console.log("A restaurant connected");
+    console.log("Restaurant connected:", socket.user._id);
 
     socket.on("join-restaurant-room", (restaurantId) => {
+      if (restaurantId !== socket.user._id) {
+        return socket.emit("error", "Unauthorized restaurant access");
+      }
       socket.join(restaurantId);
-      console.log(`Restaurant joined room ${restaurantId}`);
     });
 
-    socket.on("accept-order", async ({ orderId, restaurantId }) => {
+    socket.on("accept-order", async ({ orderId }) => {
       try {
-        const order = await orderModel.findById(orderId);
-        if (order && order.restaurantId.toString() === restaurantId) {
-          order.status = "Preparing";
-          await order.save();
+        const order = await orderModel.findByIdAndUpdate(orderId, {
+          status: "Preparing",
+        });
 
-          // Notify the user
-          io.of("/user").to(order.userId).emit("order-updated", {
-            orderId,
-            status: "Preparing",
-          });
-
-          // Notify other restaurant clients in the room
-          restaurantNamespace.to(restaurantId).emit("order-updated", {
-            orderId,
-            status: "Preparing",
-          });
+        if (
+          !order ||
+          order.restaurantId.toString() !== socket.user.restaurantId
+        ) {
+          return socket.emit("order-error", "Invalid order update");
         }
       } catch (error) {
-        console.error("Error accepting order:", error);
-      }
-    });
-
-    // New order event - this will emit a newly created order to the restaurant clients
-    socket.on("new-order-created", async (restaurantId) => {
-      console.log("New Order Received:"); // Debugging log
-      try {
-        const newOrders = await orderModel.find({ restaurantId });
-        newOrders.forEach((order) => {
-          // Emit the new order to the restaurant room
-          restaurantNamespace.to(restaurantId).emit("order-created", order);
-        });
-      } catch (error) {
-        console.error("Error emitting new orders:", error);
+        socket.emit("order-error", error.message);
+        console.error("Order acceptance error:", error);
       }
     });
 
     socket.on("disconnect", () => {
-      console.log("A restaurant disconnected");
+      console.log("Restaurant disconnected:", socket.user.id);
     });
   });
 
-  // User namespace
-  const userNamespace = io.of("/user");
-  userNamespace.on("connection", (socket) => {
-    console.log("A user connected");
-
-    socket.on("join-user-room", (userId) => {
-      socket.join(userId);
-      console.log(`User joined room ${userId}`);
-    });
-
-    socket.on("disconnect", () => {
-      console.log("A user disconnected");
-    });
-  });
+  return io;
 };
 
 export default socketIoSetup;

@@ -1,30 +1,48 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet, Image } from "react-native";
 import { AuthContext } from "../context/authContext";
-import { useFetchActiveOrders } from "../hooks/useFetchActiveOrders"; // Import the custom hook
+import { useFetchActiveOrders } from "../hooks/useFetchActiveOrders";
 import { images } from "../../constants";
-import { io } from "socket.io-client"; // For real-time updates
 
 const Orders = () => {
-  const { state } = useContext(AuthContext); // Assuming user info is stored in AuthContext
+  const { state, socket } = useContext(AuthContext);
   const user = state.user;
+  const [localOrders, setLocalOrders] = useState([]);
 
   // Fetch active orders using the custom hook
   const { activeOrders, fetchActiveOrders, loading, error } =
     useFetchActiveOrders(`/auth/orders/active/${user._id}`);
 
-  const socket = io("http://192.168.100.51:8080/user");
+  // Update local state when activeOrders changes
+  useEffect(() => {
+    setLocalOrders(activeOrders);
+  }, [activeOrders]);
 
   useEffect(() => {
     fetchActiveOrders();
-
     socket.emit("join-user-room", user._id);
-    socket.on("order-updated", (updatedOrder) => {});
+
+    // Add socket listeners
+    const handleOrderUpdate = (updatedOrder) => {
+      setLocalOrders((prev) =>
+        prev.map((order) =>
+          order._id === updatedOrder._id ? updatedOrder : order
+        )
+      );
+    };
+
+    const handleNewOrder = (newOrder) => {
+      setLocalOrders((prev) => [newOrder, ...prev]);
+    };
+
+    socket.on("order-updated", handleOrderUpdate);
+    socket.on("order-created", handleNewOrder);
 
     return () => {
-      socket.disconnect();
+      socket.off("order-updated", handleOrderUpdate);
+      socket.off("order-created", handleNewOrder);
     };
-  }, []);
+  }, [user._id]);
 
   // Render function for each active order
   const renderActiveOrders = ({ item }) => {
@@ -50,7 +68,9 @@ const Orders = () => {
           </View>
         </View>
         <View style={styles.statusContainer}>
-          <Text style={styles.status}>{item.status}</Text>
+          <Text style={[styles.status, { color: statusColors[item.status] }]}>
+            {item.status}
+          </Text>
         </View>
       </View>
     );
@@ -74,7 +94,7 @@ const Orders = () => {
         </View>
       ) : (
         <FlatList
-          data={activeOrders}
+          data={localOrders}
           renderItem={renderActiveOrders}
           keyExtractor={(item) => item._id}
         />
@@ -82,7 +102,13 @@ const Orders = () => {
     </View>
   );
 };
-
+const statusColors = {
+  Preparing: "#4CAF50",
+  Ready: "#2196F3",
+  Completed: "#9E9E9E",
+  Cancelled: "#EF5350",
+  Pending: "#FFA726",
+};
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -137,12 +163,13 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     justifyContent: "center",
-    alignItems: "flex-end", // Align the status to the right side
+    alignItems: "flex-end",
   },
   status: {
     fontSize: 16,
-    color: "red",
-    textAlign: "right", // Ensure text is aligned to the right
+    fontWeight: "500",
+    color: (status) => statusColors[status],
+    textAlign: "right",
   },
   emptyContainer: {
     justifyContent: "center",

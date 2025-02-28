@@ -5,7 +5,6 @@ import { imageModel } from "../../models/imageModel.js"; // For fetching restaur
 export const getActiveOrdersController = async (req, res) => {
   try {
     const { userId } = req.params;
-
     const activeOrders = await orderModel
       .find({
         userId,
@@ -38,11 +37,9 @@ export const getActiveOrdersController = async (req, res) => {
             _id: restaurant._id,
           },
         };
-
         return updatedOrder;
       })
     );
-
     res.status(200).json(ordersWithRestaurantDetails);
   } catch (error) {
     console.error("Error fetching active orders:", error);
