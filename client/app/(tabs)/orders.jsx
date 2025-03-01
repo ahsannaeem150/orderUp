@@ -17,7 +17,7 @@ const Orders = () => {
   useEffect(() => {
     setLocalOrders(activeOrders);
   }, [activeOrders]);
-
+  console.log(localOrders);
   useEffect(() => {
     fetchActiveOrders();
     socket.emit("join-user-room", user._id);

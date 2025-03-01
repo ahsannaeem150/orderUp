@@ -16,7 +16,7 @@ const setupChangeStream = async (io) => {
         if (["insert", "update"].includes(change.operationType)) {
           order = await orderModel
             .findById(change.documentKey._id)
-            .populate("userId", "name phone")
+            .populate("userId", "_id name phone")
             .lean();
         }
 
@@ -83,7 +83,7 @@ const socketIoSetup = (server) => {
     console.log("User connected:", socket.user._id);
 
     socket.on("join-user-room", (userId) => {
-      if (userId !== socket.user.id) {
+      if (userId !== socket.user._id) {
         return socket.emit("error", "Unauthorized room access");
       }
       socket.join(userId);
