@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
-
+import { images } from "../../constants";
+import { AuthContext } from "../context/authContext";
 const RestaurantCard = ({
   address,
   name,

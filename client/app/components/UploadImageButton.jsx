@@ -41,7 +41,7 @@ const UploadImageButton = ({ style }) => {
 
         // Upload the image
         const response = await axios.put(
-          `/auth/${state.user._id}/profile/image`,
+          `/${state.user._id}/profile/image`,
           formData,
           {
             headers: {

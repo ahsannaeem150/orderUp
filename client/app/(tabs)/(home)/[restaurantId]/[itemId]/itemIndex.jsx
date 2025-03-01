@@ -33,10 +33,10 @@ const ItemDetailsScreen = () => {
   const { restaurantId, itemId } = useLocalSearchParams();
 
   const { reviews, fetchReviews } = useFetchReviews(
-    `/auth/restaurant/item/${item._id}/reviews`
+    `/restaurant/item/${item._id}/reviews`
   );
   const { items, fetchItems } = useFetchItems(
-    `/auth/restaurant/${restaurant._id ? restaurant._id : restaurantId}/items`
+    `/restaurant/${restaurant._id ? restaurant._id : restaurantId}/items`
   );
 
   useEffect(() => {
@@ -158,7 +158,7 @@ const ItemDetailsScreen = () => {
     }
     if (review) {
       await axios.post(
-        `/auth/restaurant/item/${item._id}/reviews/${state.user._id}`,
+        `/restaurant/item/${item._id}/reviews/${state.user._id}`,
         { review, rating }
       );
       alert("Review added successfully!");
@@ -172,7 +172,10 @@ const ItemDetailsScreen = () => {
   const renderReview = ({ item }) => (
     <View style={styles.reviewCard}>
       <View style={styles.reviewHeader}>
-        <Image source={{ uri: item.image }} style={styles.profileImage} />
+        <Image
+          source={{ uri: `${API_URL}/images/${item.imageId}` }}
+          style={styles.profileImage}
+        />
         <View style={styles.reviewDetails}>
           <Text style={styles.reviewerName}>{item.reviewer}</Text>
           <StarRating
@@ -211,7 +214,10 @@ const ItemDetailsScreen = () => {
         style={styles.flatListContainer}
         ListHeaderComponent={
           <View style={styles.topSection}>
-            <Image source={{ uri: item.image }} style={styles.itemImage} />
+            <Image
+              source={{ uri: `${API_URL}/images/${item.imageId}` }}
+              style={styles.itemImage}
+            />
             <Text style={styles.itemName}>{item.name}</Text>
             <Text style={styles.itemPrice}>Rs {item.price}</Text>
             <Text style={styles.itemDescription}>{item.description}</Text>

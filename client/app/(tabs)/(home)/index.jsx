@@ -12,6 +12,8 @@ import {
   TouchableOpacity,
   TextInput,
 } from "react-native";
+import axios from "axios";
+import { Button } from "react-native";
 
 import { router } from "expo-router";
 import { AuthContext } from "../../context/authContext";
@@ -20,67 +22,102 @@ import RestaurantCard from "../../components/RestaurantCard";
 import SearchField from "../../components/SearchField";
 import { useFetchRestaurants } from "../../hooks/useFetchRestaurants";
 import RestaurantHorizontalList from "../../components/RestaurantHorizontalList";
+import { useRestaurant } from "../../context/RestaurantContext";
 
 const HorizontalRestaurantList = () => {
+  const { fetchRestaurants, getRestaurant, setCurrentRestaurant } =
+    useRestaurant();
+  const [restaurantIds, setRestaurantIds] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const { state } = useContext(AuthContext);
-  const { restaurant, setRestaurant } = useContext(AuthContext);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { state, API_URL } = useContext(AuthContext);
   const [search, setSearch] = useState("");
   const [searchedRestaurants, setSearchedRestaurants] = useState([]);
-  const { restaurants, fetchRestaurants } =
-    useFetchRestaurants("/auth/restaurants");
-  const [loading, setLoading] = useState(true);
+
+  const loadRestaurants = async () => {
+    try {
+      setError(null);
+      setIsInitialLoading(true);
+
+      // First get basic restaurant list
+      const basicResponse = await axios.get("/restaurants");
+      const ids = basicResponse.data.restaurants.map((r) => r._id);
+      setRestaurantIds(ids);
+      // Then fetch detailed data in batches
+      await fetchRestaurants(ids);
+    } catch (error) {
+      setError("Failed to load restaurants");
+      console.error("Failed to load restaurants:", error);
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
+
+  const restaurantData = React.useMemo(
+    () => restaurantIds.map((id) => getRestaurant(id)).filter(Boolean),
+    [restaurantIds, getRestaurant]
+  );
+
+  useEffect(() => {
+    if (search.length > 0) {
+      const filtered = restaurantData.filter((restaurant) =>
+        restaurant.name.toLowerCase().includes(search.toLowerCase())
+      );
+      setSearchedRestaurants(filtered);
+    }
+  }, [search, restaurantData]);
+
   const handleNavigatePress = (restaurant) => {
-    setRestaurant(restaurant);
+    setCurrentRestaurant(restaurant);
     router.push(`/(home)/${restaurant._id}`);
   };
 
-  const onRefresh = useCallback(() => {
+  useEffect(() => {
+    loadRestaurants();
+  }, []);
+
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    fetchRestaurants().then(() => {
+    try {
+      await loadRestaurants();
+    } finally {
       setRefreshing(false);
-    });
+    }
   }, []);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      await fetchRestaurants();
-      setLoading(false);
-    };
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    setSearchedRestaurants(
-      restaurants?.filter((restaurant) =>
-        restaurant.name.toLowerCase().includes(search.toLowerCase())
-      )
-    );
-  }, [search]);
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
-
+  const isLoading =
+    isInitialLoading ||
+    restaurantIds.length !== restaurantData.filter(Boolean).length;
   return (
     <View style={styles.container}>
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={loadRestaurants}>
+            <Text style={styles.retryText}>Tap to Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <FlatList
-        data={search.length == 0 ? restaurants : searchedRestaurants}
+        data={search.length == 0 ? restaurantData : searchedRestaurants}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <View style={{ flex: 1, alignItems: "center" }}>
             <RestaurantCard
-              name={item.name}
-              logo={item.logo}
+              name={item?.name || "Loading..."}
+              logo={
+                item?.logo
+                  ? `${API_URL}/images/${item.logo}`
+                  : images.logoPlaceholder
+              }
+              thumbnail={
+                item?.thumbnail
+                  ? `${API_URL}/images/${item.thumbnail}`
+                  : images.logoPlaceholder
+              }
               headerPressHandler={() => {
                 handleNavigatePress(item);
               }}
-              thumbnail={item.thumbnail}
               address={item.address.address}
             />
           </View>
@@ -123,7 +160,7 @@ const HorizontalRestaurantList = () => {
                   </Text>
                 </View>
                 <RestaurantHorizontalList
-                  posts={restaurants}
+                  posts={restaurantData}
                   onRestaurantClick={handleNavigatePress}
                 />
               </>
@@ -155,11 +192,24 @@ const styles = StyleSheet.create({
     flex: 1,
     marginBottom: 45,
   },
+  retryText: {
+    color: "blue",
+    textDecorationLine: "underline",
+  },
   headerContainer: {
     flex: 1,
     paddingVertical: 20,
     paddingHorizontal: 16,
     marginBottom: -24,
+  },
+  errorContainer: {
+    padding: 20,
+    backgroundColor: "#ffe6e6",
+    alignItems: "center",
+  },
+  errorText: {
+    color: "red",
+    marginBottom: 10,
   },
   headerContent: {
     flexDirection: "row",

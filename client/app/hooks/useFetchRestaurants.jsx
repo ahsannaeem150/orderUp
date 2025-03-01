@@ -7,42 +7,10 @@ export const useFetchRestaurants = (routePath) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const convertTobase64 = (image) => {
-    if (image?.data) {
-      const base64Data = Buffer.from(image.data, "binary").toString("base64");
-      const mimeType = image.contentType;
-      return { base64Data, mimeType };
-    }
-    return null;
-  };
-
   const fetchRestaurants = async () => {
     try {
-      console.log("FETCHING");
       const response = await axios.get(routePath);
-      const restaurantWithImages = response.data.restaurants.map(
-        (restaurant) => {
-          let processedRestaurant = { ...restaurant };
-
-          if (restaurant.logo?.data) {
-            const { base64Data: logoBase64Data, mimeType: logoMimeType } =
-              convertTobase64(restaurant.logo);
-            processedRestaurant.logo = `data:${logoMimeType};base64,${logoBase64Data}`;
-          }
-
-          if (restaurant.thumbnail?.data) {
-            const {
-              base64Data: thumbnailBase64Data,
-              mimeType: thumbnailMimeType,
-            } = convertTobase64(restaurant.thumbnail);
-            processedRestaurant.thumbnail = `data:${thumbnailMimeType};base64,${thumbnailBase64Data}`;
-          }
-
-          return processedRestaurant;
-        }
-      );
-      setRestaurants(restaurantWithImages);
-      setError(null);
+      setRestaurants(response.data.restaurants);
     } catch (error) {
       setError(error);
       console.error(error);

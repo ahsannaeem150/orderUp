@@ -1,13 +1,17 @@
-import React from "react";
+import React, { useContext } from "react";
 import {
   FlatList,
   Image,
   ImageBackground,
+  Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { images } from "../../constants";
+import { AuthContext } from "../context/authContext";
 
 const ItemCard = ({ item, onPress }) => {
+  const { API_URL } = useContext(AuthContext);
   return (
     <View style={{ marginRight: 20 }}>
       <TouchableOpacity
@@ -17,13 +21,13 @@ const ItemCard = ({ item, onPress }) => {
           alignItems: "center",
         }}
         activeOpacity={0.7}
-        onPress={() => {
-          onPress(item);
-        }}
+        onPress={() => onPress(item)}
       >
         <ImageBackground
           source={{
-            uri: item.logo,
+            uri: item?.logo
+              ? `${API_URL}/images/${item.logo}`
+              : images.logoPlaceholder,
           }}
           style={{
             width: 125,
@@ -31,10 +35,9 @@ const ItemCard = ({ item, onPress }) => {
             borderRadius: 10,
             marginVertical: 10,
             overflow: "hidden",
-            boxShadow: "0 10px 15px rgba(0,0,0,0.4)",
           }}
           resizeMode="cover"
-        />
+        ></ImageBackground>
       </TouchableOpacity>
     </View>
   );

@@ -10,7 +10,7 @@ export const useFetchRelatedItems = (itemId) => {
     const fetchRelatedItems = async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get(`/auth/recommendations/${itemId}`);
+        const { data } = await axios.get(`/recommendations/${itemId}`);
         setRelatedItems(data.recommendations);
       } catch (err) {
         setError(err.message);

@@ -5,6 +5,8 @@ import React from "react";
 import { router, SplashScreen, Stack } from "expo-router";
 import { AuthContext, AuthProvider } from "./context/authContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { RestaurantProvider } from "./context/RestaurantContext";
+import { ItemProvider } from "./context/ItemContext";
 SplashScreen.preventAutoHideAsync();
 SplashScreen.hideAsync();
 
@@ -27,11 +29,16 @@ const RootLayout = () => {
   if (!fontsLoaded && !error) return null;
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      </Stack>
+      <RestaurantProvider>
+        <ItemProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          </Stack>
+        </ItemProvider>
+      </RestaurantProvider>
     </AuthProvider>
   );
 };

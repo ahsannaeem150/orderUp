@@ -19,14 +19,15 @@ const AuthProvider = ({ children }) => {
 
   const appState = useRef(AppState.currentState);
 
-  const url = "192.168.100.51";
-  axios.defaults.baseURL = `http://${url}:8080/api`;
+  const ip = "192.168.100.51";
+  const API_URL = `http://${ip}:8080/api`;
+  axios.defaults.baseURL = API_URL;
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
     const initializeSocket = async () => {
       if (state.token) {
-        const newSocket = io(`http://${url}:8080/user`, {
+        const newSocket = io(`http://${ip}:8080/user`, {
           auth: {
             token: state.token,
           },
@@ -212,6 +213,7 @@ const AuthProvider = ({ children }) => {
         setActiveOrders,
         updateState,
         socket,
+        API_URL,
       }}
     >
       {children}

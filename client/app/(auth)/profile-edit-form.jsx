@@ -33,7 +33,7 @@ const ProfileEditForm = () => {
         },
       };
       const { data } = await axios.put(
-        `/auth/${state.user._id}/profile/update`,
+        `/${state.user._id}/profile/update`,
         formData
       );
       if (!data.success) {

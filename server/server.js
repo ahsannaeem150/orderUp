@@ -34,8 +34,8 @@ app.use(morgan("dev"));
 app.use("/api/welcome", (req, res) => {
   res.status(200).send({ message: "Welcome to OrderUp API" });
 });
-app.use("/api/auth", userRoutes);
-app.use("/api/auth/", restaurantRoutes);
+app.use("/api/", userRoutes);
+app.use("/api/", restaurantRoutes);
 
 //PORT
 const PORT = process.env.PORT || 8080;

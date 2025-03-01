@@ -29,7 +29,7 @@ const Profile = () => {
       console.log("REQUEST INITITATED");
       try {
         const profilePicture = await axios.get(
-          `/auth/${state.user?._id}/profile/image`,
+          `/${state.user?._id}/profile/image`,
           {
             params: {
               profilePicture: state.user?.profilePicture,

@@ -18,10 +18,10 @@ import { getRestaurantOrders } from "../controllers/orderControllers/getRestaura
 const router = express.Router();
 
 //REGISTER || POST
-router.post("/register/restaurant", registerController);
+router.post("/auth/register/restaurant", registerController);
 
 //LOGIN || POST
-router.post("/login/restaurant", loginController);
+router.post("/auth/login/restaurant", loginController);
 
 const storage = multer.memoryStorage(); // Use memory storage
 const upload = multer({ storage });

@@ -1,34 +1,49 @@
 import axios from "axios";
 import { useState } from "react";
-import { Buffer } from "buffer";
-
-export const useFetchItems = (routePath) => {
-  const [items, setItems] = useState(null);
+import { useItems } from "../context/ItemContext";
+export const useFetchItems = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { cacheItems, getItem } = useItems();
 
-  const fetchItems = async () => {
+  const fetchItemDetails = async (itemIds) => {
     try {
-      const response = await axios.get(routePath);
-      const itemWithImages = response.data.items.map((item) => {
-        if (item.image?.data) {
-          const base64Data = Buffer.from(item.image.data, "binary").toString(
-            "base64"
-          );
-          const mimeType = item.image.contentType;
-          return { ...item, image: `data:${mimeType};base64,${base64Data}` };
-        }
-        return item;
+      const response = await axios.post("/restaurant/items/batch", {
+        ids: itemIds,
       });
-      setItems(itemWithImages);
-      setError(null);
+      cacheItems(response.data);
+      return response.data;
     } catch (error) {
-      setError(error);
-      console.error(error);
+      setError("Failed to load items");
+      throw error;
+    }
+  };
+
+  const fetchItemsByRestaurant = async (restaurantId) => {
+    try {
+      console.log("[FETCH] Starting item fetch for restaurant:", restaurantId);
+      setLoading(true);
+      setError(null);
+
+      // Get FULL items directly from the first request
+      const response = await axios.get(`/restaurant/${restaurantId}/items`);
+      console.log("[GET] Received response:", response.data);
+
+      // Cache the complete items directly
+      cacheItems(response.data.items);
+    } catch (error) {
+      console.error("[ERROR] Fetch failed:", error);
+      setError(error.message);
     } finally {
+      console.log("[FETCH] Finalizing load");
       setLoading(false);
     }
   };
 
-  return { items, fetchItems, loading, error };
+  return {
+    fetchItems: fetchItemsByRestaurant,
+    getItem,
+    loading,
+    error,
+  };
 };

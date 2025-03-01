@@ -3,15 +3,25 @@ import { View, Text, FlatList, StyleSheet, Image } from "react-native";
 import { AuthContext } from "../context/authContext";
 import { useFetchActiveOrders } from "../hooks/useFetchActiveOrders";
 import { images } from "../../constants";
+import { useRestaurant } from "../context/RestaurantContext";
 
 const Orders = () => {
+  const { getRestaurant } = useRestaurant();
   const { state, socket } = useContext(AuthContext);
   const user = state.user;
   const [localOrders, setLocalOrders] = useState([]);
+  const { fetchRestaurants } = useRestaurant();
+
+  useEffect(() => {
+    if (activeOrders.length > 0) {
+      const restaurantIds = activeOrders.map((o) => o.restaurantId);
+      fetchRestaurants(restaurantIds);
+    }
+  }, [activeOrders]);
 
   // Fetch active orders using the custom hook
   const { activeOrders, fetchActiveOrders, loading, error } =
-    useFetchActiveOrders(`/auth/orders/active/${user._id}`);
+    useFetchActiveOrders(`/orders/active/${user._id}`);
 
   // Update local state when activeOrders changes
   useEffect(() => {
@@ -46,6 +56,8 @@ const Orders = () => {
 
   // Render function for each active order
   const renderActiveOrders = ({ item }) => {
+    const restaurant = getRestaurant(item.restaurantId);
+
     const orderQuantity = item.items.reduce((quantity, item) => {
       return quantity + item.quantity;
     }, 0);
@@ -55,13 +67,18 @@ const Orders = () => {
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <View style={styles.avatarContainer}>
             <Image
-              source={{ uri: item.restaurant?.logo }}
+              source={{
+                uri: restaurant?.logo
+                  ? `${API_URL}/images/${restaurant.logo}`
+                  : images.logoPlaceholder,
+              }}
               style={styles.avatar}
-              resizeMode="cover"
             />
           </View>
           <View>
-            <Text style={styles.restaurantName}>{item.restaurant?.name}</Text>
+            <Text style={styles.restaurantName}>
+              {restaurant?.name || "Restaurant"}
+            </Text>
             <Text style={styles.restaurantDetails}>
               Items in order: {orderQuantity}
             </Text>

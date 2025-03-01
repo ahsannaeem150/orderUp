@@ -6,22 +6,23 @@ import { uploadProfileController } from "../controllers/userControl/uploadProfil
 import { getProfilePictureController } from "../controllers/userControl/getProfilePicture.js";
 import { updateProfileController } from "../controllers/userControl/updateProfile.js";
 import { getRestaurantsController } from "../controllers/userControl/getRestaurants.js";
-import { getItemsController } from "../controllers/restaurantControllers/getItems.js";
 import { postUserReviewController } from "../controllers/userControl/postUserReviews.js";
 import { getReviewsController } from "../controllers/userControl/getUserReviews.js";
 import { checkoutController } from "../controllers/userControl/checkout.js";
 import { getOrderHistoryController } from "../controllers/userControl/getOrderHistory.js";
 import { getActiveOrdersController } from "../controllers/userControl/getActiveOrders.js";
 import { getRecommendationsController } from "../controllers/userControl/getRecommendations.js";
-import { restaurantModel } from "../models/restaurantModel.js";
-import { menuModel } from "../models/itemModel.js";
+import { getBatchRestaurants } from "../controllers/userControl/getBatchRestaurant.js";
+import { getImage } from "../controllers/userControl/getImage.js";
+import { getBatchItems } from "../controllers/userControl/getBatchItems.js";
+import { getItemsController } from "../controllers/userControl/getItemsController.js";
 //router object
 const router = express.Router();
 
 //REGISTER || POST
-router.post("/register", registerController);
+router.post("/auth/register", registerController);
 //REGISTER || POST
-router.post("/login", loginController);
+router.post("/auth/login", loginController);
 
 const storage = multer.memoryStorage(); // Use memory storage for example
 const upload = multer({ storage });
@@ -35,6 +36,9 @@ router.put(
 router.put("/:id/profile/update", updateProfileController);
 router.get("/:id/profile/image", getProfilePictureController);
 router.get("/restaurants", getRestaurantsController);
+router.post("/restaurants/batch", getBatchRestaurants);
+router.post("/restaurant/items/batch", getBatchItems);
+router.get("/images/:imageId", getImage);
 router.get("/restaurant/:id/items", getItemsController);
 router.post(
   "/restaurant/item/:itemId/reviews/:userId",

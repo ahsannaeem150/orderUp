@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -13,47 +13,67 @@ import { router } from "expo-router";
 import { AuthContext } from "../../../context/authContext";
 import { useFetchItems } from "../../../hooks/useFetchItems";
 import PageHeader from "../../../components/PageHeader";
+import { images } from "../../../../constants";
+import { useRestaurant } from "../../../context/RestaurantContext";
+import { useItems } from "../../../context/ItemContext";
+
 const MenuItemsScreen = () => {
-  const { restaurant, setItem, cart } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
-  const { items, fetchItems } = useFetchItems(
-    `/auth/restaurant/${restaurant._id}/items`
-  );
+  const { API_URL } = useContext(AuthContext);
+  const { currentRestaurant } = useRestaurant();
+  const { itemsCache, getItem } = useItems();
+  const { fetchItems, loading, error } = useFetchItems();
+
+  const restaurantItems = useMemo(() => {
+    return currentRestaurant?.menu || [];
+  }, [currentRestaurant?.menu]);
+
+  useEffect(() => {
+    console.log("hello");
+    if (currentRestaurant?._id) {
+      console.log("hi");
+      const neededIds =
+        currentRestaurant.menu?.filter((id) => !itemsCache[id]) || [];
+      console.log(currentRestaurant);
+      if (neededIds.length > 0) {
+        fetchItems(currentRestaurant._id);
+      }
+    }
+  }, [currentRestaurant?._id, currentRestaurant?.menu]); // Add menu to deps
 
   const handlePress = (item) => {
-    setItem(item);
-    router.push(`/(home)/[${restaurant._id}]/[${item._id}]/itemIndex`);
+    if (!item?._id) return;
+    router.push(`/(home)/${currentRestaurant._id}/${item._id}/itemIndex`);
   };
-  useEffect(() => {
-    const fetch = async () => {
-      setLoading(true);
-      await fetchItems();
+  const renderMenuItem = ({ item }) => {
+    if (!item?._id) return null;
 
-      setLoading(false);
-    };
-    fetch();
-  }, []);
+    const fullItem = getItem(item._id);
+    if (!fullItem) return null;
 
-  const renderMenuItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.cardContainer}
-      onPress={() => {
-        handlePress(item);
-      }}
-    >
-      <Image source={{ uri: item.image }} style={styles.image} />
-      <View style={styles.infoContainer}>
-        <Text style={styles.itemName} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.itemPrice}>{item.price}</Text>
-        <Text style={styles.itemDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+    return (
+      <TouchableOpacity
+        onPress={() => handlePress(fullItem)}
+        style={styles.cardContainer}
+      >
+        <Image
+          source={{ uri: `${API_URL}/images/${fullItem.image}` }}
+          style={styles.image}
+        />
 
+        <View style={styles.infoContainer}>
+          <Text style={styles.itemName} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={styles.itemPrice}>
+            ${item.price?.toFixed(2) || "0.00"}
+          </Text>
+          <Text style={styles.itemDescription} numberOfLines={2}>
+            {item.description}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
   return (
     <View style={styles.container}>
       <PageHeader
@@ -67,14 +87,40 @@ const MenuItemsScreen = () => {
         }}
       />
       <View style={styles.headerContainer}>
-        <Image source={{ uri: restaurant.logo }} style={styles.logo} />
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.restaurantName}>{restaurant.name}</Text>
-          <Text style={styles.restaurantDescription}>
-            {restaurant.address.address}
-          </Text>
-        </View>
+        {currentRestaurant && (
+          <>
+            <Image
+              source={{
+                uri: currentRestaurant?.logo
+                  ? `${API_URL}/images/${currentRestaurant.logo}`
+                  : images.logoPlaceholder,
+              }}
+              style={styles.logo}
+            />
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.restaurantName}>
+                {currentRestaurant?.name || "Restaurant"}
+              </Text>
+              <Text style={styles.restaurantDescription}>
+                {currentRestaurant?.address?.address || ""}
+              </Text>
+            </View>
+          </>
+        )}
       </View>
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Failed to load menu: {error}</Text>
+          <TouchableOpacity onPress={() => fetchItems(currentRestaurant?._id)}>
+            <Text style={styles.retryText}>Tap to Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {!loading && restaurantItems.length === 0 && (
+        <View style={styles.emptyContainer}>
+          <Text>No menu items available</Text>
+        </View>
+      )}
       {loading ? (
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
@@ -83,7 +129,7 @@ const MenuItemsScreen = () => {
         </View>
       ) : (
         <FlatList
-          data={items}
+          data={restaurantItems}
           keyExtractor={(item) => item._id}
           renderItem={renderMenuItem}
           contentContainerStyle={styles.listContent}
@@ -114,8 +160,29 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#ddd",
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
   headerTextContainer: {
     flex: 1,
+  },
+  errorContainer: {
+    padding: 16,
+    backgroundColor: "#ffe6e6",
+    borderRadius: 8,
+    margin: 16,
+    alignItems: "center",
+  },
+  errorText: {
+    color: "red",
+    marginBottom: 8,
+  },
+  retryText: {
+    color: "blue",
+    textDecorationLine: "underline",
   },
   restaurantName: {
     fontSize: 24,

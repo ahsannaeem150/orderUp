@@ -61,7 +61,7 @@ const checkout = () => {
         })),
       }));
 
-      const response = await axios.post("/auth/checkout", {
+      const response = await axios.post("/checkout", {
         userId,
         name,
         phone,
