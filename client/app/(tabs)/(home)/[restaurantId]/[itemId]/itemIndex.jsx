@@ -1,18 +1,16 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import {
   View,
   Text,
   Image,
-  FlatList,
+  ScrollView,
   StyleSheet,
   TextInput,
-  RefreshControl,
-  Button,
   Modal,
   Pressable,
   ActivityIndicator,
   TouchableOpacity,
-  ScrollView,
+  RefreshControl,
 } from "react-native";
 import { AuthContext } from "../../../../context/authContext";
 import StarRating from "react-native-star-rating-widget";
@@ -26,77 +24,71 @@ import PageHeader from "../../../../components/PageHeader";
 import { Ionicons } from "@expo/vector-icons";
 import { useItems } from "../../../../context/ItemContext";
 import { useRestaurant } from "../../../../context/RestaurantContext";
+import { useReviews } from "../../../../context/ReviewContext";
 
 const ItemDetailsScreen = () => {
   const { state, cart, setCart, API_URL } = useContext(AuthContext);
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
-  const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [averageRating, setAverageRating] = useState(0);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const { restaurantId, itemId } = useLocalSearchParams();
-  const [currentItem, setCurrentItem] = useState(null);
+  const { itemsCache, getItem, cacheItems } = useItems();
+  const { getRestaurant, cacheRestaurants } = useRestaurant();
+  const [currentItem, setCurrentItem] = useState(() => getItem(itemId));
   const [currentRestaurant, setCurrentRestaurant] = useState(null);
+  const [loading, setLoading] = useState(!itemsCache[itemId]);
+  const [error, setError] = useState(null);
 
-  const { getRestaurant } = useRestaurant();
-  const restaurantFromCache = getRestaurant(restaurantId);
-
-  const { reviews, fetchReviews } = useFetchReviews(
-    `/restaurant/item/${itemId}/reviews`
-  );
-  const { fetchItem, itemsCache, error } = useFetchItems();
+  const { reviews, fetchReviews } = useFetchReviews(itemId);
+  const { cacheReviews } = useReviews();
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadInitialReviews = async () => {
       try {
-        setLoading(true);
-        // Try to get from cache first
-        const cachedItem = itemsCache[itemId];
-        if (cachedItem) {
-          setCurrentItem(cachedItem);
-          setCurrentRestaurant(cachedItem.restaurant);
-        } else {
-          // Fetch item and related data
-          const itemData = await fetchItem(itemId);
-          setCurrentItem(itemData);
-
-          // If restaurant data not available in cache
-          if (!restaurantFromCache) {
-            const restaurantRes = await axios.get(
-              `/restaurants/${restaurantId}`
-            );
-            setCurrentRestaurant(restaurantRes.data);
-          } else {
-            setCurrentRestaurant(restaurantFromCache);
-          }
+        if (reviews.length === 0) {
+          await fetchReviews();
         }
-
-        await fetchReviews();
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        console.log("Initial reviews load error:", error);
       }
     };
 
-    loadData();
-  }, [itemId, restaurantId]);
+    if (itemId) {
+      loadInitialReviews();
+    }
+  }, [itemId]); // Add this useEffect
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const itemResponse = await axios.get(`/restaurant/items/${itemId}`);
+      const item = itemResponse.data.item;
+      cacheItems([item]);
+      setCurrentItem(item);
+      const restaurant = itemResponse.data.item.restaurant;
+      cacheRestaurants([restaurant]);
+      setCurrentRestaurant(restaurant);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [itemId]);
+
+  useEffect(() => {
+    if (!itemsCache[itemId]) loadData();
+  }, [itemId]);
 
   useEffect(() => {
     if (reviews?.length > 0) {
-      const totalRating = reviews.reduce(
-        (sum, review) => sum + review.rating,
-        0
-      );
-      const calculatedRating =
-        Math.round((totalRating / reviews.length) * 2) / 2;
-      setAverageRating(parseFloat(calculatedRating.toFixed(1)));
+      const total = reviews.reduce((sum, r) => sum + r.rating, 0);
+      setAverageRating(Math.round((total / reviews.length) * 2) / 2);
     }
   }, [reviews]);
-
-  const handleRefresh = async () => {
-    await loadData();
-  };
-
   const handleAddToCartPress = () => {
     if (!currentItem || !currentRestaurant) return;
 
@@ -146,215 +138,180 @@ const ItemDetailsScreen = () => {
     alert("Added to cart successfully!");
   };
 
-  const handleSubmitReview = async () => {
-    if (rating === 0) {
-      alert("Please provide a rating.");
-      return;
-    }
-
+  const submitReview = async () => {
     try {
-      await axios.post(`/restaurant/item/${itemId}/reviews/${state.user._id}`, {
-        review,
-        rating,
-      });
-      alert("Review added successfully!");
-      setReview("");
-      setRating(0);
+      const response = await axios.post(
+        `/restaurant/item/${itemId}/reviews/${state.user._id}`,
+        {
+          rating,
+          comment: review,
+        }
+      );
+
+      cacheReviews(itemId, (prev) => [...prev, response.data.review]);
+      // Reset form
       setIsModalVisible(false);
-      fetchReviews();
+      setRating(0);
+      setReview("");
     } catch (error) {
-      console.error("Error submitting review:", error);
-      alert("Failed to submit review. Please try again.");
+      await fetchReviews(); // Refresh from server
     }
   };
 
-  const renderReview = ({ item }) => (
+  const ReviewCard = ({ item }) => (
     <View style={styles.reviewCard}>
-      <View style={styles.reviewHeader}>
-        <Image
-          source={{ uri: `${API_URL}/images/${item.userId.profilePicture}` }}
-          style={styles.profileImage}
+      {console.log(item)}
+      <Image
+        source={{ uri: `${API_URL}/images/${item.userId?.profilePicture}` }}
+        style={styles.avatar}
+      />
+      <View style={styles.reviewContent}>
+        <Text style={styles.reviewName}>{item.userId?.name}</Text>
+        <StarRating
+          rating={Math.round(item.rating)}
+          starSize={16}
+          enableHalfStar
+          animationConfig={{ scale: 1 }}
+          style={styles.stars}
         />
-        <View style={styles.reviewDetails}>
-          <Text style={styles.reviewerName}>{item.userId.name}</Text>
-          <StarRating
-            rating={item.rating}
-            starSize={15}
-            enableHalfStar={true}
-            onChange={() => {}}
-            animationConfig={{ scale: 1 }}
-          />
-        </View>
+        <Text style={styles.reviewText}>{item.comment}</Text>
       </View>
-      <Text style={styles.reviewText}>{item.comment}</Text>
     </View>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <Button title="Retry" onPress={handleRefresh} />
-      </View>
-    );
-  }
-
-  if (!currentItem) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Item not found</Text>
-      </View>
-    );
-  }
+  if (loading) return <ActivityIndicator style={styles.loader} size="large" />;
+  if (error) return <Text style={styles.error}>Error loading item</Text>;
+  if (!currentItem) return <Text style={styles.error}>Item not found</Text>;
 
   return (
     <View style={styles.container}>
       <PageHeader
-        onCartPress={() => router.push("/cart")}
-        backHandler={() => router.back()}
         title={currentItem.name}
-        showCartBadge={true}
+        backHandler={router.back}
+        showCartBadge={cart?.length > 0}
       />
 
       <ScrollView
-        style={styles.scrollContainer}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={loadData} />
         }
       >
-        <View style={styles.topSection}>
-          <Image
-            source={{ uri: `${API_URL}/images/${currentItem.image}` }}
-            style={styles.itemImage}
-          />
+        {/* Item Image */}
+        <Image
+          source={{ uri: `${API_URL}/images/${currentItem.image}` }}
+          style={styles.itemImage}
+        />
 
-          <View style={styles.itemInfo}>
-            <Text style={styles.itemName}>{currentItem.name}</Text>
-            <Text style={styles.itemPrice}>
-              ${currentItem.price.toFixed(2)}
-            </Text>
-            <Text style={styles.itemDescription}>
-              {currentItem.description}
-            </Text>
-          </View>
+        {/* Item Info */}
+        <View style={styles.infoContainer}>
+          <Text style={styles.price}>${currentItem.price.toFixed(2)}</Text>
+          <Text style={styles.description}>{currentItem.description}</Text>
 
-          <View style={styles.ratingRow}>
+          <View style={styles.ratingContainer}>
             <StarRating
-              rating={averageRating}
+              rating={Math.round(averageRating)}
               starSize={24}
-              enableHalfStar={true}
-              onChange={() => {}}
-              starStyle={styles.starStyle}
+              animationConfig={{ scale: 1 }}
             />
             <Text style={styles.ratingText}>
               {averageRating} ({reviews?.length} reviews)
             </Text>
           </View>
-
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              onPress={() => setIsModalVisible(true)}
-              style={styles.reviewButton}
-            >
-              <Ionicons name="pencil" size={18} color="#fff" />
-              <Text style={styles.buttonText}>Write Review</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleAddToCartPress}
-              style={[styles.reviewButton, styles.cartButton]}
-            >
-              <Ionicons name="cart" size={18} color="#fff" />
-              <Text style={styles.buttonText}>Add to Cart</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
-        <View style={styles.reviewsSection}>
-          {reviews?.length > 0 ? (
+        {/* Action Buttons */}
+        <View style={styles.buttonGroup}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => setIsModalVisible(true)}
+          >
+            <Ionicons name="pencil" size={18} color="white" />
+            <Text style={styles.buttonText}>Write Review</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.cartButton]}
+            onPress={handleAddToCartPress}
+          >
+            <Ionicons name="cart" size={18} color="white" />
+            <Text style={styles.buttonText}>Add to Cart</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Reviews Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Customer Reviews</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#3b82f6" />
+          ) : reviews?.length > 0 ? (
             <>
-              <FlatList
-                data={showAllReviews ? reviews : reviews.slice(0, 2)}
-                keyExtractor={(item) => item._id}
-                renderItem={renderReview}
-                scrollEnabled={false}
-              />
+              {reviews.slice(0, showAllReviews ? undefined : 2).map((item) => (
+                <ReviewCard key={item._id} item={item} />
+              ))}
               {reviews.length > 2 && (
                 <TouchableOpacity
                   onPress={() => setShowAllReviews(!showAllReviews)}
-                  style={styles.seeAllButton}
+                  style={styles.seeMore}
                 >
-                  <Text style={styles.seeAllText}>
-                    {showAllReviews ? "Show Less" : "See All Reviews"}
+                  <Text style={styles.seeMoreText}>
+                    {showAllReviews ? "Show less" : "See all reviews"}
                   </Text>
                 </TouchableOpacity>
               )}
             </>
           ) : (
-            <View style={styles.noReviews}>
-              <Ionicons name="chatbox-ellipses" size={40} color="#d1d5db" />
-              <Text style={styles.noReviewsText}>No reviews yet</Text>
-            </View>
+            <Text style={styles.noReviews}>No reviews yet</Text>
           )}
         </View>
 
-        <View style={styles.relatedSection}>
+        {/* Related Items */}
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>You Might Also Like</Text>
           <RelatedItemsList itemId={itemId} restaurantId={restaurantId} />
         </View>
       </ScrollView>
 
       {/* Review Modal */}
-      <Modal
-        visible={isModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setIsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Share Your Experience</Text>
+      <Modal visible={isModalVisible} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>Write a Review</Text>
 
             <StarRating
               rating={rating}
-              onChange={setRating}
+              onChange={(rating) => {
+                setRating(Math.round(rating));
+              }}
               starSize={32}
-              enableHalfStar={true}
-              starStyle={styles.modalStar}
+              enableHalfStar
+              animationConfig={{ scale: 1 }}
+              style={styles.modalStars}
             />
 
             <TextInput
-              style={styles.reviewInput}
-              placeholder="How was your experience with this item?"
-              placeholderTextColor="#9ca3af"
-              value={review}
-              onChangeText={setReview}
+              style={styles.input}
+              placeholder="Share your experience..."
+              placeholderTextColor="#94a3b8"
               multiline
               numberOfLines={4}
+              value={review}
+              onChangeText={setReview}
             />
 
             <View style={styles.modalActions}>
-              <Pressable
+              <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setIsModalVisible(false)}
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
-              </Pressable>
+              </TouchableOpacity>
 
-              <Pressable
+              <TouchableOpacity
                 style={[styles.modalButton, styles.submitButton]}
-                onPress={handleSubmitReview}
+                onPress={submitReview}
               >
-                <Text style={styles.modalButtonText}>Submit Review</Text>
-              </Pressable>
+                <Text style={styles.modalButtonText}>Submit</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -367,226 +324,176 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8fafc",
+    marginBottom: 50,
   },
-  loadingContainer: {
+  loader: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  scrollContainer: {
+  error: {
     flex: 1,
-    paddingBottom: 80,
-  },
-  topSection: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    margin: 16,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    textAlign: "center",
+    marginTop: 40,
+    color: "#ef4444",
   },
   itemImage: {
     width: "100%",
-    height: 280,
-    borderRadius: 12,
-    marginBottom: 16,
+    height: 300,
+    resizeMode: "cover",
   },
-  itemInfo: {
-    marginBottom: 20,
+  infoContainer: {
+    padding: 24,
+    backgroundColor: "white",
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  errorText: {
-    color: "#ef4444",
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  itemName: {
-    fontSize: 24,
-    fontFamily: "Poppins-SemiBold",
-    color: "#1f2937",
-    marginBottom: 8,
-  },
-  itemPrice: {
-    fontSize: 22,
+  price: {
+    fontSize: 28,
     fontFamily: "Poppins-SemiBold",
     color: "#10b981",
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  itemDescription: {
+  description: {
     fontSize: 16,
-    color: "#4b5563",
     lineHeight: 24,
-    fontFamily: "Poppins-Regular",
+    color: "#64748b",
+    marginBottom: 24,
   },
-  ratingRow: {
+  ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  starStyle: {
-    marginRight: 4,
+    gap: 12,
   },
   ratingText: {
     fontSize: 16,
-    color: "#4b5563",
-    marginLeft: 12,
-    fontFamily: "Poppins-Medium",
+    color: "#64748b",
   },
-  buttonRow: {
+  buttonGroup: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
+    gap: 16,
+    padding: 24,
   },
-  reviewButton: {
+  button: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#3b82f6",
-    paddingVertical: 14,
-    borderRadius: 10,
     gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "#3b82f6",
   },
   cartButton: {
     backgroundColor: "#10b981",
   },
   buttonText: {
-    color: "#fff",
+    color: "white",
     fontFamily: "Poppins-SemiBold",
     fontSize: 16,
   },
-  reviewsSection: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    marginHorizontal: 16,
-    padding: 16,
-  },
-  reviewCard: {
-    backgroundColor: "#f9fafb",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  reviewHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  profileImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
-  },
-  reviewDetails: {
-    flex: 1,
-  },
-  reviewerName: {
-    fontSize: 16,
-    fontFamily: "Poppins-SemiBold",
-    color: "#1f2937",
-    marginBottom: 4,
-  },
-  reviewText: {
-    fontSize: 14,
-    color: "#4b5563",
-    lineHeight: 20,
-    fontFamily: "Poppins-Regular",
-  },
-  seeAllButton: {
-    paddingVertical: 12,
-  },
-  seeAllText: {
-    color: "#3b82f6",
-    fontFamily: "Poppins-SemiBold",
-    textAlign: "center",
-  },
-  noReviews: {
-    alignItems: "center",
-    paddingVertical: 32,
-  },
-  noReviewsText: {
-    color: "#9ca3af",
-    fontFamily: "Poppins-Medium",
-    marginTop: 8,
-  },
-  relatedSection: {
-    margin: 16,
+  section: {
+    paddingHorizontal: 24,
+    marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 20,
     fontFamily: "Poppins-SemiBold",
-    color: "#1f2937",
+    color: "#0f172a",
     marginBottom: 16,
   },
-  modalOverlay: {
+  reviewCard: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: "row",
+    gap: 16,
+    marginBottom: 12,
+    elevation: 2,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  reviewContent: {
+    flex: 1,
+  },
+  reviewName: {
+    fontFamily: "Poppins-SemiBold",
+    color: "#0f172a",
+    marginBottom: 4,
+  },
+  reviewText: {
+    color: "#64748b",
+    lineHeight: 20,
+    marginTop: 8,
+  },
+  seeMore: {
+    padding: 12,
+    alignItems: "center",
+  },
+  seeMoreText: {
+    color: "#3b82f6",
+    fontFamily: "Poppins-SemiBold",
+  },
+  noReviews: {
+    textAlign: "center",
+    color: "#94a3b8",
+    marginVertical: 24,
+  },
+  modalBackdrop: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.4)",
   },
-  modalContent: {
-    backgroundColor: "#fff",
+  modal: {
     width: "90%",
+    backgroundColor: "white",
     borderRadius: 16,
     padding: 24,
   },
   modalTitle: {
     fontSize: 20,
     fontFamily: "Poppins-SemiBold",
-    color: "#1f2937",
     textAlign: "center",
     marginBottom: 24,
   },
-  modalStar: {
-    marginHorizontal: 2,
+  modalStars: {
+    alignSelf: "center",
+    marginBottom: 24,
   },
-  reviewInput: {
-    backgroundColor: "#f9fafb",
-    borderRadius: 8,
+  input: {
+    backgroundColor: "#f1f5f9",
+    borderRadius: 12,
     padding: 16,
     minHeight: 120,
     textAlignVertical: "top",
-    marginVertical: 16,
-    fontFamily: "Poppins-Regular",
+    marginBottom: 24,
     fontSize: 16,
-    color: "#1f2937",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   modalActions: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 16,
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 12,
     alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: "#ef4444",
+    backgroundColor: "#f1f5f9",
   },
   submitButton: {
     backgroundColor: "#3b82f6",
   },
   modalButtonText: {
-    color: "#fff",
     fontFamily: "Poppins-SemiBold",
     fontSize: 16,
+    color: "#3b82f6",
+  },
+  submitButtonText: {
+    color: "white",
   },
 });
 

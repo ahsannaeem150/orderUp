@@ -7,6 +7,7 @@ import { AuthContext, AuthProvider } from "./context/authContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { RestaurantProvider } from "./context/RestaurantContext";
 import { ItemProvider } from "./context/ItemContext";
+import { ReviewProvider } from "./context/ReviewContext";
 SplashScreen.preventAutoHideAsync();
 SplashScreen.hideAsync();
 
@@ -31,12 +32,14 @@ const RootLayout = () => {
     <AuthProvider>
       <RestaurantProvider>
         <ItemProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <ReviewProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
 
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            </Stack>
+          </ReviewProvider>
         </ItemProvider>
       </RestaurantProvider>
     </AuthProvider>

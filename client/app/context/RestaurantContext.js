@@ -36,11 +36,22 @@ export const RestaurantProvider = ({ children }) => {
     }
   };
 
+  const cacheRestaurants = (restaurants) => {
+    setRestaurants((prev) => ({
+      ...prev,
+      ...restaurants.reduce((acc, r) => {
+        acc[r._id] = r;
+        return acc;
+      }, {}),
+    }));
+  };
+
   const getRestaurant = (id) => restaurants[id] || null;
 
   return (
     <RestaurantContext.Provider
       value={{
+        cacheRestaurants,
         fetchRestaurants,
         getRestaurant,
         currentRestaurant,
