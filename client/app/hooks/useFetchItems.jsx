@@ -4,45 +4,53 @@ import { useItems } from "../context/ItemContext";
 export const useFetchItems = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { cacheItems, getItem } = useItems();
+  const { cacheItems, getItem, itemsCache } = useItems();
 
-  const fetchItemDetails = async (itemIds) => {
+  const fetchItem = async (itemId) => {
     try {
-      const response = await axios.post("/restaurant/items/batch", {
-        ids: itemIds,
-      });
-      cacheItems(response.data);
-      return response.data;
-    } catch (error) {
-      setError("Failed to load items");
-      throw error;
-    }
-  };
-
-  const fetchItemsByRestaurant = async (restaurantId) => {
-    try {
-      console.log("[FETCH] Starting item fetch for restaurant:", restaurantId);
       setLoading(true);
       setError(null);
 
-      // Get FULL items directly from the first request
-      const response = await axios.get(`/restaurant/${restaurantId}/items`);
-      console.log("[GET] Received response:", response.data);
+      // Check cache first
+      if (itemsCache[itemId]) {
+        return itemsCache[itemId];
+      }
 
-      // Cache the complete items directly
-      cacheItems(response.data.items);
+      // Fetch from API if not in cache
+      const response = await axios.get(`/restaurant/items/${itemId}`);
+      const itemData = response.data.item;
+
+      // Cache the item
+      cacheItems([itemData]);
+
+      return itemData;
     } catch (error) {
-      console.error("[ERROR] Fetch failed:", error);
       setError(error.message);
+      throw error;
     } finally {
-      console.log("[FETCH] Finalizing load");
       setLoading(false);
     }
   };
 
+  const fetchItemsBatch = async (itemIds) => {
+    setLoading(true);
+    const neededIds = itemIds.filter((id) => !itemsCache[id]);
+
+    if (neededIds.length > 0) {
+      const response = await axios.post("/restaurant/items/batch", {
+        ids: neededIds,
+      });
+      cacheItems(response.data);
+    }
+    setLoading(false);
+    return itemIds.map((id) => itemsCache[id]);
+  };
+
   return {
-    fetchItems: fetchItemsByRestaurant,
     getItem,
+    itemsCache,
+    fetchItem,
+    fetchItemsBatch,
     loading,
     error,
   };

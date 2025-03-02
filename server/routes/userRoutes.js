@@ -16,6 +16,7 @@ import { getBatchRestaurants } from "../controllers/userControl/getBatchRestaura
 import { getImage } from "../controllers/userControl/getImage.js";
 import { getBatchItems } from "../controllers/userControl/getBatchItems.js";
 import { getItemsController } from "../controllers/userControl/getItemsController.js";
+import { getItemController } from "../controllers/userControl/getItemController.js";
 //router object
 const router = express.Router();
 
@@ -38,6 +39,7 @@ router.get("/:id/profile/image", getProfilePictureController);
 router.get("/restaurants", getRestaurantsController);
 router.post("/restaurants/batch", getBatchRestaurants);
 router.post("/restaurant/items/batch", getBatchItems);
+router.get("/restaurant/items/:itemId", getItemController);
 router.get("/images/:imageId", getImage);
 router.get("/restaurant/:id/items", getItemsController);
 router.post(

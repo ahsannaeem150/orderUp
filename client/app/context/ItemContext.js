@@ -5,6 +5,9 @@ const ItemContext = createContext();
 
 export const ItemProvider = ({ children }) => {
   const [itemsCache, setItemsCache] = useState({});
+  const [currentItem, setCurrentItem] = useState({
+    _id: null,
+  });
 
   const getItem = (id) => itemsCache[id] || null;
 
@@ -19,7 +22,9 @@ export const ItemProvider = ({ children }) => {
   };
 
   return (
-    <ItemContext.Provider value={{ getItem, cacheItems, itemsCache }}>
+    <ItemContext.Provider
+      value={{ getItem, cacheItems, itemsCache, currentItem, setCurrentItem }}
+    >
       {children}
     </ItemContext.Provider>
   );

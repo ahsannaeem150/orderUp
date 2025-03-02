@@ -16,102 +16,118 @@ import PageHeader from "../../../components/PageHeader";
 import { images } from "../../../../constants";
 import { useRestaurant } from "../../../context/RestaurantContext";
 import { useItems } from "../../../context/ItemContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const MenuItemsScreen = () => {
   const { API_URL } = useContext(AuthContext);
   const { currentRestaurant } = useRestaurant();
-  const { itemsCache, getItem } = useItems();
-  const { fetchItems, loading, error } = useFetchItems();
+  const { itemsCache, getItem, setCurrentItem } = useItems();
+  const { fetchItemsBatch, loading, error } = useFetchItems();
 
   const restaurantItems = useMemo(() => {
-    return currentRestaurant?.menu || [];
-  }, [currentRestaurant?.menu]);
+    return (currentRestaurant?.menu || []).map((menuItem) =>
+      getItem(menuItem._id)
+    );
+  }, [currentRestaurant?.menu, itemsCache]);
 
   useEffect(() => {
-    console.log("hello");
     if (currentRestaurant?._id) {
-      console.log("hi");
-      const neededIds =
-        currentRestaurant.menu?.filter((id) => !itemsCache[id]) || [];
-      console.log(currentRestaurant);
-      if (neededIds.length > 0) {
-        fetchItems(currentRestaurant._id);
+      const menuIds = currentRestaurant.menu || [];
+      if (menuIds.length > 0) {
+        fetchItemsBatch(menuIds);
       }
     }
-  }, [currentRestaurant?._id, currentRestaurant?.menu]); // Add menu to deps
+  }, [currentRestaurant?._id]);
 
   const handlePress = (item) => {
     if (!item?._id) return;
+    setCurrentItem(item);
     router.push(`/(home)/${currentRestaurant._id}/${item._id}/itemIndex`);
   };
   const renderMenuItem = ({ item }) => {
-    if (!item?._id) return null;
-
-    const fullItem = getItem(item._id);
-    if (!fullItem) return null;
-
     return (
       <TouchableOpacity
-        onPress={() => handlePress(fullItem)}
+        onPress={() => handlePress(item)}
         style={styles.cardContainer}
+        activeOpacity={0.9}
       >
         <Image
-          source={{ uri: `${API_URL}/images/${fullItem.image}` }}
+          source={{ uri: `${API_URL}/images/${item.image}` }}
           style={styles.image}
+          resizeMode="cover"
         />
 
+        <View style={styles.itemBadge}>
+          <Text style={styles.badgeText}>{item.category || "Popular"}</Text>
+        </View>
+
         <View style={styles.infoContainer}>
-          <Text style={styles.itemName} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text style={styles.itemPrice}>
-            ${item.price?.toFixed(2) || "0.00"}
-          </Text>
+          <View style={styles.itemHeader}>
+            <Text style={styles.itemName} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text style={styles.itemPrice}>
+              Rs{item.price?.toFixed(2) || "0.00"}
+            </Text>
+          </View>
+
           <Text style={styles.itemDescription} numberOfLines={2}>
             {item.description}
           </Text>
+
+          <View style={styles.itemFooter}>
+            <Ionicons name="time-outline" size={14} color="#6b7280" />
+            <Text style={styles.preparationTime}>15-20 mins</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color="#d1d5db"
+              style={styles.arrowIcon}
+            />
+          </View>
         </View>
       </TouchableOpacity>
     );
   };
+
   return (
     <View style={styles.container}>
       <PageHeader
-        backHandler={() => {
-          router.navigate("(home)");
-        }}
-        title={"Menu Items"}
+        backHandler={() => router.navigate("(home)")}
+        title={"Menu"}
         showCartBadge={true}
-        onCartPress={() => {
-          router.push("/cart");
-        }}
+        onCartPress={() => router.push("/cart")}
       />
-      <View style={styles.headerContainer}>
-        {currentRestaurant && (
-          <>
-            <Image
-              source={{
-                uri: currentRestaurant?.logo
-                  ? `${API_URL}/images/${currentRestaurant.logo}`
-                  : images.logoPlaceholder,
-              }}
-              style={styles.logo}
-            />
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.restaurantName}>
-                {currentRestaurant?.name || "Restaurant"}
-              </Text>
-              <Text style={styles.restaurantDescription}>
-                {currentRestaurant?.address?.address || ""}
-              </Text>
-            </View>
-          </>
-        )}
+
+      <View style={styles.restaurantHeader}>
+        <Image
+          source={{
+            uri: currentRestaurant?.logo
+              ? `${API_URL}/images/${currentRestaurant.logo}`
+              : images.logoPlaceholder,
+          }}
+          style={styles.logo}
+        />
+        <View style={styles.headerText}>
+          <Text style={styles.restaurantName}>
+            {currentRestaurant?.name || "Restaurant"}
+          </Text>
+          <View style={styles.restaurantInfo}>
+            <Ionicons name="location-outline" size={14} color="#4b5563" />
+            <Text style={styles.restaurantAddress}>
+              {currentRestaurant?.address?.address || ""}
+            </Text>
+          </View>
+          <View style={styles.ratingContainer}>
+            <Ionicons name="star" size={14} color="#f59e0b" />
+            <Text style={styles.ratingText}>4.5 (500+ ratings)</Text>
+          </View>
+        </View>
       </View>
       {error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Failed to load menu: {error}</Text>
-          <TouchableOpacity onPress={() => fetchItems(currentRestaurant?._id)}>
+          <TouchableOpacity onPress={() => fetchItemsBatch(menuIds)}>
             <Text style={styles.retryText}>Tap to Retry</Text>
           </TouchableOpacity>
         </View>
@@ -133,6 +149,7 @@ const MenuItemsScreen = () => {
           keyExtractor={(item) => item._id}
           renderItem={renderMenuItem}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -144,91 +161,129 @@ export default MenuItemsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 5,
-    marginBottom: 30,
+    marginBottom: 50,
+    backgroundColor: "#f8fafc",
   },
-  headerContainer: {
+  restaurantHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    padding: 20,
+    backgroundColor: "white",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
   },
   logo: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: "#ddd",
+    width: 80,
+    height: 80,
+    borderRadius: 14,
+    marginRight: 16,
+    backgroundColor: "#f3f4f6",
   },
-  emptyContainer: {
+  headerText: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  errorContainer: {
-    padding: 16,
-    backgroundColor: "#ffe6e6",
-    borderRadius: 8,
-    margin: 16,
-    alignItems: "center",
-  },
-  errorText: {
-    color: "red",
-    marginBottom: 8,
-  },
-  retryText: {
-    color: "blue",
-    textDecorationLine: "underline",
   },
   restaurantName: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
+    fontSize: 22,
+    fontFamily: "Poppins-SemiBold",
+    color: "#1f2937",
+    marginBottom: 4,
   },
-  restaurantDescription: {
-    fontSize: 16,
-    color: "#666",
+  restaurantInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
   },
-  listContent: {
-    paddingBottom: 16,
+  restaurantAddress: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginLeft: 6,
+    fontFamily: "Poppins-Regular",
+  },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  ratingText: {
+    fontSize: 14,
+    color: "#4b5563",
+    marginLeft: 4,
+    fontFamily: "Poppins-Medium",
   },
   cardContainer: {
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
+    backgroundColor: "white",
+    borderRadius: 16,
+    marginHorizontal: 16,
     marginBottom: 16,
-    overflow: "hidden",
+    marginTop: 10,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   image: {
     width: "100%",
-    height: 160,
+    height: 200,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  itemBadge: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
+    color: "#3b82f6",
   },
   infoContainer: {
-    padding: 12,
+    padding: 16,
+  },
+  itemHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
   itemName: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 4,
+    fontFamily: "Poppins-SemiBold",
+    color: "#1f2937",
+    flex: 1,
+    marginRight: 12,
   },
   itemPrice: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#4CAF50",
-    marginBottom: 8,
+    fontFamily: "Poppins-SemiBold",
+    color: "#10b981",
   },
   itemDescription: {
     fontSize: 14,
-    color: "#666",
+    color: "#6b7280",
+    fontFamily: "Poppins-Regular",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  itemFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+    paddingTop: 12,
+  },
+  preparationTime: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginLeft: 6,
+    marginRight: "auto",
+    fontFamily: "Poppins-Regular",
+  },
+  arrowIcon: {
+    marginLeft: 8,
   },
 });
