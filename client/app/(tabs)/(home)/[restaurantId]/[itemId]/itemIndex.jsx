@@ -39,7 +39,9 @@ const ItemDetailsScreen = () => {
   const { itemsCache, getItem, cacheItems } = useItems();
   const { getRestaurant, cacheRestaurants } = useRestaurant();
   const [currentItem, setCurrentItem] = useState(() => getItem(itemId));
-  const [currentRestaurant, setCurrentRestaurant] = useState(null);
+  const [currentRestaurant, setCurrentRestaurant] = useState(() =>
+    getRestaurant(restaurantId)
+  );
   const [loading, setLoading] = useState(!itemsCache[itemId]);
   const [error, setError] = useState(null);
 
@@ -92,6 +94,7 @@ const ItemDetailsScreen = () => {
     }
   }, [reviews]);
   const handleAddToCartPress = () => {
+    console.log(cart);
     if (!currentItem || !currentRestaurant) return;
 
     const newCartItem = {
@@ -113,7 +116,7 @@ const ItemDetailsScreen = () => {
     };
 
     setCart((prevCart) => {
-      const existingRestaurantIndex = prevCart?.findIndex(
+      const existingRestaurantIndex = (prevCart || []).findIndex(
         (item) => item.restaurant._id === currentRestaurant._id
       );
 
@@ -121,7 +124,8 @@ const ItemDetailsScreen = () => {
         return [...(prevCart || []), restaurantCartItem];
       }
 
-      const updatedCart = [...prevCart];
+      const updatedCart = [...(prevCart || [])];
+
       const existingItemIndex = updatedCart[
         existingRestaurantIndex
       ].order.findIndex((item) => item._id === currentItem._id);
@@ -253,6 +257,7 @@ const ItemDetailsScreen = () => {
           <TouchableOpacity
             style={[styles.button, styles.cartButton]}
             onPress={handleAddToCartPress}
+            disabled={!currentItem || !currentRestaurant}
           >
             <Ionicons name="cart" size={18} color="white" />
             <Text style={styles.buttonText}>Add to Cart</Text>
@@ -476,7 +481,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.success, // Success color
   },
   buttonText: {
-    color: colors.textInverted, // White text
+    color: colors.background, // White text
     fontFamily: "Poppins-SemiBold",
     fontSize: 16,
   },
@@ -613,7 +618,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary, // Dark text for cancel
   },
   submitButtonText: {
-    color: colors.textInverted, // White text for submit
+    color: colors.background, // White text for submit
   },
 });
 

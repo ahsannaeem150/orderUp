@@ -15,7 +15,7 @@ import BlackButton from "../components/BlackButton";
 import { router } from "expo-router";
 
 const Cart = () => {
-  const { cart, setCart, setItem } = useContext(AuthContext);
+  const { API_URL, cart, setCart, setItem } = useContext(AuthContext);
 
   const increaseQuantity = (restaurantIndex, itemIndex) => {
     const updatedCart = [...cart];
@@ -90,7 +90,10 @@ const Cart = () => {
               router.push(`/(home)/${restaurantId}/${item._id}/itemIndex`);
             }}
           >
-            <Image source={{ uri: item.image }} style={styles.itemImage} />
+            <Image
+              source={{ uri: `${API_URL}/images/${item.image}` }}
+              style={styles.itemImage}
+            />
           </TouchableOpacity>
           <View style={styles.itemDetails}>
             <Text style={styles.itemName}>{item.name}</Text>

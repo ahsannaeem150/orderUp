@@ -9,7 +9,7 @@ const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
   const [restaurant, setRestaurant] = useState({ restaurant: undefined });
   const [item, setItem] = useState({ item: undefined });
-  const [cart, setCart] = useState(null);
+  const [cart, setCart] = useState([]);
   const [activeOrders, setActiveOrders] = useState(null);
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState({

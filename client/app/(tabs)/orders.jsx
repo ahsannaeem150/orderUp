@@ -7,7 +7,7 @@ import { useRestaurant } from "../context/RestaurantContext";
 
 const Orders = () => {
   const { getRestaurant } = useRestaurant();
-  const { state, socket } = useContext(AuthContext);
+  const { state, socket, API_URL } = useContext(AuthContext);
   const user = state.user;
   const [localOrders, setLocalOrders] = useState([]);
   const { fetchRestaurants } = useRestaurant();

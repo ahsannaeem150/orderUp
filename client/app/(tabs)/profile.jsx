@@ -12,7 +12,7 @@ import { Buffer } from "buffer";
 import ProfileInfoCard from "../components/ProfileInfoCard";
 
 const Profile = () => {
-  const { state, setState, updateState } = useContext(AuthContext);
+  const { state, setState, updateState, API_URL } = useContext(AuthContext);
   const [imageUri, setImageUri] = useState(null);
 
   const logout = async () => {
