@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { images } from "../../constants";
 import { AuthContext } from "../context/authContext";
+import colors from "../../constants/colors";
 const RestaurantCard = ({
   address,
   name,
@@ -64,7 +65,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "column",
     alignItems: "center",
-    borderColor: "#9ca3af",
+    borderColor: colors.borders,
     paddingHorizontal: 16,
   },
   header: {
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
   divider: {
     width: "90%",
     height: 1,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: colors.borders,
     marginVertical: 10,
   },
   headerLeft: {
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#9ca3af",
+    borderColor: colors.borders,
     justifyContent: "center",
     alignItems: "center",
     padding: 0.5,
@@ -112,12 +113,12 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Poppins-SemiBold",
     fontSize: 14,
-    color: "black",
+    color: colors.primary,
   },
   creator: {
     fontFamily: "Poppins-Regular",
     fontSize: 12,
-    color: "black",
+    color: colors.secondary,
   },
   thumbnailContainer: {
     width: "100%",
@@ -127,6 +128,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
+    backgroundColor: colors.background,
+    borderColor: colors.borders,
   },
   thumbnail: {
     width: "100%",

@@ -23,6 +23,7 @@ import SearchField from "../../components/SearchField";
 import { useFetchRestaurants } from "../../hooks/useFetchRestaurants";
 import RestaurantHorizontalList from "../../components/RestaurantHorizontalList";
 import { useRestaurant } from "../../context/RestaurantContext";
+import colors from "../../../constants/colors";
 
 const HorizontalRestaurantList = () => {
   const { fetchRestaurants, getRestaurant, setCurrentRestaurant } =
@@ -191,24 +192,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginBottom: 45,
+    backgroundColor: colors.background,
   },
   retryText: {
-    color: "blue",
+    color: colors.accent,
     textDecorationLine: "underline",
   },
   headerContainer: {
     flex: 1,
     paddingVertical: 20,
     paddingHorizontal: 16,
+    backgroundColor: colors.background,
     marginBottom: -24,
   },
   errorContainer: {
     padding: 20,
-    backgroundColor: "#ffe6e6",
+    backgroundColor: colors.errorBg,
     alignItems: "center",
   },
   errorText: {
-    color: "red",
+    color: colors.errorText,
     marginBottom: 10,
   },
   headerContent: {
@@ -219,10 +222,12 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 14,
+    color: colors.muted,
   },
   username: {
     fontSize: 24,
     fontWeight: "600",
+    color: colors.primary,
   },
   logoContainer: {
     marginTop: 6,
@@ -240,7 +245,7 @@ const styles = StyleSheet.create({
   specialDivider: {
     width: "90%",
     height: 1,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: colors.borders,
     marginVertical: 30,
   },
   searchContainer: {
@@ -256,7 +261,7 @@ const styles = StyleSheet.create({
   },
   topRestaurantsTitle: {
     fontSize: 18,
-    fontWeight: "400",
+    color: colors.primary,
     fontFamily: "Poppins-SemiBold",
     marginBottom: 12,
   },

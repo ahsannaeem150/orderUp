@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { icons } from "../../constants";
+import colors from "../../constants/colors";
 
 const SearchField = ({
   value,
@@ -24,7 +25,7 @@ const SearchField = ({
         style={[
           styles.inputContainer,
           {
-            borderColor: isFocused ? "gray" : "white",
+            borderColor: isFocused ? colors.muted : colors.borders,
             width: "100%",
           },
         ]}
@@ -53,11 +54,13 @@ const SearchField = ({
 const styles = StyleSheet.create({
   container: {
     marginBottom: 10,
+    backgroundColor: colors.background,
   },
   title: {
     fontSize: 16,
     color: "black",
     marginBottom: 8,
+    color: colors.primary,
     fontFamily: "Poppins-Medium",
   },
   inputContainer: {
@@ -67,17 +70,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 64,
     paddingHorizontal: 16,
-    backgroundColor: "white",
+    borderColor: colors.muted,
+    backgroundColor: colors.textInverted,
   },
   textInput: {
     flex: 1,
-    color: "black",
+    color: colors.primary,
     fontFamily: "Poppins-SemiBold",
     fontSize: 16,
   },
   icon: {
     width: 30,
     height: 30,
+    tintColor: colors.accent,
     alignSelf: "center",
   },
 });

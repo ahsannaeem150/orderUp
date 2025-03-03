@@ -17,6 +17,7 @@ import { images } from "../../../../constants";
 import { useRestaurant } from "../../../context/RestaurantContext";
 import { useItems } from "../../../context/ItemContext";
 import { Ionicons } from "@expo/vector-icons";
+import colors from "../../../../constants/colors";
 
 const MenuItemsScreen = () => {
   const { API_URL } = useContext(AuthContext);
@@ -77,7 +78,11 @@ const MenuItemsScreen = () => {
           </Text>
 
           <View style={styles.itemFooter}>
-            <Ionicons name="time-outline" size={14} color="#6b7280" />
+            <Ionicons
+              name="time-outline"
+              size={14}
+              color={colors.textTertiary}
+            />
             <Text style={styles.preparationTime}>15-20 mins</Text>
             <Ionicons
               name="chevron-forward"
@@ -120,7 +125,7 @@ const MenuItemsScreen = () => {
             </Text>
           </View>
           <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={14} color="#f59e0b" />
+            <Ionicons name="star" size={14} color={colors.highlight} />
             <Text style={styles.ratingText}>4.5 (500+ ratings)</Text>
           </View>
         </View>
@@ -142,7 +147,7 @@ const MenuItemsScreen = () => {
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         >
-          <ActivityIndicator size="large" color="#0000ff" />
+          <ActivityIndicator size="large" color={colors.accent} />
         </View>
       ) : (
         <FlatList
@@ -163,22 +168,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginBottom: 50,
-    backgroundColor: "#f8fafc",
+    backgroundColor: colors.background,
   },
   restaurantHeader: {
     flexDirection: "row",
     alignItems: "center",
     padding: 20,
-    backgroundColor: "white",
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: colors.borders,
   },
   logo: {
     width: 80,
     height: 80,
     borderRadius: 14,
     marginRight: 16,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: colors.muted,
   },
   headerText: {
     flex: 1,
@@ -186,7 +191,7 @@ const styles = StyleSheet.create({
   restaurantName: {
     fontSize: 22,
     fontFamily: "Poppins-SemiBold",
-    color: "#1f2937",
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   restaurantInfo: {
@@ -196,7 +201,7 @@ const styles = StyleSheet.create({
   },
   restaurantAddress: {
     fontSize: 14,
-    color: "#6b7280",
+    color: colors.textTertiary,
     marginLeft: 6,
     fontFamily: "Poppins-Regular",
   },
@@ -206,17 +211,17 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 14,
-    color: "#4b5563",
+    color: colors.textSecondary,
     marginLeft: 4,
     fontFamily: "Poppins-Medium",
   },
   cardContainer: {
-    backgroundColor: "white",
+    backgroundColor: colors.background,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
     marginTop: 10,
-    shadowColor: "#000",
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -232,7 +237,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 16,
     left: 16,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: colors.background + "e6",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -240,7 +245,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontFamily: "Poppins-Medium",
-    color: "#3b82f6",
+    color: colors.accent,
   },
   infoContainer: {
     padding: 16,
@@ -254,18 +259,18 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 18,
     fontFamily: "Poppins-SemiBold",
-    color: "#1f2937",
+    color: colors.textPrimary,
     flex: 1,
     marginRight: 12,
   },
   itemPrice: {
     fontSize: 16,
     fontFamily: "Poppins-SemiBold",
-    color: "#10b981",
+    color: colors.success,
   },
   itemDescription: {
     fontSize: 14,
-    color: "#6b7280",
+    color: colors.textTertiary,
     fontFamily: "Poppins-Regular",
     lineHeight: 20,
     marginBottom: 12,
@@ -274,17 +279,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
+    borderTopColor: colors.borders,
     paddingTop: 12,
   },
   preparationTime: {
     fontSize: 13,
-    color: "#6b7280",
+    color: colors.textTertiary,
     marginLeft: 6,
     marginRight: "auto",
     fontFamily: "Poppins-Regular",
   },
   arrowIcon: {
     marginLeft: 8,
+    color: colors.muted,
+  },
+  errorContainer: {
+    padding: 16,
+    backgroundColor: colors.errorBg,
+    borderRadius: 8,
+    margin: 16,
+    alignItems: "center",
+  },
+  errorText: {
+    color: colors.errorText,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  retryText: {
+    color: colors.accent,
+    fontFamily: "Poppins-SemiBold",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
 });
