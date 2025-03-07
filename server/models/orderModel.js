@@ -55,7 +55,7 @@ const OrderSchema = new mongoose.Schema(
       default: "Pending",
     },
     cancellationReason: { type: String, default: "" },
-    notes: String,
+    notes: { type: String, default: "" },
   },
   { timestamps: true }
 );

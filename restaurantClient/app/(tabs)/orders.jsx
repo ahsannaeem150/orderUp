@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   Modal,
   TextInput,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import axios from "axios";
 import { AuthContext } from "../context/authContext";
@@ -16,22 +18,40 @@ import { images } from "../../constants";
 import Icon from "react-native-vector-icons/Ionicons";
 import { ProgressBar, Chip } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Ionicons } from "@expo/vector-icons";
+import colors from "../../constants/colors";
 
 const Orders = () => {
-  const { state, socket } = useContext(AuthContext);
+  const { state, socket, API_URL } = useContext(AuthContext);
   const restaurantId = state.restaurant._id;
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [prepTime, setPrepTime] = useState(30);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [notesModalVisible, setNotesModalVisible] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [processingOrderId, setProcessingOrderId] = useState(null);
+
+  // Add refresh control handler
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchOrders();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
 
   const fetchOrders = async () => {
     try {
+      setLoading(true);
       const response = await axios.get(`/${restaurantId}/orders`);
       setOrders(response.data);
     } catch (error) {
       console.error("Error fetching orders:", error);
+      Alert.alert("Error", "Failed to fetch orders");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -40,6 +60,7 @@ const Orders = () => {
     fetchOrders();
 
     const handleOrderUpdated = (updatedOrder) => {
+      setProcessingOrderId(null);
       setOrders((prev) =>
         prev.map((order) =>
           order._id === updatedOrder._id ? updatedOrder : order
@@ -47,31 +68,32 @@ const Orders = () => {
       );
     };
 
-    const handleOrderCancelled = (orderId) => {
-      setOrders((prev) => prev.filter((order) => order._id !== orderId));
-    };
-
     const handleOrderCreated = (newOrder) => {
+      setProcessingOrderId(null);
       setOrders((prev) => [newOrder, ...prev]);
     };
-    const handleOrderRemoved = (orderId) => {
-      console.log("heyy");
-      setOrders((prev) => prev.filter((order) => order._id !== orderId));
+
+    const handleOrderRemoved = ({ orderId, status }) => {
+      setProcessingOrderId(null);
+      setOrders((prev) =>
+        prev.map((order) =>
+          order._id === orderId ? { ...order, status } : order
+        )
+      );
     };
 
     socket.on("order-removed", handleOrderRemoved);
     socket.on("order-updated", handleOrderUpdated);
     socket.on("order-created", handleOrderCreated);
-    socket.on("order-cancelled", handleOrderCancelled);
 
     return () => {
       socket.off("order-updated", handleOrderUpdated);
       socket.off("order-created", handleOrderCreated);
       socket.off("order-removed", handleOrderRemoved);
-      socket.off("order-cancelled", handleOrderCancelled);
     };
   }, [restaurantId]);
 
+  // Updated status update handler with loading state
   const handleStatusUpdate = (orderId, newStatus) => {
     const confirmationMessages = {
       Ready: "Mark this order as ready for pickup?",
@@ -86,17 +108,23 @@ const Orders = () => {
       },
       {
         text: "Confirm",
-        onPress: () => {
-          socket.emit("update-order-status", {
-            orderId,
-            status: newStatus,
-            restaurantId,
-          });
+        onPress: async () => {
+          setProcessingOrderId(orderId);
+          try {
+            await socket.emit("update-order-status", {
+              orderId,
+              status: newStatus,
+              restaurantId,
+            });
+          } catch (error) {
+            console.error("Status update error:", error);
+          }
         },
       },
     ]);
   };
 
+  // Updated reject handler with loading state
   const handleReject = (orderId) => {
     Alert.alert(
       "Confirm Cancellation",
@@ -108,19 +136,24 @@ const Orders = () => {
         },
         {
           text: "Yes",
-          onPress: () => {
-            socket.emit("reject-order", {
-              orderId,
-              restaurantId,
-              cancellationReason: "Restaurant decision",
-            });
+          onPress: async () => {
+            setProcessingOrderId(orderId);
+            try {
+              await socket.emit("reject-order", {
+                orderId,
+                restaurantId,
+                cancellationReason: "Restaurant decision",
+              });
+            } catch (error) {
+              console.error("Rejection error:", error);
+            }
           },
         },
       ]
     );
   };
 
-  const handleAcceptWithTime = (orderId) => {
+  const handleAcceptWithTime = async (orderId) => {
     if (!prepTime || prepTime < 5) {
       Alert.alert(
         "Invalid Time",
@@ -128,12 +161,18 @@ const Orders = () => {
       );
       return;
     }
-    socket.emit("accept-order", {
-      orderId,
-      restaurantId,
-      prepTime: prepTime + " minutes",
-    });
-    setShowTimePicker(false);
+
+    setProcessingOrderId(orderId);
+    try {
+      await socket.emit("accept-order", {
+        orderId,
+        restaurantId,
+        prepTime: prepTime + " minutes",
+      });
+      setShowTimePicker(false);
+    } catch (error) {
+      console.error("Acceptance error:", error);
+    }
   };
 
   const renderPreparationTimeline = (order) => {
@@ -155,7 +194,7 @@ const Orders = () => {
                 <Icon
                   name="checkmark"
                   size={12}
-                  color={index === currentIndex ? "#fff" : "#4CAF50"}
+                  color={index === currentIndex ? colors.activeIcon : "#4CAF50"}
                 />
               )}
             </View>
@@ -204,124 +243,235 @@ const Orders = () => {
       </View>
     );
   };
-  const renderOrder = ({ item }) => (
-    <View style={styles.orderCard}>
-      <View style={styles.orderHeader}>
-        <View>
-          <Text style={styles.orderId}>Order #{item._id.slice(-6)}</Text>
-          <Text style={styles.customerInfo}>
-            {item.user?.name} • {item.user?.phone}
-          </Text>
-        </View>
-        <Text style={styles.statusText}>{item.status}</Text>
-      </View>
-      {/* Order Items */}
-      <View style={styles.itemsContainer}>
-        <Text style={styles.sectionTitle}>Order Items:</Text>
-        {item.items.map((item, index) => (
-          <View key={index} style={styles.itemRow}>
-            <Text style={styles.itemName}>{item.name}</Text>
-            <View style={styles.itemDetails}>
-              <Text>{item.quantity}x</Text>
-              <Text>Rs{item.price}</Text>
+  const renderOrder = ({ item }) => {
+    const handleRemoveOrder = () => {
+      setOrders((prev) => prev.filter((order) => order._id !== item._id));
+    };
+    const isProcessing = processingOrderId === item._id;
+    console.log(isProcessing);
+    const statusColors = {
+      Preparing: colors.accent,
+      Ready: colors.success,
+      Completed: colors.muted,
+      Cancelled: colors.errorText,
+      Pending: colors.accent,
+      Removed: colors.errorText,
+    };
+
+    return (
+      <View style={styles.orderCard}>
+        {/* Order Header with Profile Picture */}
+        <View style={styles.orderHeader}>
+          <View style={styles.userInfoContainer}>
+            {item.user?.profilePicture && (
+              <Image
+                source={{
+                  uri: `${API_URL}/images/${item.user.profilePicture}`,
+                }}
+                style={styles.profileImage}
+              />
+            )}
+            <View>
+              <Text style={styles.orderId}>Order #{item._id.slice(-6)}</Text>
+              <Text style={styles.customerInfo}>
+                {item.user?.name} • {item.user?.phone}
+              </Text>
             </View>
           </View>
-        ))}
-      </View>
-
-      {/* Order Summary */}
-      <View style={styles.summaryContainer}>
-        <View style={styles.summaryRow}>
-          <Text>Total:</Text>
-          <Text style={styles.totalAmount}>Rs{item.totalAmount}</Text>
+          <View style={styles.statusContainer}>
+            <Text
+              style={[styles.statusText, { color: statusColors[item.status] }]}
+            >
+              {item.status}
+            </Text>
+            {["Completed", "Cancelled", "Removed"].includes(item.status) && (
+              <TouchableOpacity onPress={handleRemoveOrder}>
+                <Ionicons
+                  name="close-circle"
+                  size={24}
+                  color={colors.errorText}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
-      {renderPreparationTimeline(item)}
 
-      {item.status === "Preparing" && renderPreparationTimer(item)}
+        {/* Order Items */}
+        <View style={styles.itemsContainer}>
+          <Text style={styles.sectionTitle}>Order Items:</Text>
+          {item.items.map((orderItem, index) => (
+            <View key={index} style={styles.itemRow}>
+              <Text style={styles.itemName}>{orderItem.name}</Text>
+              <View style={styles.itemDetails}>
+                <Text>{orderItem.quantity}x</Text>
+                <Text>Rs{orderItem.price}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
 
-      {item.notes && (
-        <TouchableOpacity
-          style={styles.notesContainer}
-          onPress={() => {
-            setSelectedOrder(item);
-            setNotesModalVisible(true);
-          }}
-        >
-          <Icon name="document-text-outline" size={16} color="#666" />
-          <Text style={styles.notesText} numberOfLines={1}>
-            Customer Notes: {item.notes}
-          </Text>
-        </TouchableOpacity>
-      )}
+        {/* Order Summary */}
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryRow}>
+            <Text>Total:</Text>
+            <Text style={styles.totalAmount}>Rs{item.totalAmount}</Text>
+          </View>
+        </View>
 
-      <View style={styles.orderFooter}>
-        {item.status === "Pending" ? (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.setTimeButton]}
-            onPress={() => {
-              setSelectedOrder(item);
-              setShowTimePicker(true);
-            }}
-          >
-            <Icon name="time-outline" size={18} color="#fff" />
-            <Text style={styles.buttonText}>Set Prep Time</Text>
+        {/* Preparation Timeline */}
+        {renderPreparationTimeline(item)}
+
+        {/* Preparation Timer */}
+        {item.status === "Preparing" && renderPreparationTimer(item)}
+
+        {/* Customer Notes */}
+        {item.notes && (
+          <TouchableOpacity style={styles.notesContainer} onPress={() => {}}>
+            <Icon name="document-text-outline" size={16} color="#666" />
+            <Text style={styles.notesText} numberOfLines={1}>
+              Customer Notes: {item.notes}
+            </Text>
           </TouchableOpacity>
-        ) : (
-          <Chip
-            mode="outlined"
-            style={styles.statusChip}
-            textStyle={styles.chipText}
-          >
-            {item.status}
-          </Chip>
         )}
 
-        <View style={styles.actionGroup}>
-          {item.status === "Pending" && (
+        {/* Order Footer with Actions */}
+        <View style={styles.orderFooter}>
+          {item.status === "Pending" ? (
             <TouchableOpacity
-              style={[styles.actionButton, styles.acceptButton]}
-              onPress={() => handleStatusUpdate(item._id, "Preparing")}
+              style={[styles.actionButton, styles.setTimeButton]}
+              onPress={() => {
+                setSelectedOrder(item);
+                setShowTimePicker(true);
+              }}
+              disabled={isProcessing}
             >
-              <Icon name="checkmark" size={18} color="#fff" />
-              <Text style={styles.buttonText}>Accept</Text>
+              {isProcessing ? (
+                <ActivityIndicator color={colors.textInverted} />
+              ) : (
+                <>
+                  <Icon
+                    name="time-outline"
+                    size={18}
+                    color={colors.textInverted}
+                  />
+                  <Text style={styles.buttonText}>Set Prep Time</Text>
+                </>
+              )}
             </TouchableOpacity>
+          ) : (
+            <Chip
+              mode="outlined"
+              style={[
+                styles.statusChip,
+                { borderColor: statusColors[item.status] },
+              ]}
+              textStyle={[
+                styles.chipText,
+                { color: statusColors[item.status] },
+              ]}
+            >
+              {item.status}
+            </Chip>
           )}
 
-          {item.status === "Preparing" && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.readyButton]}
-              onPress={() => handleStatusUpdate(item._id, "Ready")}
-            >
-              <Icon name="fast-food" size={18} color="#fff" />
-              <Text style={styles.buttonText}>Mark Ready</Text>
-            </TouchableOpacity>
-          )}
+          <View style={styles.actionGroup}>
+            {/* Action Buttons with Loading States */}
+            {item.status === "Pending" && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.acceptButton]}
+                onPress={() => handleStatusUpdate(item._id, "Preparing")}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator color={colors.textInverted} />
+                ) : (
+                  <>
+                    <Icon
+                      name="checkmark"
+                      size={18}
+                      color={colors.textInverted}
+                    />
+                    <Text style={styles.buttonText}>Accept</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
 
-          {item.status === "Ready" && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.completeButton]}
-              onPress={() => handleStatusUpdate(item._id, "Completed")}
-            >
-              <Icon name="checkmark-done" size={18} color="#fff" />
-              <Text style={styles.buttonText}>Complete</Text>
-            </TouchableOpacity>
-          )}
+            {item.status === "Preparing" && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.readyButton]}
+                onPress={() => handleStatusUpdate(item._id, "Ready")}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator color={colors.textInverted} />
+                ) : (
+                  <>
+                    <Icon
+                      name="fast-food"
+                      size={18}
+                      color={colors.textInverted}
+                    />
+                    <Text style={styles.buttonText}>Mark Ready</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
 
-          {item.status !== "Completed" && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
-              onPress={() => handleReject(item._id)}
-            >
-              <Icon name="close-circle" size={18} color="#fff" />
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-          )}
+            {item.status === "Ready" && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.completeButton]}
+                onPress={() => handleStatusUpdate(item._id, "Completed")}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator color={colors.textInverted} />
+                ) : (
+                  <>
+                    <Icon
+                      name="checkmark-done"
+                      size={18}
+                      color={colors.textInverted}
+                    />
+                    <Text style={styles.buttonText}>Complete</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {/* Conditional Cancel Button */}
+            {!["Completed", "Cancelled", "Removed"].includes(item.status) && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.cancelButton]}
+                onPress={() => handleReject(item._id)}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator color={colors.textInverted} />
+                ) : (
+                  <>
+                    <Icon
+                      name="close-circle"
+                      size={18}
+                      color={colors.textInverted}
+                    />
+                    <Text style={styles.buttonText}>Cancel</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
-    </View>
-  );
-
+    );
+  };
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -340,6 +490,20 @@ const Orders = () => {
           renderItem={renderOrder}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Image source={images.empty} style={styles.emptyImage} />
+              <Text style={styles.emptyText}>No active orders</Text>
+            </View>
+          }
         />
       )}
 
@@ -389,81 +553,29 @@ const Orders = () => {
           </View>
         </View>
       </Modal>
-
-      {/* Notes Modal */}
-      <Modal visible={notesModalVisible} transparent animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Customer Notes</Text>
-            <Text style={styles.notesFullText}>
-              {selectedOrder?.notes || "No notes provided"}
-            </Text>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.closeButton]}
-              onPress={() => setNotesModalVisible(false)}
-            >
-              <Text style={styles.buttonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
 export default Orders;
 
 const statusColors = {
-  Pending: "#FFA726",
-  Preparing: "#4CAF50",
-  Completed: "#9E9E9E",
-  Cancelled: "#EF5350",
+  Preparing: colors.warningBg,
+  Ready: colors.success,
+  Completed: colors.muted,
+  Cancelled: colors.errorText,
+  Pending: colors.accent,
+  Removed: colors.errorText,
 };
-
 const styles = StyleSheet.create({
+  // Main container
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: colors.background,
     paddingHorizontal: 16,
-    marginBottom: 35,
+    marginBottom: 50,
   },
-  timeInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginVertical: 20,
-  },
-  timeButton: {
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    marginHorizontal: 10,
-  },
-  minutesText: {
-    fontSize: 16,
-    marginLeft: 10,
-    color: "#666",
-  },
-  customerInfo: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
-  },
-  itemsContainer: {
-    marginVertical: 12,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#eee",
-  },
-  sectionTitle: {
-    fontWeight: "600",
-    marginBottom: 8,
-    color: "#333",
-  },
-  summaryContainer: {
-    marginTop: 12,
-  },
+
+  // Header
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -471,26 +583,35 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     marginBottom: 10,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   headerTitle: {
     fontSize: 24,
-    fontWeight: "600",
     fontFamily: "Poppins-SemiBold",
+    color: colors.textPrimary,
   },
   logo: {
     width: 40,
     height: 40,
   },
+
+  // Order Card
   orderCard: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: "#000",
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 2,
   },
+
+  // Order Header
   orderHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -498,31 +619,50 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: colors.borders,
+  },
+  userInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
   },
   orderId: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
+    fontFamily: "Poppins-Medium",
+    color: colors.textPrimary,
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
+  customerInfo: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  statusContainer: {
+    alignItems: "flex-end",
   },
   statusText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
   },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginVertical: 4,
+
+  // Order Details
+  itemsContainer: {
+    marginVertical: 12,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.borders,
   },
-  totalAmount: {
-    fontWeight: "600",
-    color: "#2e7d32",
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: "Poppins-SemiBold",
+    color: colors.textPrimary,
+    marginBottom: 8,
   },
   itemRow: {
     flexDirection: "row",
@@ -532,80 +672,33 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 14,
-    color: "#666",
-    flex: 5,
+    color: colors.textPrimary,
+    flex: 1,
+    marginRight: 16,
   },
   itemDetails: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 2,
     justifyContent: "space-between",
+    minWidth: 80,
   },
-  itemQuantity: {
-    fontSize: 14,
-    color: "#666",
-    marginRight: 16,
+
+  // Order Summary
+  summaryContainer: {
+    marginTop: 12,
   },
-  itemPrice: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
-  },
-  orderFooter: {
-    marginTop: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
+  summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    marginVertical: 4,
   },
-  totalText: {
+  totalAmount: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    fontFamily: "Poppins-SemiBold",
+    color: colors.success,
   },
-  actionButtons: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 6,
-  },
-  acceptButton: {
-    backgroundColor: "#4CAF50",
-  },
-  rejectButton: {
-    backgroundColor: "#EF5350",
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "500",
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingBottom: 100,
-  },
-  emptyImage: {
-    width: 200,
-    height: 200,
-    opacity: 0.8,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: "#666",
-    marginTop: 16,
-  },
-  listContent: {
-    paddingBottom: 32,
-  },
+
+  // Timeline
   timelineContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -620,16 +713,16 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: colors.borders,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 4,
   },
   activeDot: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: colors.success,
   },
   currentDot: {
-    backgroundColor: "#2196F3",
+    backgroundColor: colors.success,
   },
   timelineConnector: {
     position: "absolute",
@@ -637,25 +730,27 @@ const styles = StyleSheet.create({
     left: "50%",
     right: "-50%",
     height: 2,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: colors.borders,
     zIndex: -1,
   },
   activeConnector: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: colors.success,
   },
   timelineLabel: {
     fontSize: 12,
-    color: "#9e9e9e",
+    color: colors.textSecondary,
     textAlign: "center",
   },
   activeLabel: {
-    color: "#333",
-    fontWeight: "500",
+    color: colors.textPrimary,
+    fontFamily: "Poppins-Medium",
   },
+
+  // Timer
   timerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.background,
     padding: 12,
     borderRadius: 8,
     marginVertical: 8,
@@ -664,68 +759,154 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginRight: 16,
     fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
+    fontFamily: "Poppins-Medium",
+    color: colors.textPrimary,
   },
   progressBar: {
     flex: 1,
     height: 8,
     borderRadius: 4,
+    backgroundColor: colors.successBg,
   },
+
+  // Notes
   notesContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff3e0",
+    backgroundColor: colors.warningBg,
     padding: 12,
     borderRadius: 8,
     marginVertical: 8,
   },
   notesText: {
     marginLeft: 8,
-    color: "#666",
+    color: colors.textPrimary,
     fontSize: 14,
     flex: 1,
   },
-  notesFullText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: "#333",
-    padding: 16,
+
+  // Order Footer
+  orderFooter: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.borders,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
+  actionGroup: {
+    flexDirection: "row",
+    gap: 8,
+    marginLeft: "auto",
+  },
+
+  // Buttons
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    gap: 8,
+    minWidth: 100,
+    justifyContent: "center",
+  },
+  buttonText: {
+    color: colors.textInverted,
+    fontFamily: "Poppins-Medium",
+    fontSize: 14,
+  },
+  acceptButton: {
+    backgroundColor: colors.success,
+  },
+  readyButton: {
+    backgroundColor: colors.borders,
+  },
+  completeButton: {
+    backgroundColor: colors.muted,
+  },
+  cancelButton: {
+    backgroundColor: colors.errorText,
+  },
+  setTimeButton: {
+    backgroundColor: colors.accent,
+  },
+
+  // Status Chip
+  statusChip: {
+    borderColor: colors.success,
+    backgroundColor: colors.successBg,
+  },
+  chipText: {
+    color: colors.success,
+    fontFamily: "Poppins-Medium",
+  },
+
+  // Empty State
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 100,
+  },
+  emptyImage: {
+    width: 200,
+    height: 200,
+    opacity: 0.8,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: colors.textSecondary,
+    marginTop: 16,
+  },
+
+  // Modal
   modalContainer: {
     flex: 1,
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.background,
     marginHorizontal: 20,
     borderRadius: 12,
     padding: 20,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
+    color: colors.textPrimary,
     marginBottom: 16,
     textAlign: "center",
   },
-  acceptButton: {
-    backgroundColor: "#4CAF50",
+  timeInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 20,
   },
-  readyButton: {
-    backgroundColor: "#2196F3",
-  },
-  completeButton: {
-    backgroundColor: "#9C27B0",
+  timeButton: {
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.borders,
+    marginHorizontal: 10,
   },
   timeInput: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: colors.borders,
     borderRadius: 8,
     padding: 12,
     fontSize: 18,
     textAlign: "center",
     marginVertical: 12,
+    color: colors.textPrimary,
+  },
+  minutesText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginLeft: 10,
   },
   modalButtons: {
     flexDirection: "row",
@@ -739,43 +920,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 4,
   },
-  statusChip: {
-    borderColor: "#4CAF50",
-    backgroundColor: "#e8f5e9",
-  },
-  chipText: {
-    color: "#2e7d32",
-  },
-  actionGroup: {
-    flexDirection: "row",
-    gap: 8,
-    marginLeft: "auto",
-  },
-  setTimeButton: {
-    backgroundColor: "#FFA726",
-  },
-  nextStepButton: {
-    backgroundColor: "#2196F3",
+  confirmButton: {
+    backgroundColor: colors.success,
   },
   closeButton: {
-    backgroundColor: "#757575",
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    gap: 8,
-    elevation: 2,
-  },
-  confirmButton: {
-    backgroundColor: "#4CAF50",
-  },
-  cancelButton: {
-    backgroundColor: "#EF5350",
-  },
-  nextStepButton: {
-    backgroundColor: "#2196F3",
+    backgroundColor: colors.muted,
   },
 });

@@ -74,6 +74,7 @@ const checkout = () => {
         phone,
         city,
         address,
+        notes,
         cart: sanitizedCart,
         estimatedDeliveryTime, // Or calculate dynamically
       });

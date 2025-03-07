@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
+  RefreshControl,
 } from "react-native";
 import { AuthContext } from "../context/authContext";
 import { useFetchActiveOrders } from "../hooks/useFetchActiveOrders";
@@ -18,8 +20,11 @@ import colors from "../../constants/colors";
 const Orders = () => {
   const { getRestaurant } = useRestaurant();
   const { state, socket, API_URL } = useContext(AuthContext);
+  const [isRefreshing, setIsRefreshing] = useState(false); // For refresh control
+  const [cancellingOrderId, setCancellingOrderId] = useState(null); // For cancel button loader
   const user = state.user;
   const [localOrders, setLocalOrders] = useState([]);
+
   const { fetchRestaurants } = useRestaurant();
 
   useEffect(() => {
@@ -29,9 +34,14 @@ const Orders = () => {
     }
   }, [activeOrders]);
 
-  // Fetch active orders using the custom hook
   const { activeOrders, fetchActiveOrders, loading, error } =
     useFetchActiveOrders(`/orders/active/${user._id}`);
+
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await fetchActiveOrders();
+    setIsRefreshing(false);
+  }, [fetchActiveOrders]);
 
   useEffect(() => {
     setLocalOrders(activeOrders);
@@ -41,39 +51,58 @@ const Orders = () => {
     socket.emit("join-user-room", user._id);
 
     const handleOrderUpdate = (updatedOrder) => {
-      setLocalOrders((prev) => {
-        if (["Cancelled"].includes(updatedOrder.status)) {
-          return prev.filter((order) => order._id !== updatedOrder._id);
-        }
-        return prev.map((order) =>
-          order._id === updatedOrder._id ? updatedOrder : order
-        );
-      });
-    };
-
-    const handleOrderCancelled = (cancelledOrder) => {
       setLocalOrders((prev) =>
-        prev.filter((order) => order._id !== cancelledOrder._id)
+        prev.map((order) =>
+          order._id === updatedOrder._id ? updatedOrder : order
+        )
       );
     };
 
-    const handleOrderRemoved = (orderId) => {
-      console.log("helloooo");
-      setLocalOrders((prev) => prev.filter((order) => order._id !== orderId));
+    const handleOrderRemoved = ({ orderId, status }) => {
+      setCancellingOrderId(null);
+      setLocalOrders((prev) =>
+        prev.map((order) =>
+          order._id === orderId ? { ...order, status } : order
+        )
+      );
     };
-
     socket.on("order-removed", handleOrderRemoved);
     socket.on("order-updated", handleOrderUpdate);
-    socket.on("order-cancelled", handleOrderCancelled);
 
     return () => {
       socket.off("order-updated", handleOrderUpdate);
       socket.off("order-removed", handleOrderRemoved);
-      socket.off("order-cancelled", handleOrderCancelled);
     };
   }, [user._id]);
 
-  // Render function for each active order
+  const handleCancelOrder = ({ orderId, restaurantId }) => {
+    Alert.alert(
+      "Confirm Cancellation",
+      "Are you sure you want to cancel this order?",
+      [
+        {
+          text: "No",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          onPress: async () => {
+            setCancellingOrderId(orderId); // Show loader on the button
+            try {
+              await socket.emit("cancel-order", {
+                orderId,
+                restaurantId,
+                cancellationReason: "User decision",
+              });
+            } catch (error) {
+              console.error("Error cancelling order:", error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderActiveOrders = ({ item }) => {
     const restaurant = item.restaurant;
     const orderTime = new Date(item.createdAt).toLocaleTimeString([], {
@@ -81,20 +110,23 @@ const Orders = () => {
       minute: "2-digit",
     });
 
-    // Calculate total items and price
     const totalItems = item.items.reduce((acc, item) => acc + item.quantity, 0);
     const totalPrice = item.items.reduce(
       (acc, item) => acc + item.price * item.quantity,
       0
     );
 
-    // Progress visualization based on status
     const statusProgress = {
       Pending: 0.2,
       Preparing: 0.5,
       Ready: 0.8,
       Completed: 1,
       Cancelled: 1,
+      Removed: 1,
+    };
+
+    const handleRemoveOrder = () => {
+      setLocalOrders((prev) => prev.filter((order) => order._id !== item._id));
     };
 
     return (
@@ -102,7 +134,6 @@ const Orders = () => {
         style={styles.card}
         onPress={() => router.push(`/(orders)/${item._id}`)}
       >
-        {/* Restaurant Header */}
         <View style={styles.restaurantHeader}>
           <Image
             source={{
@@ -124,9 +155,13 @@ const Orders = () => {
           >
             {item.status}
           </Text>
+          {["Completed", "Cancelled", "Removed"].includes(item.status) && (
+            <TouchableOpacity onPress={handleRemoveOrder}>
+              <Ionicons name="close-circle" size={24} color={colors.can} />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Order Details */}
         <View style={styles.detailsRow}>
           <Ionicons name="fast-food" size={16} color={colors.textSecondary} />
           <Text style={styles.detailText}>{totalItems} items</Text>
@@ -148,7 +183,6 @@ const Orders = () => {
           <Text style={styles.detailText}>Rs {totalPrice.toFixed(2)}</Text>
         </View>
 
-        {/* Progress Indicator */}
         <View style={styles.progressContainer}>
           <View
             style={[
@@ -157,14 +191,22 @@ const Orders = () => {
             ]}
           />
         </View>
-
-        {/* Action Buttons */}
         {item.status === "Pending" && (
           <TouchableOpacity
             style={styles.cancelButton}
-            onPress={() => handleCancelOrder(item._id)}
+            onPress={() =>
+              handleCancelOrder({
+                orderId: item._id,
+                restaurantId: restaurant._id,
+              })
+            }
+            disabled={cancellingOrderId === item._id} // Disable button while cancelling
           >
-            <Text style={styles.cancelButtonText}>Cancel Order</Text>
+            {cancellingOrderId === item._id ? (
+              <ActivityIndicator color={colors.errorText} />
+            ) : (
+              <Text style={styles.cancelButtonText}>Cancel Order</Text>
+            )}
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -172,43 +214,64 @@ const Orders = () => {
   };
 
   if (loading) {
-    return <Text>Loading...</Text>;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   if (error) {
-    return <Text>Error: {error.message}</Text>;
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Error: {error.message}</Text>
+      </View>
+    );
   }
-
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Your Orders</Text>
-      {activeOrders.length === 0 ? (
+      {localOrders.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Image source={images.empty} style={styles.image} />
-          <Text>No active orders found!</Text>
+          <Text style={styles.emptyText}>No active orders found!</Text>
         </View>
       ) : (
         <FlatList
           data={localOrders}
           renderItem={renderActiveOrders}
           keyExtractor={(item) => item._id}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={() => {
+            return (
+              <View style={styles.emptyContainer}>
+                <Image source={images.empty} style={styles.image} />
+                <Text style={styles.emptyText}>No active orders found!</Text>
+              </View>
+            );
+          }}
         />
       )}
     </View>
   );
 };
+
 const statusColors = {
-  Preparing: colors.info,
+  Preparing: colors.warningBg,
   Ready: colors.success,
   Completed: colors.muted,
-  Cancelled: colors.error,
-  Pending: colors.warning,
+  Cancelled: colors.errorText,
+  Pending: colors.accent,
+  Removed: colors.errorText,
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    marginBottom: 50,
     backgroundColor: colors.background,
   },
   header: {
@@ -306,6 +369,24 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     marginBottom: 24,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.errorText,
   },
 });
 

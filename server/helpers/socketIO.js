@@ -25,6 +25,7 @@ const setupChangeStream = async (io) => {
           order?.restaurant?._id?.toString() || order?.restaurant?.toString();
         const userId = order?.user?._id?.toString();
 
+        console.log(change.documentKey._id);
         switch (change.operationType) {
           case "insert":
             io.of("/restaurant").to(restaurantId).emit("order-created", order);
@@ -33,15 +34,6 @@ const setupChangeStream = async (io) => {
           case "update":
             io.of("/restaurant").to(restaurantId).emit("order-updated", order);
             io.of("/user").to(userId).emit("order-updated", order);
-            break;
-
-          case "delete":
-            io.of("/restaurant")
-              .to(restaurantId)
-              .emit("order-removed", change.documentKey._id);
-            io.of("/user")
-              .to(userId)
-              .emit("order-removed", change.documentKey._id);
             break;
         }
       } catch (error) {
@@ -77,6 +69,7 @@ const socketIoSetup = (server) => {
       socket.user = decoded;
       next();
     } catch (err) {
+      console.error("Authentication error:", err);
       next(new Error("Authentication failed"));
     }
   };
@@ -85,7 +78,7 @@ const socketIoSetup = (server) => {
   const userNamespace = io.of("/user");
   userNamespace.use(authenticate);
   userNamespace.on("connection", (socket) => {
-    console.log("User connected:", socket.user._id);
+    console.log(`"User connected:" ${socket.user._id}`.bgRed.white);
 
     socket.on("join-user-room", (userId) => {
       if (userId !== socket.user._id) {
@@ -93,6 +86,34 @@ const socketIoSetup = (server) => {
         return socket.emit("error", "Unauthorized room access");
       }
       socket.join(userId);
+    });
+
+    socket.on("cancel-order", async ({ orderId, cancellationReason }) => {
+      try {
+        const order = await orderModel.findById(orderId);
+        if (!order || order.user.toString() !== socket.user._id.toString()) {
+          console.log("ERROR", "Invalid order cancellation");
+          return socket.emit("order-error", "Invalid order cancellation");
+        }
+        const historyOrder = new OrderHistoryModel({
+          ...order.toObject(),
+          status: "Cancelled",
+          cancellationReason,
+          cancelledAt: Date.now(),
+        });
+        await historyOrder.save();
+
+        await orderModel.findByIdAndDelete(orderId);
+
+        io.of("/restaurant")
+          .to(order.restaurant.toString())
+          .emit("order-removed", { orderId, status: "Cancelled" });
+        io.of("/user")
+          .to(order.user.toString())
+          .emit("order-removed", { orderId, status: "Cancelled" });
+      } catch (error) {
+        console.log("order error", error.message);
+      }
     });
 
     socket.on("disconnect", () => {
@@ -104,7 +125,8 @@ const socketIoSetup = (server) => {
   const restaurantNamespace = io.of("/restaurant");
   restaurantNamespace.use(authenticate);
   restaurantNamespace.on("connection", (socket) => {
-    console.log("Restaurant connected:", socket.user._id);
+    console.log(`"Restaurant connected:" ${socket.user._id}`.bgBlue.white);
+
     socket.on("join-restaurant-room", (restaurantId) => {
       if (restaurantId !== socket.user._id) {
         console.log("ERROR RESTAURANT CONNECTION");
@@ -148,11 +170,11 @@ const socketIoSetup = (server) => {
 
           io.of("/restaurant")
             .to(order.restaurant.toString())
-            .emit("order-removed", orderId);
+            .emit("order-removed", { orderId, status });
 
           io.of("/user")
             .to(order.user.toString())
-            .emit("order-removed", orderId);
+            .emit("order-removed", { orderId, status });
 
           return;
         }
@@ -175,7 +197,6 @@ const socketIoSetup = (server) => {
 
     socket.on("reject-order", async ({ orderId, cancellationReason }) => {
       try {
-        console.log("Hello");
         const order = await orderModel.findById(orderId);
         if (
           !order ||
@@ -196,8 +217,10 @@ const socketIoSetup = (server) => {
 
         io.of("/restaurant")
           .to(order.restaurant.toString())
-          .emit("order-removed", orderId);
-        io.of("/user").to(order.user.toString()).emit("order-removed", orderId);
+          .emit("order-removed", { orderId, status: "Cancelled" });
+        io.of("/user")
+          .to(order.user.toString())
+          .emit("order-removed", { orderId, status: "Cancelled" });
       } catch (error) {
         console.log("order error", error.message);
       }
