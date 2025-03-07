@@ -3,10 +3,10 @@ import { orderModel } from "../../models/orderModel.js";
 export const getRestaurantOrders = async (req, res) => {
   try {
     const orders = await orderModel
-      .find({ restaurantId: req.params.restaurantId })
+      .find({ restaurant: req.params.restaurantId })
       .populate({
-        path: "userId",
-        select: "name phone address",
+        path: "user",
+        select: "name phone address profilePicture",
       })
       .sort({ orderDate: -1 });
 

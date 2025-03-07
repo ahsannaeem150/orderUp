@@ -2,8 +2,25 @@ import { orderModel } from "../../models/orderModel.js";
 
 export const checkoutController = async (req, res) => {
   try {
-    const { userId, name, phone, city, address, cart } = req.body;
-    if (!userId || !name || !phone || !city || !address || !cart) {
+    const {
+      userId,
+      name,
+      phone,
+      city,
+      address,
+      cart,
+      estimatedDeliveryTime,
+      notes,
+    } = req.body;
+    if (
+      !userId ||
+      !name ||
+      !phone ||
+      !city ||
+      !address ||
+      !cart ||
+      !estimatedDeliveryTime
+    ) {
       return res.status(400).json({ error: "Missing required fields" });
     }
     const orders = await Promise.all(
@@ -18,8 +35,8 @@ export const checkoutController = async (req, res) => {
 
         // Create a new order
         const newOrder = new orderModel({
-          userId,
-          restaurantId: restaurant._id,
+          user: userId,
+          restaurant: restaurant._id,
           items: order.map((item) => ({
             itemId: item._id,
             name: item.name,
@@ -28,6 +45,8 @@ export const checkoutController = async (req, res) => {
           })),
           totalAmount,
           deliveryAddress: `${address}, ${city}`,
+          estimatedDeliveryTime,
+          notes,
         });
 
         await newOrder.save();

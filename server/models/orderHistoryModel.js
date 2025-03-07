@@ -1,47 +1,64 @@
 import mongoose from "mongoose";
 
-const OrderHistorySchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users",
-    required: true,
-  },
-  restaurantId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "restaurants",
-    required: true,
-  },
-  items: [
-    {
-      itemId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "menuitems",
-        required: true,
-      },
-      name: { type: String, required: true },
-      price: { type: Number, required: true },
-      quantity: { type: Number, required: true },
+const OrderHistorySchema = new mongoose.Schema(
+  {
+    restaurant: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "restaurants",
+      required: true,
     },
-  ],
-  totalAmount: { type: Number, required: true },
-  orderDate: { type: Date, default: Date.now },
-  deliveryAddress: { type: String, required: true },
-  status: {
-    type: String,
-    enum: ["Completed", "Cancelled"],
-    required: true,
-  },
-  completedAt: { type: Date, default: Date.now },
-  cancellationReason: { type: String, default: "" },
-  deliveryDetails: {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "users",
+      required: true,
+    },
+    items: [
+      {
+        itemId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "menuitems",
+          required: true,
+        },
+        name: { type: String, required: true },
+        price: { type: Number, required: true },
+        quantity: { type: Number, required: true },
+      },
+    ],
+    totalAmount: { type: Number, required: true },
+    orderDate: { type: Date, default: Date.now },
+    deliveryAddress: { type: String, required: true },
+    updatedAt: { type: Date, default: Date.now },
+    orderNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      default: () => Math.floor(100000 + Math.random() * 900000).toString(),
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+    estimatedDeliveryTime: {
+      type: String,
+      default: "30-45 mins",
+    },
+    acceptedAt: Date,
+    completedAt: Date,
+    cancelledAt: Date,
+    prepTime: {
+      type: String,
+      default: "20 minutes",
+    },
     status: {
       type: String,
-      enum: ["Not Delivered", "Delivered"],
-      default: "Not Delivered",
+      enum: ["Pending", "Preparing", "Ready", "Completed", "Cancelled"],
+      default: "Pending",
     },
-    deliveredAt: { type: Date, default: null },
+    cancellationReason: { type: String, default: "" },
+    notes: String,
   },
-});
+  { timestamps: true }
+);
 
 export const OrderHistoryModel = mongoose.model(
   "orderhistories",

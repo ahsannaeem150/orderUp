@@ -1,6 +1,5 @@
 import axios from "axios";
 import { useState } from "react";
-import { Buffer } from "buffer";
 
 export const useFetchItems = (routePath) => {
   const [items, setItems] = useState(null);
@@ -10,17 +9,8 @@ export const useFetchItems = (routePath) => {
   const fetchItems = async () => {
     try {
       const response = await axios.get(routePath);
-      const itemWithImages = response.data.items.map((item) => {
-        if (item.image?.data) {
-          const base64Data = Buffer.from(item.image.data, "binary").toString(
-            "base64"
-          );
-          const mimeType = item.image.contentType;
-          return { ...item, image: `data:${mimeType};base64,${base64Data}` };
-        }
-        return item;
-      });
-      setItems(itemWithImages);
+      const items = response.data.items;
+      setItems(items);
       setError(null);
     } catch (error) {
       setError(error);

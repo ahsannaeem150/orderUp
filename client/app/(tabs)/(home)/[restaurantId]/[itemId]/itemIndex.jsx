@@ -615,10 +615,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   cancelButtonText: {
-    color: colors.textPrimary, // Dark text for cancel
+    color: colors.textPrimary,
   },
   submitButtonText: {
-    color: colors.background, // White text for submit
+    color: colors.background,
   },
 });
 

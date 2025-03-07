@@ -18,10 +18,10 @@ const Profile = () => {
   const { state, setState } = useContext(AuthContext);
   const { uploadImage } = useUploadImage();
   const { imageUri: logoUri } = useFetchImage(
-    `/auth/restaurant/${state?.restaurant?._id}/profile/logo?logo=${state.restaurant.logo}`
+    `/restaurant/${state?.restaurant?._id}/profile/logo?logo=${state.restaurant.logo}`
   );
   const { imageUri: coverUri } = useFetchImage(
-    `/auth/restaurant/${state?.restaurant?._id}/profile/thumbnail?thumbnail=${state.restaurant.thumbnail}`
+    `/restaurant/${state?.restaurant?._id}/profile/thumbnail?thumbnail=${state.restaurant.thumbnail}`
   );
   useEffect(() => {
     console.log("LOGO URI", logoUri);
@@ -38,7 +38,7 @@ const Profile = () => {
         <Image source={{ uri: logoUri }} style={styles.profileImage} />
 
         <UploadImageButton
-          routePath={`/auth/restaurant/${state.restaurant._id}/profile/logo?logo=${state.restaurant.logo}`}
+          routePath={`/restaurant/${state.restaurant._id}/profile/logo?logo=${state.restaurant.logo}`}
           style={styles.uploadButton}
         >
           <MaterialIcons name="add" size={20} color="black" />
@@ -49,7 +49,7 @@ const Profile = () => {
       <TouchableOpacity
         onPress={() => {
           uploadImage(
-            `/auth/restaurant/${state.restaurant._id}/profile/thumbnail?thumbnail=${state.restaurant.thumbnail}`
+            `/restaurant/${state.restaurant._id}/profile/thumbnail?thumbnail=${state.restaurant.thumbnail}`
           );
         }}
         style={styles.coverImage}

@@ -10,9 +10,7 @@ import { getItemsController } from "../controllers/restaurantControllers/getItem
 import { getItemController } from "../controllers/restaurantControllers/getItem.js";
 import { deleteItemController } from "../controllers/restaurantControllers/deleteItem.js";
 import { updateProfileController } from "../controllers/restaurantControllers/updateProfile.js";
-import { acceptOrder } from "../controllers/orderControllers/acceptOrderController.js";
-import { rejectOrder } from "../controllers/orderControllers/rejectOrderController.js";
-import { getRestaurantOrders } from "../controllers/orderControllers/getRestaurantOrders.js";
+import { getRestaurantOrders } from "../controllers/restaurantControllers/getRestaurantOrders.js";
 
 //router object
 const router = express.Router();
@@ -46,11 +44,5 @@ router.delete("/restaurant/:restaurantId/item/:itemId", deleteItemController);
 
 //orders
 router.get("/:restaurantId/orders", getRestaurantOrders);
-
-// Accept an order
-router.post("/accept-order", acceptOrder);
-
-// Reject an order
-router.post("/reject-order", rejectOrder);
 
 export default router;

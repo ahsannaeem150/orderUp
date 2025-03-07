@@ -28,7 +28,7 @@ const Orders = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get(`/auth/${restaurantId}/orders`);
+      const response = await axios.get(`/${restaurantId}/orders`);
       setOrders(response.data);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -47,53 +47,56 @@ const Orders = () => {
       );
     };
 
+    const handleOrderCancelled = (orderId) => {
+      setOrders((prev) => prev.filter((order) => order._id !== orderId));
+    };
+
     const handleOrderCreated = (newOrder) => {
       setOrders((prev) => [newOrder, ...prev]);
     };
+    const handleOrderRemoved = (orderId) => {
+      console.log("heyy");
+      setOrders((prev) => prev.filter((order) => order._id !== orderId));
+    };
 
+    socket.on("order-removed", handleOrderRemoved);
     socket.on("order-updated", handleOrderUpdated);
     socket.on("order-created", handleOrderCreated);
+    socket.on("order-cancelled", handleOrderCancelled);
 
     return () => {
       socket.off("order-updated", handleOrderUpdated);
       socket.off("order-created", handleOrderCreated);
+      socket.off("order-removed", handleOrderRemoved);
+      socket.off("order-cancelled", handleOrderCancelled);
     };
   }, [restaurantId]);
 
-  const handleStatusUpdate = (orderId) => {
-    const order = orders.find((o) => o._id === orderId);
-    if (!order) return;
+  const handleStatusUpdate = (orderId, newStatus) => {
+    const confirmationMessages = {
+      Ready: "Mark this order as ready for pickup?",
+      Completed: "Mark this order as completed?",
+      Cancelled: "Are you sure you want to cancel this order?",
+    };
 
-    let newStatus;
-    let confirmationMessage;
-
-    if (order.status === "Preparing") {
-      newStatus = "Ready";
-      confirmationMessage = "Mark this order as ready for pickup?";
-    } else if (order.status === "Ready") {
-      newStatus = "Completed";
-      confirmationMessage = "Mark this order as completed?";
-    }
-
-    if (newStatus) {
-      Alert.alert("Confirm Action", confirmationMessage, [
-        {
-          text: "Cancel",
-          style: "cancel",
+    Alert.alert("Confirm Action", confirmationMessages[newStatus], [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Confirm",
+        onPress: () => {
+          socket.emit("update-order-status", {
+            orderId,
+            status: newStatus,
+            restaurantId,
+          });
         },
-        {
-          text: "Confirm",
-          onPress: () => {
-            socket.emit("update-order-status", {
-              orderId,
-              status: newStatus,
-              restaurantId,
-            });
-          },
-        },
-      ]);
-    }
+      },
+    ]);
   };
+
   const handleReject = (orderId) => {
     Alert.alert(
       "Confirm Cancellation",
@@ -116,6 +119,7 @@ const Orders = () => {
       ]
     );
   };
+
   const handleAcceptWithTime = (orderId) => {
     if (!prepTime || prepTime < 5) {
       Alert.alert(
@@ -127,7 +131,7 @@ const Orders = () => {
     socket.emit("accept-order", {
       orderId,
       restaurantId,
-      prepTime: parseInt(prepTime),
+      prepTime: prepTime + " minutes",
     });
     setShowTimePicker(false);
   };
@@ -206,7 +210,7 @@ const Orders = () => {
         <View>
           <Text style={styles.orderId}>Order #{item._id.slice(-6)}</Text>
           <Text style={styles.customerInfo}>
-            {item.userId?.name} • {item.userId?.phone}
+            {item.user?.name} • {item.user?.phone}
           </Text>
         </View>
         <Text style={styles.statusText}>{item.status}</Text>
@@ -274,21 +278,33 @@ const Orders = () => {
         )}
 
         <View style={styles.actionGroup}>
-          {["Preparing", "Ready"].includes(item.status) && (
+          {item.status === "Pending" && (
             <TouchableOpacity
-              style={[styles.actionButton, styles.nextStepButton]}
-              onPress={() => handleStatusUpdate(item._id)}
+              style={[styles.actionButton, styles.acceptButton]}
+              onPress={() => handleStatusUpdate(item._id, "Preparing")}
             >
-              <Icon
-                name={
-                  item.status === "Preparing" ? "fast-food" : "checkmark-done"
-                }
-                size={18}
-                color="#fff"
-              />
-              <Text style={styles.buttonText}>
-                {item.status === "Preparing" ? "Mark Ready" : "Complete Order"}
-              </Text>
+              <Icon name="checkmark" size={18} color="#fff" />
+              <Text style={styles.buttonText}>Accept</Text>
+            </TouchableOpacity>
+          )}
+
+          {item.status === "Preparing" && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.readyButton]}
+              onPress={() => handleStatusUpdate(item._id, "Ready")}
+            >
+              <Icon name="fast-food" size={18} color="#fff" />
+              <Text style={styles.buttonText}>Mark Ready</Text>
+            </TouchableOpacity>
+          )}
+
+          {item.status === "Ready" && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.completeButton]}
+              onPress={() => handleStatusUpdate(item._id, "Completed")}
+            >
+              <Icon name="checkmark-done" size={18} color="#fff" />
+              <Text style={styles.buttonText}>Complete</Text>
             </TouchableOpacity>
           )}
 
@@ -692,6 +708,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 16,
     textAlign: "center",
+  },
+  acceptButton: {
+    backgroundColor: "#4CAF50",
+  },
+  readyButton: {
+    backgroundColor: "#2196F3",
+  },
+  completeButton: {
+    backgroundColor: "#9C27B0",
   },
   timeInput: {
     borderWidth: 1,

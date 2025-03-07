@@ -1,9 +1,19 @@
 import React, { useContext, useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, Image } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import { AuthContext } from "../context/authContext";
 import { useFetchActiveOrders } from "../hooks/useFetchActiveOrders";
 import { images } from "../../constants";
 import { useRestaurant } from "../context/RestaurantContext";
+import { Ionicons } from "@expo/vector-icons";
+import colors from "../../constants/colors";
 
 const Orders = () => {
   const { getRestaurant } = useRestaurant();
@@ -23,73 +33,141 @@ const Orders = () => {
   const { activeOrders, fetchActiveOrders, loading, error } =
     useFetchActiveOrders(`/orders/active/${user._id}`);
 
-  // Update local state when activeOrders changes
   useEffect(() => {
     setLocalOrders(activeOrders);
   }, [activeOrders]);
-  console.log(localOrders);
   useEffect(() => {
     fetchActiveOrders();
     socket.emit("join-user-room", user._id);
 
-    // Add socket listeners
     const handleOrderUpdate = (updatedOrder) => {
-      setLocalOrders((prev) =>
-        prev.map((order) =>
+      setLocalOrders((prev) => {
+        if (["Cancelled"].includes(updatedOrder.status)) {
+          return prev.filter((order) => order._id !== updatedOrder._id);
+        }
+        return prev.map((order) =>
           order._id === updatedOrder._id ? updatedOrder : order
-        )
+        );
+      });
+    };
+
+    const handleOrderCancelled = (cancelledOrder) => {
+      setLocalOrders((prev) =>
+        prev.filter((order) => order._id !== cancelledOrder._id)
       );
     };
 
-    const handleNewOrder = (newOrder) => {
-      setLocalOrders((prev) => [newOrder, ...prev]);
+    const handleOrderRemoved = (orderId) => {
+      console.log("helloooo");
+      setLocalOrders((prev) => prev.filter((order) => order._id !== orderId));
     };
 
+    socket.on("order-removed", handleOrderRemoved);
     socket.on("order-updated", handleOrderUpdate);
-    socket.on("order-created", handleNewOrder);
+    socket.on("order-cancelled", handleOrderCancelled);
 
     return () => {
       socket.off("order-updated", handleOrderUpdate);
-      socket.off("order-created", handleNewOrder);
+      socket.off("order-removed", handleOrderRemoved);
+      socket.off("order-cancelled", handleOrderCancelled);
     };
   }, [user._id]);
 
   // Render function for each active order
   const renderActiveOrders = ({ item }) => {
-    const restaurant = getRestaurant(item.restaurantId);
+    const restaurant = item.restaurant;
+    const orderTime = new Date(item.createdAt).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
-    const orderQuantity = item.items.reduce((quantity, item) => {
-      return quantity + item.quantity;
-    }, 0);
+    // Calculate total items and price
+    const totalItems = item.items.reduce((acc, item) => acc + item.quantity, 0);
+    const totalPrice = item.items.reduce(
+      (acc, item) => acc + item.price * item.quantity,
+      0
+    );
+
+    // Progress visualization based on status
+    const statusProgress = {
+      Pending: 0.2,
+      Preparing: 0.5,
+      Ready: 0.8,
+      Completed: 1,
+      Cancelled: 1,
+    };
 
     return (
-      <View style={styles.card}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View style={styles.avatarContainer}>
-            <Image
-              source={{
-                uri: restaurant?.logo
-                  ? `${API_URL}/images/${restaurant.logo}`
-                  : images.logoPlaceholder,
-              }}
-              style={styles.avatar}
-            />
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => router.push(`/(orders)/${item._id}`)}
+      >
+        {/* Restaurant Header */}
+        <View style={styles.restaurantHeader}>
+          <Image
+            source={{
+              uri: restaurant?.logo
+                ? `${API_URL}/images/${restaurant.logo}`
+                : images.logoPlaceholder,
+            }}
+            style={styles.restaurantLogo}
+          />
+          <View style={styles.restaurantInfo}>
+            <Text style={styles.restaurantName}>{restaurant?.name}</Text>
+            <Text style={styles.orderTime}>{orderTime}</Text>
           </View>
-          <View>
-            <Text style={styles.restaurantName}>
-              {restaurant?.name || "Restaurant"}
-            </Text>
-            <Text style={styles.restaurantDetails}>
-              Items in order: {orderQuantity}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.statusContainer}>
-          <Text style={[styles.status, { color: statusColors[item.status] }]}>
+          <Text
+            style={[
+              styles.status,
+              { backgroundColor: statusColors[item.status] },
+            ]}
+          >
             {item.status}
           </Text>
         </View>
-      </View>
+
+        {/* Order Details */}
+        <View style={styles.detailsRow}>
+          <Ionicons name="fast-food" size={16} color={colors.textSecondary} />
+          <Text style={styles.detailText}>{totalItems} items</Text>
+
+          <Ionicons
+            name="time"
+            size={16}
+            color={colors.textSecondary}
+            style={styles.detailIcon}
+          />
+          <Text style={styles.detailText}>Est. 30-45 mins</Text>
+
+          <Ionicons
+            name="cash"
+            size={16}
+            color={colors.textSecondary}
+            style={styles.detailIcon}
+          />
+          <Text style={styles.detailText}>Rs {totalPrice.toFixed(2)}</Text>
+        </View>
+
+        {/* Progress Indicator */}
+        <View style={styles.progressContainer}>
+          <View
+            style={[
+              styles.progressBar,
+              { width: `${statusProgress[item.status] * 100}%` },
+            ]}
+          />
+        </View>
+
+        {/* Action Buttons */}
+        {item.status === "Pending" && (
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => handleCancelOrder(item._id)}
+          >
+            <Text style={styles.cancelButtonText}>Cancel Order</Text>
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
     );
   };
 
@@ -120,78 +198,114 @@ const Orders = () => {
   );
 };
 const statusColors = {
-  Preparing: "#4CAF50",
-  Ready: "#2196F3",
-  Completed: "#9E9E9E",
-  Cancelled: "#EF5350",
-  Pending: "#FFA726",
+  Preparing: colors.info,
+  Ready: colors.success,
+  Completed: colors.muted,
+  Cancelled: colors.error,
+  Pending: colors.warning,
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 16,
+    backgroundColor: colors.background,
   },
   header: {
     fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  image: {
-    width: "100%",
-    height: 200,
-    borderRadius: 12,
-    marginBottom: 16,
+    fontFamily: "Poppins-SemiBold",
+    color: colors.primary,
+    marginBottom: 24,
   },
   card: {
-    backgroundColor: "#fff",
-    padding: 15,
-    flexDirection: "row",
-    marginBottom: 15,
-    borderRadius: 10,
-    shadowColor: "#000",
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    justifyContent: "space-between", // Ensure there's space between elements
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  restaurantHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  restaurantLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  restaurantInfo: {
+    flex: 1,
   },
   restaurantName: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontFamily: "Poppins-SemiBold",
+    color: colors.textPrimary,
   },
-  avatarContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    marginRight: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatar: {
-    height: "100%",
-    width: "100%",
-    borderRadius: 8,
-  },
-  restaurantDetails: {
+  orderTime: {
     fontSize: 14,
-    color: "#666",
-    marginTop: 5,
-  },
-  statusContainer: {
-    justifyContent: "center",
-    alignItems: "flex-end",
+    color: colors.textTertiary,
+    marginTop: 4,
   },
   status: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: (status) => statusColors[status],
-    textAlign: "right",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
+    color: colors.textInverted,
+  },
+  detailsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  detailText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginRight: 16,
+  },
+  detailIcon: {
+    marginLeft: 16,
+    marginRight: 4,
+  },
+  progressContainer: {
+    height: 4,
+    backgroundColor: colors.borders,
+    borderRadius: 2,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  progressBar: {
+    height: "100%",
+    backgroundColor: colors.primary,
+  },
+  cancelButton: {
+    borderWidth: 1,
+    borderColor: colors.errorText,
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    color: colors.errorText,
+    fontFamily: "Poppins-Medium",
   },
   emptyContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    height: 500,
+    padding: 20,
+  },
+  image: {
+    width: 200,
+    height: 200,
+    marginBottom: 24,
   },
 });
 

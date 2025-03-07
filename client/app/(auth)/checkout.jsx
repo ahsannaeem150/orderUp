@@ -19,10 +19,16 @@ import CheckboxInput from "../components/CheckboxInput";
 import BlackButton from "../components/BlackButton";
 import { router } from "expo-router";
 import axios from "axios";
+import colors from "../../constants/colors";
 
 const checkout = () => {
   const { state, setCart, cart, setActiveOrders } = useContext(AuthContext);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const [notes, setNotes] = useState("");
+  const [estimatedDeliveryTime, setEstimatedDeliveryTime] =
+    useState("30-45 mins");
 
   const [name, setName] = useState(state.user.name);
   const [phone, setPhone] = useState(state.user.phone);
@@ -44,6 +50,7 @@ const checkout = () => {
     }
 
     try {
+      setIsCheckingOut(true);
       const userId = state.user._id;
 
       // Exclude images from the cart
@@ -68,6 +75,7 @@ const checkout = () => {
         city,
         address,
         cart: sanitizedCart,
+        estimatedDeliveryTime, // Or calculate dynamically
       });
 
       alert("Order placed successfully!");
@@ -86,6 +94,8 @@ const checkout = () => {
     } catch (error) {
       console.error("Error during checkout:", error);
       alert("Something went wrong. Please try again.");
+    } finally {
+      setIsCheckingOut(false);
     }
   };
   return (
@@ -265,6 +275,30 @@ const checkout = () => {
                 fontWeight: "600",
               }}
             >
+              Order Notes
+            </Text>
+            <TextInput
+              style={styles.notesInput}
+              placeholder="Add a special message..."
+              placeholderTextColor={colors.textTertiary}
+              multiline
+              numberOfLines={2}
+              value={notes}
+              onChangeText={setNotes}
+            />
+          </View>
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={styles.header}>
+            <Text
+              style={{
+                alignSelf: "flex-start",
+                margin: 10,
+                marginLeft: 15,
+                fontFamily: "Poppins-SemiBold",
+                fontWeight: "600",
+              }}
+            >
               Checkout
             </Text>
             <View
@@ -300,6 +334,7 @@ const checkout = () => {
                   onPress={() => {
                     handleCheckoutPress();
                   }}
+                  isCheckingOut={isCheckingOut}
                   title={"Checkout"}
                   buttonStyle={{ backgroundColor: "black" }}
                 />
@@ -320,6 +355,21 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 10,
     justifyContent: "space-between",
+  },
+  notesInput: {
+    borderWidth: 1,
+    borderColor: colors.borders,
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 70,
+    textAlignVertical: "top",
+    fontFamily: "Poppins-Regular",
+    width: "93%",
+    alignSelf: "center",
+    fontFamily: "Poppins-Regular",
+    fontSize: 14,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    color: colors.textPrimary,
   },
   header: {
     justifyContent: "flex-start",

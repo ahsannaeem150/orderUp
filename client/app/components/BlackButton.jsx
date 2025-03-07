@@ -1,11 +1,24 @@
 import React from "react";
-import { TouchableOpacity, Text, StyleSheet } from "react-native";
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient"; // Use Expo for gradients
+import colors from "../../constants/colors";
 
-const BlackButton = ({ onPress, title, otherStyles, buttonStyle }) => {
+const BlackButton = ({
+  onPress,
+  title,
+  otherStyles,
+  buttonStyle,
+  isCheckingOut,
+}) => {
   return (
     <TouchableOpacity
       onPress={onPress}
+      disabled={isCheckingOut}
       style={[styles.buttonContainer, otherStyles]}
     >
       <LinearGradient
@@ -14,7 +27,11 @@ const BlackButton = ({ onPress, title, otherStyles, buttonStyle }) => {
         end={[1, 1]}
         style={[styles.button, buttonStyle]}
       >
-        <Text style={styles.buttonText}>{title}</Text>
+        {isCheckingOut ? (
+          <ActivityIndicator color={colors.textInverted} />
+        ) : (
+          <Text style={styles.buttonText}>{title}</Text>
+        )}
       </LinearGradient>
     </TouchableOpacity>
   );

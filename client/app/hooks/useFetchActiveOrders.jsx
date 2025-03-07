@@ -14,24 +14,19 @@ export const useFetchActiveOrders = (routePath) => {
       if (response.data.length === 0) {
         setActiveOrders([]);
       } else {
-        const ordersWithLogo = response.data.map((order) => {
+        const ordersResponse = response.data.map((order) => {
           if (order.restaurant?.logo?.data) {
-            const base64Data = Buffer.from(
-              order.restaurant.logo.data,
-              "binary"
-            ).toString("base64");
-            const mimeType = order.restaurant.logo.contentType;
             return {
               ...order,
               restaurant: {
                 ...order.restaurant,
-                logo: `data:${mimeType};base64,${base64Data}`,
               },
             };
           }
           return order;
         });
-        setActiveOrders(ordersWithLogo);
+        console.log(ordersResponse);
+        setActiveOrders(ordersResponse);
       }
       setError(null);
     } catch (error) {

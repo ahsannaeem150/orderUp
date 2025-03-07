@@ -17,9 +17,9 @@ import { useFetchItems } from "../hooks/useFetchItems";
 
 const HomePage = () => {
   const [refreshing, setRefreshing] = useState(false);
-  const { state, setItem } = useContext(AuthContext);
+  const { state, setItem, API_URL } = useContext(AuthContext);
   const { items, fetchItems } = useFetchItems(
-    `/auth/restaurant/${state.restaurant._id}/items`
+    `/restaurant/${state.restaurant._id}/items`
   );
   const handleNavigateItem = (item) => {
     setItem(item);
@@ -70,7 +70,7 @@ const HomePage = () => {
         >
           {item.image ? (
             <Image
-              source={{ uri: item.image }}
+              source={{ uri: `${API_URL}/images/${item.image}` }}
               style={[
                 {
                   height: "70%",

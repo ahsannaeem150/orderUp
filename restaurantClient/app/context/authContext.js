@@ -17,15 +17,41 @@ const AuthProvider = ({ children }) => {
   const [item, setItem] = useState([]);
 
   //SET INITIAL AXIOS URL
-  const url = "192.168.100.51";
-  axios.defaults.baseURL = `http://${url}:8080/api`;
+  const ip = "192.168.100.51";
+  const API_URL = `http://${ip}:8080/api`;
+  axios.defaults.baseURL = API_URL;
 
-  const socket = io(`http://${url}:8080/restaurant`, {
-    auth: {
-      token: state.token,
-    },
-    transports: ["websocket"],
-  });
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    const initializeSocket = async () => {
+      if (state.token) {
+        const newSocket = io(`http://${ip}:8080/restaurant`, {
+          auth: {
+            token: state.token,
+          },
+          transports: ["websocket"],
+          reconnection: true,
+          reconnectionAttempts: 5,
+        });
+
+        newSocket.on("connect_error", (err) => {
+          console.log("Socket connection error:", err.message);
+        });
+        setSocket(newSocket);
+      }
+    };
+
+    if (state.token) {
+      initializeSocket();
+    }
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [state.token]);
 
   //GET initial storage data
   useEffect(() => {
@@ -57,7 +83,16 @@ const AuthProvider = ({ children }) => {
   }, [state]);
   return (
     <AuthContext.Provider
-      value={{ state, setState, loading, setLoading, item, setItem, socket }}
+      value={{
+        state,
+        setState,
+        loading,
+        setLoading,
+        item,
+        setItem,
+        socket,
+        API_URL,
+      }}
     >
       {children}
     </AuthContext.Provider>
