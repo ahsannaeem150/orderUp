@@ -17,7 +17,7 @@ const TabBar = ({ state, descriptors, navigation }) => {
         {...props}
       />
     ),
-    orders: (props) => (
+    "(orders)": (props) => (
       <AntDesign name="hourglass" size={26} color={secondaryColor} {...props} />
     ),
     profile: (props) => (

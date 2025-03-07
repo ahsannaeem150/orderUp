@@ -22,7 +22,7 @@ import axios from "axios";
 import colors from "../../constants/colors";
 
 const checkout = () => {
-  const { state, setCart, cart, setActiveOrders } = useContext(AuthContext);
+  const { state, setCart, cart } = useContext(AuthContext);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
@@ -80,18 +80,10 @@ const checkout = () => {
       });
 
       alert("Order placed successfully!");
-
-      setActiveOrders((prev) => {
-        let activeOrder = [...cart];
         setCart([]);
-        if (prev) {
-          return [...prev, ...activeOrder];
-        }
-        return [...activeOrder];
-      });
 
       router.dismissAll();
-      router.replace("orders");
+      router.replace("(orders)");
     } catch (error) {
       console.error("Error during checkout:", error);
       alert("Something went wrong. Please try again.");
@@ -364,7 +356,6 @@ const styles = StyleSheet.create({
     padding: 12,
     minHeight: 70,
     textAlignVertical: "top",
-    fontFamily: "Poppins-Regular",
     width: "93%",
     alignSelf: "center",
     fontFamily: "Poppins-Regular",

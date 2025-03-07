@@ -2,7 +2,7 @@ const colors = {
   // primary: "black",
   primary: "#2A4D6E",
   secondary: "#5B7A9D",
-  accent: "#be8cfa",
+  accent: "#ff1c8d",
   // accent: "#FF6B6B",
   success: "#45f59a",
 
@@ -16,6 +16,7 @@ const colors = {
   textSecondary: "#4A5568", // Dark gray for secondary text
   textTertiary: "#718096", // Medium gray
 
+  textInverted: "#ffffff", // Medium gray
   // Feedback
   errorBg: "#FED7D7", // Soft red
   // errorText: "#C53030", // Dark red
