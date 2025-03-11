@@ -645,11 +645,10 @@ const statusColors = {
     Removed: colors.errorText,
 };
 const styles = StyleSheet.create({
-    // Main container
     container: {
         flex: 1,
+        padding: 16,
         backgroundColor: colors.background,
-        paddingHorizontal: 16,
     },
     tabs: {
         flexDirection: "row",
