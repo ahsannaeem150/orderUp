@@ -1,32 +1,32 @@
 const colors = {
-  // primary: "black",
-  primary: "#2A4D6E",
-  secondary: "#5B7A9D",
-  accent: "#be8cfa",
-  // accent: "#FF6B6B",
-  success: "#45f59a",
+    // primary: "black",
+    primary: "#2A4D6E",
+    secondary: "#5B7A9D",
+    accent: "#af8cf1",
+    // accent: "#FF6B6B",
+    success: "#45f59a",
 
-  // Neutrals
-  background: "#FFFFFF",
-  muted: "#A0AEC0",
-  borders: "#E2E8F0", // Very light gray
+    // Neutrals
+    background: "#FFFFFF",
+    muted: "#A0AEC0",
+    borders: "#E2E8F0", // Very light gray
 
-  // Text
-  textPrimary: "#1A1A1A", // Near-black for main text
-  textSecondary: "#4A5568", // Dark gray for secondary text
-  textTertiary: "#718096", // Medium gray
+    // Text
+    textPrimary: "#1A1A1A", // Near-black for main text
+    textSecondary: "#4A5568", // Dark gray for secondary text
+    textTertiary: "#718096", // Medium gray
 
-  // Feedback
-  errorBg: "#FED7D7", // Soft red
-  // errorText: "#C53030", // Dark red
-  errorText: "#f5458c", // Dark red
+    // Feedback
+    errorBg: "#FED7D7", // Soft red
+    // errorText: "#C53030", // Dark red
+    errorText: "#f5458c", // Dark red
 
-  warningBg: "#FEFCBF", // Pale yellow
-  warningText: "#B7791F", // Dark yellow
+    warningBg: "#FEFCBF", // Pale yellow
+    warningText: "#B7791F", // Dark yellow
 
-  // Special
-  highlight: "#FFD700", // For rating stars
-  activeIcon: "#2A4D6E",
+    // Special
+    highlight: "#FFD700", // For rating stars
+    activeIcon: "#2A4D6E",
 };
 
 export default colors;

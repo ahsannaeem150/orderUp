@@ -568,7 +568,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
         paddingHorizontal: 16,
-        marginBottom: 50,
     },
 
     // Header
