@@ -126,7 +126,6 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: "center",
         padding: 16,
-        marginBottom: 50,
         backgroundColor: colors.background,
     },
     tabs: {

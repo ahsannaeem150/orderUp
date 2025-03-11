@@ -44,7 +44,6 @@ const PageHeader = ({
                     )}
                 </TouchableOpacity>
             </View>
-
         </View>
     );
 };

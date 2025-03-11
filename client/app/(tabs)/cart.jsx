@@ -215,7 +215,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 16,
-        marginBottom: 50,
         backgroundColor: colors.background,
     },
     tabs: {

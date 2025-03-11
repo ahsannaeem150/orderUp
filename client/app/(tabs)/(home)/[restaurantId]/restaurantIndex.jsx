@@ -167,13 +167,13 @@ export default MenuItemsScreen;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        marginBottom: 50,
         backgroundColor: colors.background,
     },
     restaurantHeader: {
         flexDirection: "row",
         alignItems: "center",
-        padding: 20,
+        paddingHorizontal: 20,
+        paddingBottom: 15,
         backgroundColor: colors.background,
         borderBottomWidth: 1,
         borderBottomColor: colors.borders,
