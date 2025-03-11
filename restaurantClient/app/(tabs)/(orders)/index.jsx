@@ -19,6 +19,7 @@ import {Ionicons} from "@expo/vector-icons";
 import colors from "../../../constants/colors";
 import {AuthContext} from "../../context/authContext";
 import {useOrders} from "../../context/OrderContext";
+import {router} from "expo-router";
 
 const Orders = () => {
     const {
@@ -83,23 +84,9 @@ const Orders = () => {
     }, [showHistory, restaurantId]);
 
 
-    // const fetchOrders = async () => {
-    //     try {
-    //         setLoading(true);
-    //         const response = await axios.get(`/${restaurantId}/orders`);
-    //         setOrders(response.data);
-    //     } catch (error) {
-    //         console.error("Error fetching orders:", error);
-    //         Alert.alert("Error", "Failed to fetch orders");
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-
     useEffect(() => {
         loadData();
         socket.emit("join-restaurant-room", restaurantId);
-        // fetchOrders();
 
         const handleOrderUpdated = (updatedOrder) => {
             setProcessingOrderId(null);
@@ -315,11 +302,12 @@ const Orders = () => {
         };
 
         return (
-            <TouchableOpacity style={styles.orderCard} onPress={() =>
+            <TouchableOpacity style={styles.orderCard} onPress={() => {
                 handleOrderPress(
                     order._id,
                     isHistorical || ["Cancelled", "Completed"].includes(order.status)
                 )
+            }
             }>
                 <View style={styles.orderHeader}>
                     <View style={styles.userInfoContainer}>

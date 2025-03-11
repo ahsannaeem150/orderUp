@@ -76,9 +76,6 @@ export const OrderProvider = ({children}) => {
         });
     }, []);
 
-    console.log("Active Order", activeOrders);
-    console.log("Historix", historicalOrders);
-
     // Batch update orders (optional)
     const updateOrdersBatch = useCallback((orders, isHistorical = false) => {
         const ordersMap = orders.reduce((acc, order) => {
