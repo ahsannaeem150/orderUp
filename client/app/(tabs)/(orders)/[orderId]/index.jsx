@@ -237,26 +237,33 @@ const OrderDetailScreen = () => {
             </Text>
           </View>
         ))} */}
-
-        {order?.items?.map((item, index) => (
-          <View key={index} style={styles.itemContainer}>
-            <View style={styles.itemDetails}>
-              <Text style={styles.itemName}>{item.name}</Text>
+        <View
+          style={{
+            paddingBottom: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.borders,
+          }}
+        >
+          {order?.items?.map((item, index) => (
+            <View key={index} style={styles.itemContainer}>
+              <View style={styles.itemDetails}>
+                <Text style={styles.itemName}>{item.name}</Text>
+              </View>
+              <Text style={styles.itemQuantity}>{item.quantity}x</Text>
+              <View
+                style={{
+                  flex: 2,
+                  justifyContent: "flex-end",
+                  alignSelf: "center",
+                }}
+              >
+                <Text style={styles.itemPrice}>
+                  Rs{(item.price * item.quantity).toFixed(2)}
+                </Text>
+              </View>
             </View>
-            <Text style={styles.itemQuantity}>{item.quantity}x</Text>
-            <View
-              style={{
-                flex: 2,
-                justifyContent: "flex-end",
-                alignSelf: "center",
-              }}
-            >
-              <Text style={styles.itemPrice}>
-                Rs{(item.price * item.quantity).toFixed(2)}
-              </Text>
-            </View>
-          </View>
-        ))}
+          ))}
+        </View>
 
         <View style={styles.totalContainer}>
           <View style={styles.totalRow}>
@@ -502,7 +509,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
   },
   itemPrice: {
     fontSize: 16,
@@ -519,7 +525,7 @@ const styles = StyleSheet.create({
     flex: 2,
   },
   itemDetails: {
-    flex: 5,
+    flex: 8,
   },
   itemName: {
     fontSize: 16,
