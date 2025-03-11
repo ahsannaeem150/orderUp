@@ -66,7 +66,7 @@ const Orders = () => {
         }
     }, [showHistory, hasFetchedHistory]);
 
-    let handleRemoveOrder = (orderId) => {
+    const handleRemoveOrder = (orderId) => {
         setActiveOrders((prev) => {
             const newActive = {...prev};
             delete newActive[orderId];

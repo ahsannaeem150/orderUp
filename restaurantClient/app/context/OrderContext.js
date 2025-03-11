@@ -13,8 +13,8 @@ export const OrderProvider = ({children}) => {
     const fetchOrder = useCallback(async (orderId, isHistorical = false) => {
         try {
             const endpoint = isHistorical
-                ? `/user/history/order/${orderId}`
-                : `/user/orders/${orderId}`;
+                ? `/restaurant/history/order/${orderId}`
+                : `/restaurant/orders/${orderId}`;
 
             const response = await axios.get(endpoint);
             const order = response.data;
@@ -24,7 +24,6 @@ export const OrderProvider = ({children}) => {
             } else {
                 setActiveOrders((prev) => ({...prev, [orderId]: order}));
             }
-
             return order;
         } catch (error) {
             console.error("Order fetch error:", error);
@@ -33,9 +32,9 @@ export const OrderProvider = ({children}) => {
     }, []);
 
     // Fetch all active orders for user
-    const fetchActiveOrders = useCallback(async (userId) => {
+    const fetchActiveOrders = useCallback(async (restaurantId) => {
         try {
-            const response = await axios.get(`/user/orders/active/${userId}`);
+            const response = await axios.get(`/restaurant/orders/active/${restaurantId}`);
             const ordersMap = response.data.reduce((acc, order) => {
                 acc[order._id] = order;
                 return acc;
@@ -48,9 +47,9 @@ export const OrderProvider = ({children}) => {
     }, []);
 
     // Fetch user's historical orders
-    const fetchHistoricalOrders = useCallback(async (userId) => {
+    const fetchHistoricalOrders = useCallback(async (restaurantId) => {
         try {
-            const response = await axios.get(`/user/${userId}/history/orders`);
+            const response = await axios.get(`/restaurant/${restaurantId}/history/orders`);
             const ordersMap = response.data.reduce((acc, order) => {
                 acc[order._id] = order;
                 return acc;

@@ -10,75 +10,117 @@ import {
     TextInput,
     Alert,
     ActivityIndicator,
-    RefreshControl,
+    RefreshControl, Dimensions,
 } from "react-native";
-import axios from "axios";
-import {AuthContext} from "../context/authContext";
-import {images} from "../../constants";
+import images from "../../../constants/images";
 import Icon from "react-native-vector-icons/Ionicons";
 import {ProgressBar, Chip} from "react-native-paper";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import {Ionicons} from "@expo/vector-icons";
-import colors from "../../constants/colors";
+import colors from "../../../constants/colors";
+import {AuthContext} from "../../context/authContext";
+import {useOrders} from "../../context/OrderContext";
 
 const Orders = () => {
+    const {
+        activeOrders,
+        historicalOrders,
+        fetchOrder,
+        moveToHistory,
+        setCurrentOrder,
+        setActiveOrders,
+        fetchActiveOrders,
+        fetchHistoricalOrders,
+    } = useOrders()
+
+
     const {state, socket, API_URL} = useContext(AuthContext);
     const restaurantId = state.restaurant._id;
     const [orders, setOrders] = useState([]);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [prepTime, setPrepTime] = useState(30);
+    const [isLoading, setIsLoading] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [hasFetchedHistory, setHasFetchedHistory] = useState(false);
+    // const [loading, setLoading] = useState(false);
     const [processingOrderId, setProcessingOrderId] = useState(null);
 
     const onRefresh = useCallback(async () => {
         setIsRefreshing(true);
-        try {
-            await fetchOrders();
-        } finally {
-            setIsRefreshing(false);
-        }
-    }, []);
-
-    const fetchOrders = async () => {
-        try {
-            setLoading(true);
-            const response = await axios.get(`/${restaurantId}/orders`);
-            setOrders(response.data);
-        } catch (error) {
-            console.error("Error fetching orders:", error);
-            Alert.alert("Error", "Failed to fetch orders");
-        } finally {
-            setLoading(false);
-        }
-    };
+        await loadData();
+        setIsRefreshing(false);
+    }, [loadData]);
 
     useEffect(() => {
+        if (showHistory && !hasFetchedHistory) {
+            loadData();
+            setHasFetchedHistory(true);
+        }
+    }, [showHistory, hasFetchedHistory]);
+
+    const handleRemoveOrder = (orderId) => {
+        setActiveOrders((prev) => {
+            const newActive = {...prev};
+            delete newActive[orderId];
+            return newActive;
+        });
+    };
+
+    const loadData = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            if (showHistory) {
+                await fetchHistoricalOrders(restaurantId);
+            } else {
+                await fetchActiveOrders(restaurantId);
+            }
+        } catch (error) {
+            console.error("Error loading orders:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [showHistory, restaurantId]);
+
+
+    // const fetchOrders = async () => {
+    //     try {
+    //         setLoading(true);
+    //         const response = await axios.get(`/${restaurantId}/orders`);
+    //         setOrders(response.data);
+    //     } catch (error) {
+    //         console.error("Error fetching orders:", error);
+    //         Alert.alert("Error", "Failed to fetch orders");
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
+
+    useEffect(() => {
+        loadData();
         socket.emit("join-restaurant-room", restaurantId);
-        fetchOrders();
+        // fetchOrders();
 
         const handleOrderUpdated = (updatedOrder) => {
             setProcessingOrderId(null);
-            setOrders((prev) =>
-                prev.map((order) =>
-                    order._id === updatedOrder._id ? updatedOrder : order
-                )
-            );
+            setActiveOrders((prev) => {
+                const newActive = {...prev};
+                newActive[updatedOrder._id] = updatedOrder;
+                return newActive;
+            });
         };
 
         const handleOrderCreated = (newOrder) => {
             setProcessingOrderId(null);
-            setOrders((prev) => [newOrder, ...prev]);
+            setActiveOrders((prev) => ({
+                ...prev,
+                [newOrder._id]: newOrder
+            }));
         };
 
         const handleOrderRemoved = ({orderId, status}) => {
             setProcessingOrderId(null);
-            setOrders((prev) =>
-                prev.map((order) =>
-                    order._id === orderId ? {...order, status} : order
-                )
-            );
+            moveToHistory({orderId, status});
         };
 
         socket.on("order-removed", handleOrderRemoved);
@@ -172,6 +214,26 @@ const Orders = () => {
         }
     };
 
+    const handleOrderPress = useCallback(
+        async (orderId, isHistorical) => {
+            try {
+                const order = isHistorical
+                    ? historicalOrders[orderId]
+                    : activeOrders[orderId];
+
+                if (!order) {
+                    await fetchOrder(orderId, isHistorical);
+                }
+
+                setCurrentOrder(orderId);
+                router.push(`/(orders)/${orderId}?isHistorical=${isHistorical}`);
+            } catch (error) {
+                console.error("Error navigating to order:", error);
+            }
+        },
+        [activeOrders, historicalOrders]
+    );
+
     const renderPreparationTimeline = (order) => {
         const statusFlow = ["Pending", "Preparing", "Ready", "Completed"];
         const currentIndex = statusFlow.indexOf(order.status);
@@ -240,11 +302,9 @@ const Orders = () => {
             </View>
         );
     };
-    const renderOrder = ({item}) => {
-        const handleRemoveOrder = () => {
-            setOrders((prev) => prev.filter((order) => order._id !== item._id));
-        };
-        const isProcessing = processingOrderId === item._id;
+    const renderOrder = ({item: order}) => {
+        const isHistorical = showHistory;
+        const isProcessing = processingOrderId === order._id;
         const statusColors = {
             Preparing: colors.accent,
             Ready: colors.success,
@@ -255,32 +315,39 @@ const Orders = () => {
         };
 
         return (
-            <View style={styles.orderCard}>
+            <TouchableOpacity style={styles.orderCard} onPress={() =>
+                handleOrderPress(
+                    order._id,
+                    isHistorical || ["Cancelled", "Completed"].includes(order.status)
+                )
+            }>
                 <View style={styles.orderHeader}>
                     <View style={styles.userInfoContainer}>
-                        {item.user?.profilePicture && (
+                        {order.user?.profilePicture && (
                             <Image
                                 source={{
-                                    uri: `${API_URL}/images/${item.user.profilePicture}`,
+                                    uri: `${API_URL}/images/${order.user.profilePicture}`,
                                 }}
                                 style={styles.profileImage}
                             />
                         )}
                         <View>
-                            <Text style={styles.orderId}>Order #{item._id.slice(-6)}</Text>
+                            <Text style={styles.orderId}>Order #{order._id.slice(-6)}</Text>
                             <Text style={styles.customerInfo}>
-                                {item.user?.name} • {item.user?.phone}
+                                {order.user?.name} • {order.user?.phone}
                             </Text>
                         </View>
                     </View>
                     <View style={styles.statusContainer}>
                         <Text
-                            style={[styles.statusText, {color: statusColors[item.status]}]}
+                            style={[styles.statusText, {color: statusColors[order.status]}]}
                         >
-                            {item.status}
+                            {order.status}
                         </Text>
-                        {["Completed", "Cancelled", "Removed"].includes(item.status) && (
-                            <TouchableOpacity onPress={handleRemoveOrder}>
+                        {!isHistorical && ["Completed", "Cancelled", "Removed"].includes(order.status) && (
+                            <TouchableOpacity onPress={() => {
+                                handleRemoveOrder(order._id)
+                            }}>
                                 <Ionicons
                                     name="close-circle"
                                     size={24}
@@ -294,7 +361,7 @@ const Orders = () => {
                 {/* Order Items */}
                 <View style={styles.itemsContainer}>
                     <Text style={styles.sectionTitle}>Order Items:</Text>
-                    {item.items.map((orderItem, index) => (
+                    {order.items.map((orderItem, index) => (
                         <View key={index} style={styles.itemRow}>
                             <Text style={styles.itemName}>{orderItem.name}</Text>
                             <View style={styles.itemDetails}>
@@ -309,34 +376,34 @@ const Orders = () => {
                 <View style={styles.summaryContainer}>
                     <View style={styles.summaryRow}>
                         <Text>Total:</Text>
-                        <Text style={styles.totalAmount}>Rs{item.totalAmount}</Text>
+                        <Text style={styles.totalAmount}>Rs{order.totalAmount}</Text>
                     </View>
                 </View>
 
                 {/* Preparation Timeline */}
-                {renderPreparationTimeline(item)}
+                {renderPreparationTimeline(order)}
 
                 {/* Preparation Timer */}
-                {item.status === "Preparing" && renderPreparationTimer(item)}
+                {order.status === "Preparing" && renderPreparationTimer(order)}
 
                 {/* Customer Notes */}
-                {item.notes && (
+                {order.notes && (
                     <TouchableOpacity style={styles.notesContainer} onPress={() => {
                     }}>
                         <Icon name="document-text-outline" size={16} color="#666"/>
                         <Text style={styles.notesText} numberOfLines={1}>
-                            Customer Notes: {item.notes}
+                            Customer Notes: {order.notes}
                         </Text>
                     </TouchableOpacity>
                 )}
 
                 {/* Order Footer with Actions */}
                 <View style={styles.orderFooter}>
-                    {item.status === "Pending" ? (
+                    {order.status === "Pending" ? (
                         <TouchableOpacity
                             style={[styles.actionButton, styles.setTimeButton]}
                             onPress={() => {
-                                setSelectedOrder(item);
+                                setSelectedOrder(order);
                                 setShowTimePicker(true);
                             }}
                             disabled={isProcessing}
@@ -359,23 +426,23 @@ const Orders = () => {
                             mode="outlined"
                             style={[
                                 styles.statusChip,
-                                {borderColor: statusColors[item.status]},
+                                {borderColor: statusColors[order.status]},
                             ]}
                             textStyle={[
                                 styles.chipText,
-                                {color: statusColors[item.status]},
+                                {color: statusColors[order.status]},
                             ]}
                         >
-                            {item.status}
+                            {order.status}
                         </Chip>
                     )}
 
                     <View style={styles.actionGroup}>
                         {/* Action Buttons with Loading States */}
-                        {item.status === "Pending" && (
+                        {order.status === "Pending" && (
                             <TouchableOpacity
                                 style={[styles.actionButton, styles.acceptButton]}
-                                onPress={() => handleStatusUpdate(item._id, "Preparing")}
+                                onPress={() => handleStatusUpdate(order._id, "Preparing")}
                                 disabled={isProcessing}
                             >
                                 {isProcessing ? (
@@ -393,10 +460,10 @@ const Orders = () => {
                             </TouchableOpacity>
                         )}
 
-                        {item.status === "Preparing" && (
+                        {order.status === "Preparing" && (
                             <TouchableOpacity
                                 style={[styles.actionButton, styles.readyButton]}
-                                onPress={() => handleStatusUpdate(item._id, "Ready")}
+                                onPress={() => handleStatusUpdate(order._id, "Ready")}
                                 disabled={isProcessing}
                             >
                                 {isProcessing ? (
@@ -414,10 +481,10 @@ const Orders = () => {
                             </TouchableOpacity>
                         )}
 
-                        {item.status === "Ready" && (
+                        {order.status === "Ready" && (
                             <TouchableOpacity
                                 style={[styles.actionButton, styles.completeButton]}
-                                onPress={() => handleStatusUpdate(item._id, "Completed")}
+                                onPress={() => handleStatusUpdate(order._id, "Completed")}
                                 disabled={isProcessing}
                             >
                                 {isProcessing ? (
@@ -436,10 +503,10 @@ const Orders = () => {
                         )}
 
                         {/* Conditional Cancel Button */}
-                        {!["Completed", "Cancelled", "Removed"].includes(item.status) && (
+                        {!["Completed", "Cancelled", "Removed"].includes(order.status) && (
                             <TouchableOpacity
                                 style={[styles.actionButton, styles.cancelButton]}
-                                onPress={() => handleReject(item._id)}
+                                onPress={() => handleReject(order._id)}
                                 disabled={isProcessing}
                             >
                                 {isProcessing ? (
@@ -458,10 +525,10 @@ const Orders = () => {
                         )}
                     </View>
                 </View>
-            </View>
+            </TouchableOpacity>
         );
     };
-    if (loading) {
+    if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.primary}/>
@@ -470,38 +537,53 @@ const Orders = () => {
     }
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Current Orders</Text>
-                <Image source={images.logoSmall} style={styles.logo}/>
+            <View style={styles.tabs}>
+                <TouchableOpacity
+                    style={[styles.tab, !showHistory && styles.activeTab]}
+                    onPress={() => setShowHistory(false)}
+                >
+                    <Text style={[styles.tabText, !showHistory && styles.activeTabText]}>
+                        Active Orders
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.tab, showHistory && styles.activeTab]}
+                    onPress={() => setShowHistory(true)}
+                >
+                    <Text style={[styles.tabText, showHistory && styles.activeTabText]}>
+                        Order History
+                    </Text>
+                </TouchableOpacity>
             </View>
 
-            {orders.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <Image source={images.empty} style={styles.emptyImage}/>
-                    <Text style={styles.emptyText}>No active orders</Text>
-                </View>
-            ) : (
-                <FlatList
-                    data={orders}
-                    renderItem={renderOrder}
-                    keyExtractor={(item) => item._id}
-                    contentContainerStyle={styles.listContent}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={isRefreshing}
-                            onRefresh={onRefresh}
-                            colors={[colors.primary]}
-                            tintColor={colors.primary}
-                        />
-                    }
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Image source={images.empty} style={styles.emptyImage}/>
-                            <Text style={styles.emptyText}>No active orders</Text>
-                        </View>
-                    }
-                />
-            )}
+            <FlatList
+                data={Object.values(showHistory ? historicalOrders : activeOrders)}
+                renderItem={renderOrder}
+                keyExtractor={(order) => order._id}
+                contentContainerStyle={styles.listContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={onRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
+                ListEmptyComponent={() => (
+                    <View style={styles.emptyContainer}>
+                        {isLoading ? (
+                            <ActivityIndicator size="large" color={colors.primary}/>
+                        ) : (
+                            <View style={styles.emptyList}>
+                                <Image source={images.empty} style={styles.image}/>
+                                <Text style={styles.emptyText}>
+                                    {showHistory ? "No historical orders" : "No active orders"}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                )}
+            />
 
             <Modal visible={showTimePicker} transparent animationType="slide">
                 <View style={styles.modalContainer}>
@@ -569,8 +651,45 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
         paddingHorizontal: 16,
     },
-
-    // Header
+    tabs: {
+        flexDirection: "row",
+        marginBottom: 16,
+    },
+    tab: {
+        flex: 1,
+        padding: 12,
+        alignItems: "center",
+        borderBottomWidth: 2,
+        borderBottomColor: colors.borders,
+    },
+    activeTab: {
+        borderBottomColor: colors.accent,
+    },
+    tabText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+    },
+    activeTabText: {
+        color: colors.textPrimary,
+        fontFamily: "Poppins-SemiBold",
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        height: Dimensions.get("window").height - 200,
+        padding: 20,
+    },
+    emptyList: {flex: 1, justifyContent: "center", alignItems: "center"},
+    image: {
+        width: 200,
+        height: 200,
+        marginBottom: 24,
+    },
+    emptyText: {
+        fontSize: 16,
+        color: colors.textSecondary,
+    },
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -838,23 +957,6 @@ const styles = StyleSheet.create({
         fontFamily: "Poppins-Medium",
     },
 
-    // Empty State
-    emptyContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        paddingBottom: 100,
-    },
-    emptyImage: {
-        width: 200,
-        height: 200,
-        opacity: 0.8,
-    },
-    emptyText: {
-        fontSize: 18,
-        color: colors.textSecondary,
-        marginTop: 16,
-    },
 
     // Modal
     modalContainer: {
