@@ -33,6 +33,7 @@ const ItemDetailsScreen = () => {
   const [review, setReview] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingReviews, setLoadingReviews] = useState(false);
   const [averageRating, setAverageRating] = useState(0);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const { restaurantId, itemId } = useLocalSearchParams();
@@ -51,11 +52,14 @@ const ItemDetailsScreen = () => {
   useEffect(() => {
     const loadInitialReviews = async () => {
       try {
+        setLoadingReviews(true);
         if (!reviews || reviews.length === 0) {
           await fetchReviews();
         }
       } catch (error) {
         console.log("Initial reviews load error:", error);
+      } finally {
+        setLoadingReviews(false);
       }
     };
 
@@ -180,7 +184,7 @@ const ItemDetailsScreen = () => {
           {item.userId?.name || "Anonymous User"}
         </Text>
         <StarRating
-          rating={Math.round(item.rating)} // Remove Math.round
+          rating={Math.round(item.rating)}
           starSize={16}
           onChange={() => {}}
           starStyle={{ color: colors.highlight }}
@@ -212,13 +216,11 @@ const ItemDetailsScreen = () => {
           <RefreshControl refreshing={loading} onRefresh={loadData} />
         }
       >
-        {/* Item Image */}
         <Image
           source={{ uri: `${API_URL}/images/${currentItem.image}` }}
           style={styles.itemImage}
         />
 
-        {/* Item Info */}
         <View style={styles.infoContainer}>
           <View style={styles.priceRow}>
             <Text style={styles.price}>${currentItem.price.toFixed(2)}</Text>
@@ -244,7 +246,6 @@ const ItemDetailsScreen = () => {
           </View>
         </View>
 
-        {/* Action Buttons */}
         <View style={styles.buttonGroup}>
           <TouchableOpacity
             style={styles.button}
@@ -264,12 +265,11 @@ const ItemDetailsScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Reviews Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Customer Reviews</Text>
-          {loading ? (
+          {loadingReviews ? (
             <ActivityIndicator size="small" color={colors.accent} />
-          ) : (reviews || []).length > 0 ? ( // Add fallback array
+          ) : (reviews || []).length > 0 ? (
             <>
               {(reviews || [])
                 .slice(0, showAllReviews ? undefined : 2)
@@ -292,18 +292,15 @@ const ItemDetailsScreen = () => {
           )}
         </View>
 
-        {/* Related Items */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>You Might Also Like</Text>
           <RelatedItemsList itemId={itemId} restaurantId={restaurantId} />
         </View>
       </ScrollView>
 
-      {/* Review Modal */}
       <Modal visible={isModalVisible} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modal}>
-            {/* Add User Profile Section */}
             <View style={styles.modalHeader}>
               <Image
                 source={
@@ -417,8 +414,8 @@ const styles = StyleSheet.create({
   itemImage: {
     height: 300,
     resizeMode: "cover",
-    borderRadius: 12, // Added for consistency
-    margin: 16, // Added spacing
+    borderRadius: 12,
+    margin: 16,
   },
   infoContainer: {
     padding: 24,
@@ -439,12 +436,12 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 28,
     fontFamily: "Poppins-SemiBold",
-    color: colors.primary, // Changed to primary color
+    color: colors.primary,
   },
   description: {
     fontSize: 16,
     lineHeight: 24,
-    color: colors.textSecondary, // Using secondary text
+    color: colors.textSecondary,
     marginBottom: 24,
   },
   ratingContainer: {
@@ -459,12 +456,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textPrimary,
     fontFamily: "Poppins-Medium",
-    marginTop: 4, // Adjust vertical alignment
+    marginTop: 4,
   },
   buttonGroup: {
     flexDirection: "row",
     gap: 16,
-    marginHorizontal: 16, // Added horizontal margin
+    marginHorizontal: 16,
     padding: 24,
   },
   button: {
@@ -475,13 +472,13 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: colors.primary, // Primary color
+    backgroundColor: colors.primary,
   },
   cartButton: {
-    backgroundColor: colors.success, // Success color
+    backgroundColor: colors.success,
   },
   buttonText: {
-    color: colors.background, // White text
+    color: colors.background,
     fontFamily: "Poppins-SemiBold",
     fontSize: 16,
   },
@@ -492,35 +489,35 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontFamily: "Poppins-SemiBold",
-    color: colors.textPrimary, // Primary text
+    color: colors.textPrimary,
     marginBottom: 16,
-    marginHorizontal: 16, // Added alignment
+    marginHorizontal: 16,
   },
 
   reviewCard: {
     backgroundColor: colors.background,
-    borderRadius: 16,
+    borderRadius: 10,
     padding: 16,
     flexDirection: "row",
     gap: 16,
     marginBottom: 12,
     elevation: 2,
-    marginHorizontal: 16,
+    marginHorizontal: 10,
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 1, // Added border
+    borderWidth: 1,
     borderColor: colors.borders,
   },
   reviewName: {
     fontFamily: "Poppins-SemiBold",
-    color: colors.textPrimary, // Primary text
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   reviewText: {
-    color: colors.textSecondary, // Secondary text
+    color: colors.textSecondary,
     lineHeight: 20,
     marginTop: 8,
   },
@@ -529,19 +526,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   seeMoreText: {
-    color: colors.primary, // Primary color
+    color: colors.primary,
     fontFamily: "Poppins-SemiBold",
   },
   noReviews: {
     textAlign: "center",
-    color: colors.textTertiary, // Tertiary text
+    color: colors.textTertiary,
     marginVertical: 24,
   },
   modalBackdrop: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: colors.primary + "80", // Primary with 50% opacity
+    backgroundColor: colors.primary + "80",
   },
   modal: {
     width: "90%",
@@ -604,7 +601,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cancelButton: {
-    backgroundColor: colors.borders, // Use border color for cancel background
+    backgroundColor: colors.borders,
   },
   submitButton: {
     backgroundColor: colors.primary,

@@ -32,7 +32,6 @@ const Orders = () => {
   const [loading, setLoading] = useState(false);
   const [processingOrderId, setProcessingOrderId] = useState(null);
 
-  // Add refresh control handler
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -93,7 +92,6 @@ const Orders = () => {
     };
   }, [restaurantId]);
 
-  // Updated status update handler with loading state
   const handleStatusUpdate = (orderId, newStatus) => {
     const confirmationMessages = {
       Ready: "Mark this order as ready for pickup?",
@@ -124,7 +122,6 @@ const Orders = () => {
     ]);
   };
 
-  // Updated reject handler with loading state
   const handleReject = (orderId) => {
     Alert.alert(
       "Confirm Cancellation",
@@ -260,7 +257,6 @@ const Orders = () => {
 
     return (
       <View style={styles.orderCard}>
-        {/* Order Header with Profile Picture */}
         <View style={styles.orderHeader}>
           <View style={styles.userInfoContainer}>
             {item.user?.profilePicture && (

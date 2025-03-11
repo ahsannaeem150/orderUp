@@ -121,8 +121,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.7)", // Optional: background color to make it more visible
-    borderRadius: 20, // Ensure it's circular or matches button styles
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    borderRadius: 20,
   },
   name: {
     fontSize: 24,

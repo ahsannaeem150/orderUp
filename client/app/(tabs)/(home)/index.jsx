@@ -89,6 +89,14 @@ const HorizontalRestaurantList = () => {
   const isLoading =
     isInitialLoading ||
     restaurantIds.length !== restaurantData.filter(Boolean).length;
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
       {error && (
@@ -223,6 +231,11 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 14,
     color: colors.muted,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   username: {
     fontSize: 24,
