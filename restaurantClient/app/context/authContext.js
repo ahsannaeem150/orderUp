@@ -17,7 +17,7 @@ const AuthProvider = ({ children }) => {
   const [item, setItem] = useState([]);
 
   //SET INITIAL AXIOS URL
-  const ip = "192.168.100.51";
+  const ip = "192.168.43.64";
   const API_URL = `http://${ip}:8080/api`;
   axios.defaults.baseURL = API_URL;
 

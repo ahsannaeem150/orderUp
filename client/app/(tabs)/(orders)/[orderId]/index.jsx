@@ -58,7 +58,15 @@ const OrderDetailScreen = () => {
                 }
             }
         };
+        const handleOrderRemoved = ({orderId, status}) => {
+            setOrder((prev) => {
+                const newOrder = {...prev}
+                newOrder.status = status
+                return newOrder
+            })
+        };
 
+        socket.on("order-removed", handleOrderRemoved);
         socket.on("order-updated", handleOrderUpdate);
         return () => socket.off("order-updated", handleOrderUpdate);
     }, [orderId, moveToHistory]);
@@ -322,7 +330,7 @@ const OrderDetailScreen = () => {
                     <View style={styles.locationInfo}>
                         <Ionicons name="pin" size={16} color={colors.errorText}/>
                         <Text style={styles.locationText}>
-                            {order.restaurant.address.address}
+                            {order?.restaurant?.address?.address}
                         </Text>
                     </View>
                 </View>

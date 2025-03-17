@@ -245,12 +245,19 @@ const RestaurantOrderDetailScreen = () => {
                     <View key={index} style={styles.itemContainer}>
                         <View style={styles.itemDetails}>
                             <Text style={styles.itemName}>{item.name}</Text>
-                            {item.specialInstructions && (
-                                <Text style={styles.specialInstructions}>{item.specialInstructions}</Text>
-                            )}
                         </View>
                         <Text style={styles.itemQuantity}>{item.quantity}x</Text>
-                        <Text style={styles.itemPrice}>Rs{(item.price * item.quantity).toFixed(2)}</Text>
+                        <View
+                            style={{
+                                flex: 2,
+                                justifyContent: "flex-end",
+                                alignSelf: "center",
+                            }}
+                        >
+                            <Text style={styles.itemPrice}>
+                                Rs{(item.price * item.quantity).toFixed(2)}
+                            </Text>
+                        </View>
                     </View>
                 ))}
 
