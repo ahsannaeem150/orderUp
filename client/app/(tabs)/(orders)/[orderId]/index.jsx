@@ -255,7 +255,7 @@ const OrderDetailScreen = () => {
                                 }}
                             >
                                 <Text style={styles.itemPrice}>
-                                    Rs{(item.price * item.quantity).toFixed(2)}
+                                    Rs {(item.price * item.quantity)}
                                 </Text>
                             </View>
                         </View>
@@ -266,19 +266,19 @@ const OrderDetailScreen = () => {
                     <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Subtotal</Text>
                         <Text style={styles.totalValue}>
-                            Rs{order.subtotal?.toFixed(2) || "00.00"}
+                            Rs {order.subtotal || "00"}
                         </Text>
                     </View>
                     <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Delivery Fee</Text>
                         <Text style={styles.totalValue}>
-                            Rs{order.deliveryFee?.toFixed(2) || "00.00"}
+                            Rs {order.deliveryFee || "00"}
                         </Text>
                     </View>
                     <View style={[styles.totalRow, styles.grandTotal]}>
                         <Text style={styles.totalLabel}>Total</Text>
                         <Text style={styles.totalValue}>
-                            Rs{order.totalAmount?.toFixed(2)}
+                            Rs {order.totalAmount}
                         </Text>
                     </View>
                 </View>
@@ -508,9 +508,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     itemPrice: {
-        fontSize: 16,
+        fontSize: 14,
         color: colors.textPrimary,
-        fontFamily: "Poppins-Medium",
         flex: 2,
         alignSelf: "flex-end",
         justifyContent: "center",
@@ -525,7 +524,7 @@ const styles = StyleSheet.create({
         flex: 8,
     },
     itemName: {
-        fontSize: 16,
+        fontSize: 14,
         color: colors.textPrimary,
     },
     specialInstructions: {
