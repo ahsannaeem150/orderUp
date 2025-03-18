@@ -6,7 +6,7 @@ const colors = {
     accent: "#ff1c8d",
 
     // accent: "#FF6B6B",
-    success: "#3fdf8b",
+    success: "#0a8d92",
 
     // Neutrals
     background: "#FFFFFF",
@@ -24,7 +24,7 @@ const colors = {
     // errorText: "#C53030", // Dark red
     errorText: "#f5458c", // Dark red
 
-    warningBg: "#FEFCBF", // Pale yellow
+    warningBg: "#beb500", // Pale yellow
     warningText: "#B7791F", // Dark yellow
 
     // Special

@@ -7,7 +7,6 @@ import {
     StyleSheet,
     TextInput,
     Modal,
-    Pressable,
     ActivityIndicator,
     TouchableOpacity,
     RefreshControl,
@@ -26,9 +25,10 @@ import {useItems} from "../../../../context/ItemContext";
 import {useRestaurant} from "../../../../context/RestaurantContext";
 import {useReviews} from "../../../../context/ReviewContext";
 import colors from "../../../../../constants/colors";
+import {useCart} from "../../../../context/CartContext";
 
 const ItemDetailsScreen = () => {
-    const {state, cart, setCart, API_URL} = useContext(AuthContext);
+    const {state, API_URL} = useContext(AuthContext);
     const [rating, setRating] = useState(0);
     const [review, setReview] = useState("");
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -45,9 +45,17 @@ const ItemDetailsScreen = () => {
     );
     const [loading, setLoading] = useState(!itemsCache[itemId]);
     const [error, setError] = useState(null);
+    const [quantity, setQuantity] = useState(1);
 
     const {reviews, fetchReviews} = useFetchReviews(itemId);
     const {cacheReviews} = useReviews();
+    const {addToCart, getItemQuantityInCart} = useCart();
+    const quantityInCart = getItemQuantityInCart(currentItem?._id, currentRestaurant?._id);
+
+    const handleAddToCart = () => {
+        addToCart(currentItem, currentRestaurant, quantity);
+        setQuantity(1);
+    };
 
     useEffect(() => {
         const loadInitialReviews = async () => {
@@ -97,56 +105,6 @@ const ItemDetailsScreen = () => {
             setAverageRating(Math.round((total / reviews.length) * 2) / 2);
         }
     }, [reviews]);
-    const handleAddToCartPress = () => {
-        console.log(cart);
-        if (!currentItem || !currentRestaurant) return;
-
-        const newCartItem = {
-            _id: currentItem._id,
-            name: currentItem.name,
-            image: currentItem.image,
-            price: currentItem.price,
-            quantity: 1,
-        };
-
-        const restaurantCartItem = {
-            restaurant: {
-                _id: currentRestaurant._id,
-                name: currentRestaurant.name,
-                logo: currentRestaurant.logo,
-                phone: currentRestaurant.phone,
-            },
-            order: [newCartItem],
-        };
-
-        setCart((prevCart) => {
-            const existingRestaurantIndex = (prevCart || []).findIndex(
-                (item) => item.restaurant._id === currentRestaurant._id
-            );
-
-            if (existingRestaurantIndex === -1) {
-                return [...(prevCart || []), restaurantCartItem];
-            }
-
-            const updatedCart = [...(prevCart || [])];
-
-            const existingItemIndex = updatedCart[
-                existingRestaurantIndex
-                ].order.findIndex((item) => item._id === currentItem._id);
-
-            if (existingItemIndex === -1) {
-                updatedCart[existingRestaurantIndex].order.push(newCartItem);
-            } else {
-                updatedCart[existingRestaurantIndex].order[
-                    existingItemIndex
-                    ].quantity += 1;
-            }
-
-            return updatedCart;
-        });
-
-        alert("Added to cart successfully!");
-    };
 
     const submitReview = async () => {
         try {
@@ -171,34 +129,48 @@ const ItemDetailsScreen = () => {
 
     const ReviewCard = ({item}) => (
         <View style={styles.reviewCard}>
-            <Image
-                source={
-                    item.userId?.profilePicture
-                        ? {uri: `${API_URL}/images/${item.userId.profilePicture}`}
-                        : images.defaultAvatar
-                }
-                style={styles.avatar}
-            />
-            <View style={styles.reviewContent}>
-                <Text style={styles.reviewName}>
-                    {item.userId?.name || "Anonymous User"}
-                </Text>
-                <StarRating
-                    rating={Math.round(item.rating)}
-                    starSize={16}
-                    onChange={() => {
-                    }}
-                    starStyle={{color: colors.highlight}}
-                    enableHalfStar
-                    animationConfig={{scale: 1}}
-                    style={styles.stars}
+            <View style={styles.reviewHeader}>
+                <Image
+                    source={
+                        item.userId?.profilePicture
+                            ? {uri: `${API_URL}/images/${item.userId.profilePicture}`}
+                            : images.defaultAvatar
+                    }
+                    style={styles.avatar}
                 />
-                <Text style={styles.reviewText}>
-                    {item.comment || "No comment provided"}
-                </Text>
+                <View style={styles.metaContainer}>
+                    <Text style={styles.reviewName} numberOfLines={1}>
+                        {item.userId?.name || "Anonymous User"}
+                    </Text>
+                    <View style={styles.ratingTimeContainer}>
+                        <StarRating
+                            rating={Math.round(item.rating)}
+                            starSize={14}
+                            onChange={() => {
+                            }}
+                            starStyle={{color: colors.highlight}}
+                            enableHalfStar
+                            animationConfig={{scale: 1}}
+                            style={styles.stars}
+                        />
+                        <Text style={styles.reviewTime}>
+                            {new Date(item.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                            })}
+                        </Text>
+                    </View>
+                </View>
             </View>
+            <Text style={styles.reviewText}>
+                {item.comment || "No comment provided"}
+            </Text>
         </View>
     );
+
 
     if (loading) return <ActivityIndicator color={colors.accent}/>;
     if (error) return <Text style={styles.error}>Error loading item</Text>;
@@ -222,16 +194,34 @@ const ItemDetailsScreen = () => {
                     style={styles.itemImage}
                 />
 
-                <View style={styles.infoContainer}>
-                    <View style={styles.priceRow}>
+                <View style={styles.contentContainer}>
+                    <View style={styles.headerRow}>
                         <Text style={styles.price}>${currentItem.price.toFixed(2)}</Text>
-                        {currentItem.category && (
-                            <View style={styles.categoryContainer}>
-                                <Text style={styles.categoryText}>{currentItem.category}</Text>
-                            </View>
-                        )}
+                        <View style={styles.quantityControls}>
+                            <TouchableOpacity
+                                style={styles.quantityButton}
+                                onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                            >
+                                <Ionicons name="remove" size={18} color={colors.textPrimary}/>
+                            </TouchableOpacity>
+                            <Text style={styles.quantityText}>{quantity}</Text>
+                            <TouchableOpacity
+                                style={styles.quantityButton}
+                                onPress={() => setQuantity(quantity + 1)}
+                            >
+                                <Ionicons name="add" size={18} color={colors.textPrimary}/>
+                            </TouchableOpacity>
+                        </View>
                     </View>
+
+                    {currentItem.category && (
+                        <View style={styles.categoryContainer}>
+                            <Text style={styles.categoryText}>{currentItem.category}</Text>
+                        </View>
+                    )}
+
                     <Text style={styles.description}>{currentItem.description}</Text>
+
                     <View style={styles.ratingContainer}>
                         <StarRating
                             rating={Math.round(averageRating)}
@@ -246,57 +236,56 @@ const ItemDetailsScreen = () => {
                             {averageRating} ({reviews?.length} reviews)
                         </Text>
                     </View>
-                </View>
 
-                <View style={styles.buttonGroup}>
                     <TouchableOpacity
-                        style={styles.button}
+                        style={styles.addToCartButton}
+                        onPress={handleAddToCart}
+                    >
+                        <Text style={styles.buttonText}>Add {quantity} to Cart</Text>
+                        <Text style={styles.totalPrice}>
+                            ${(currentItem.price * quantity).toFixed(2)}
+                        </Text>
+                        {quantityInCart > 0 && (
+                            <Text style={styles.cartQuantity}>
+                                ({quantityInCart} in cart)
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.reviewButton}
                         onPress={() => setIsModalVisible(true)}
                     >
-                        <Ionicons name="pencil" size={18} color="white"/>
-                        <Text style={styles.buttonText}>Write Review</Text>
+                        <Ionicons name="pencil" size={16} color={colors.primary}/>
+                        <Text style={styles.reviewButtonText}>Write Review</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={[styles.button, styles.cartButton]}
-                        onPress={handleAddToCartPress}
-                        disabled={!currentItem || !currentRestaurant}
-                    >
-                        <Ionicons name="cart" size={18} color="white"/>
-                        <Text style={styles.buttonText}>Add to Cart</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Customer Reviews</Text>
-                    {loadingReviews ? (
-                        <ActivityIndicator size="small" color={colors.accent}/>
-                    ) : (reviews || []).length > 0 ? (
-                        <>
-                            {(reviews || [])
-                                .slice(0, showAllReviews ? undefined : 2)
-                                .map((item) => (
-                                    <ReviewCard key={item._id} item={item}/>
-                                ))}
-                            {reviews.length > 2 && (
-                                <TouchableOpacity
-                                    onPress={() => setShowAllReviews(!showAllReviews)}
-                                    style={styles.seeMore}
-                                >
-                                    <Text style={styles.seeMoreText}>
-                                        {showAllReviews ? "Show less" : "See all reviews"}
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
-                        </>
-                    ) : (
-                        <Text style={styles.noReviews}>No reviews yet</Text>
-                    )}
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>You Might Also Like</Text>
-                    <RelatedItemsList itemId={itemId} restaurantId={restaurantId}/>
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Customer Reviews</Text>
+                        {loadingReviews ? (
+                            <ActivityIndicator size="small" color={colors.accent}/>
+                        ) : (reviews || []).length > 0 ? (
+                            <>
+                                {(reviews || [])
+                                    .slice(0, showAllReviews ? undefined : 2)
+                                    .map((item) => (
+                                        <ReviewCard key={item._id} item={item}/>
+                                    ))}
+                                {reviews.length > 2 && (
+                                    <TouchableOpacity
+                                        onPress={() => setShowAllReviews(!showAllReviews)}
+                                        style={styles.seeMore}
+                                    >
+                                        <Text style={styles.seeMoreText}>
+                                            {showAllReviews ? "Show less" : "See all reviews"}
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
+                            </>
+                        ) : (
+                            <Text style={styles.noReviews}>No reviews yet</Text>
+                        )}
+                    </View>
                 </View>
             </ScrollView>
 
@@ -379,15 +368,127 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
+    itemImage: {
+        height: 280,
+        width: '100%',
+        marginBottom: 16,
+    },
+
+    price: {
+        fontSize: 28,
+        fontFamily: "Poppins-Bold",
+        color: colors.textPrimary,
+    },
+
+
     categoryText: {
         color: colors.accent,
         fontSize: 14,
         fontFamily: "Poppins-Medium",
     },
-    reviewContent: {
-        flex: 1,
-        flexShrink: 1,
+
+
+    ratingText: {
+        fontSize: 16,
+        color: colors.textPrimary,
+        fontFamily: "Poppins-Medium",
     },
+
+
+    reviewButtonText: {
+        color: colors.primary,
+        fontFamily: "Poppins-Medium",
+        fontSize: 16,
+    },
+    section: {
+        marginVertical: 24,
+    },
+
+
+    button: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        paddingVertical: 14,
+        borderRadius: 10,
+        backgroundColor: colors.primary + "08",
+        borderWidth: 1,
+        borderColor: colors.primary,
+    },
+
+
+    priceContainer: {
+        alignItems: 'flex-start',
+    },
+    totalPriceText: {
+        fontFamily: 'Poppins-Regular',
+        color: colors.textSecondary,
+        fontSize: 14,
+    },
+    priceText: {
+        fontFamily: 'Poppins-SemiBold',
+        color: colors.textPrimary,
+        fontSize: 18,
+    },
+
+    buttonInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flex: 1,
+    },
+
+    addIcon: {
+        marginRight: 4,
+    },
+
+    cartButton: {
+        backgroundColor: colors.success,
+        position: 'relative',
+    },
+    cartButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    quantityBadge: {
+        position: 'absolute',
+        right: -8,
+        top: -8,
+        backgroundColor: colors.errorText,
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+    },
+
+
+    fabContainer: {
+        position: 'absolute',
+        bottom: 30,
+        right: 20,
+        zIndex: 1,
+    },
+    fab: {
+        backgroundColor: colors.success,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        position: 'relative',
+    },
+
+
     priceRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -395,12 +496,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         flexWrap: "wrap",
     },
-    categoryContainer: {
-        backgroundColor: colors.accent + "20",
-        borderRadius: 20,
-        paddingHorizontal: 14,
-        paddingVertical: 6,
-    },
+
     loader: {
         flex: 1,
         justifyContent: "center",
@@ -412,116 +508,8 @@ const styles = StyleSheet.create({
         marginTop: 40,
         color: colors.errorText,
     },
-    itemImage: {
-        height: 300,
-        resizeMode: "cover",
-        borderRadius: 12,
-        margin: 16,
-    },
-    infoContainer: {
-        padding: 24,
-        backgroundColor: "white",
-        marginHorizontal: 16,
-        borderRadius: 16,
-        elevation: 3,
-        shadowColor: colors.primary,
-        shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-    },
-    stars: {
-        marginVertical: 4,
-        alignSelf: "flex-start",
-    },
 
-    price: {
-        fontSize: 28,
-        fontFamily: "Poppins-SemiBold",
-        color: colors.primary,
-    },
-    description: {
-        fontSize: 16,
-        lineHeight: 24,
-        color: colors.textSecondary,
-        marginBottom: 24,
-    },
-    ratingContainer: {
-        flexDirection: "row",
-        alignItems: "flex-start",
-        padding: 16,
-        backgroundColor: colors.background,
-        borderRadius: 12,
-        gap: 12,
-    },
-    ratingText: {
-        fontSize: 16,
-        color: colors.textPrimary,
-        fontFamily: "Poppins-Medium",
-        marginTop: 4,
-    },
-    buttonGroup: {
-        flexDirection: "row",
-        gap: 16,
-        marginHorizontal: 16,
-        padding: 24,
-    },
-    button: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        paddingVertical: 14,
-        borderRadius: 12,
-        backgroundColor: colors.primary,
-    },
-    cartButton: {
-        backgroundColor: colors.success,
-    },
-    buttonText: {
-        color: colors.background,
-        fontFamily: "Poppins-SemiBold",
-        fontSize: 16,
-    },
-    section: {
-        paddingHorizontal: 24,
-        marginBottom: 32,
-    },
-    sectionTitle: {
-        fontSize: 20,
-        fontFamily: "Poppins-SemiBold",
-        color: colors.textPrimary,
-        marginBottom: 16,
-        marginHorizontal: 16,
-    },
 
-    reviewCard: {
-        backgroundColor: colors.background,
-        borderRadius: 10,
-        padding: 16,
-        flexDirection: "row",
-        gap: 16,
-        marginBottom: 12,
-        elevation: 2,
-        marginHorizontal: 10,
-    },
-    avatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        borderWidth: 1,
-        borderColor: colors.borders,
-    },
-    reviewName: {
-        fontFamily: "Poppins-SemiBold",
-        color: colors.textPrimary,
-        marginBottom: 4,
-    },
-    reviewText: {
-        color: colors.textSecondary,
-        lineHeight: 20,
-        marginTop: 8,
-    },
     seeMore: {
         padding: 12,
         alignItems: "center",
@@ -617,6 +605,266 @@ const styles = StyleSheet.create({
     },
     submitButtonText: {
         color: colors.background,
+    },
+    bottomActionContainer: {
+        position: 'absolute',
+        bottom: 24,
+        right: 24,
+        zIndex: 1,
+    },
+    cartFAB: {
+        backgroundColor: colors.success,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 2,
+        shadowColor: colors.textPrimary,
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    fabBadge: {
+        position: 'absolute',
+        right: -4,
+        top: -4,
+        backgroundColor: colors.errorText,
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fabBadgeText: {
+        color: colors.background,
+        fontSize: 12,
+        fontFamily: 'Poppins-SemiBold',
+    },
+
+    buttonGroup: {
+        flexDirection: "row",
+        marginHorizontal: 16,
+        paddingBottom: 16,
+    },
+    bottomContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+        backgroundColor: 'white',
+        borderTopWidth: 1,
+        borderColor: colors.borders,
+        gap: 16,
+    },
+    quantitySelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        backgroundColor: colors.background,
+        borderRadius: 8,
+        padding: 8,
+    },
+
+    buttonLabel: {
+        color: 'white',
+        fontFamily: 'Poppins-SemiBold',
+        fontSize: 16,
+    },
+
+    infoContainer: {
+        padding: 20,
+        backgroundColor: "white",
+        margin: 16,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 1,
+    },
+
+
+    contentContainer: {
+        paddingHorizontal: 16,
+        paddingBottom: 16,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    quantityControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: colors.background,
+        borderRadius: 8,
+    },
+    quantityButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: colors.borders + '15',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    quantityText: {
+        fontSize: 16,
+        fontFamily: 'Poppins-Medium',
+        color: colors.textPrimary,
+        minWidth: 24,
+        textAlign: 'center',
+    },
+    categoryContainer: {
+        backgroundColor: colors.accent + '08',
+        borderRadius: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        alignSelf: 'flex-start',
+        marginBottom: 12,
+    },
+    description: {
+        fontSize: 15,
+        lineHeight: 22,
+        color: colors.textSecondary,
+        marginBottom: 16,
+    },
+    ratingContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingVertical: 12,
+        marginVertical: 8,
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: colors.borders + '40',
+    },
+    addToCartButton: {
+        backgroundColor: colors.success + '08',
+        borderWidth: 1.5,
+        borderColor: colors.success,
+        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginVertical: 12,
+    },
+
+
+    sectionTitle: {
+        fontSize: 17,
+        fontFamily: "Poppins-SemiBold",
+        color: colors.textPrimary,
+        marginBottom: 12,
+    },
+    reviewButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.success,
+        borderRadius: 8,
+        justifyContent: 'center',
+        marginVertical: 12,
+        backgroundColor: colors.success + '08',
+    },
+    buttonText: {
+        color: colors.success,
+        fontFamily: "Poppins-SemiBold",
+        fontSize: 14,
+    },
+    totalPrice: {
+        color: colors.textPrimary,
+        fontFamily: "Poppins-Medium",
+        fontSize: 14,
+    },
+    cartQuantity: {
+        color: colors.textSecondary,
+        fontFamily: "Poppins-Regular",
+        fontSize: 12,
+        marginLeft: 8,
+    },
+    reviewCard: {
+        backgroundColor: colors.background + 'FA',
+        borderRadius: 8,
+        padding: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: colors.borders + '30',
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 1},
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    reviewHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    avatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        marginRight: 12,
+        borderWidth: 1,
+        borderColor: colors.borders + '40',
+    },
+    metaContainer: {
+        flex: 1,
+    },
+    reviewName: {
+        fontFamily: "Poppins-SemiBold",
+        color: colors.textPrimary,
+        fontSize: 14,
+        marginBottom: 4,
+    },
+    ratingTimeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    stars: {
+        margin: 0,
+        padding: 0,
+    },
+    reviewTime: {
+        fontFamily: "Poppins-Regular",
+        color: colors.textTertiary,
+        fontSize: 12,
+        marginLeft: 8,
+    },
+    reviewText: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        lineHeight: 20,
+        fontFamily: "Poppins-Regular",
+    },
+
+    reviewMeta: {
+        flex: 1,
+    },
+
+    ratingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+
+    reviewDate: {
+        fontFamily: "Poppins-Regular",
+        color: colors.textTertiary,
+        fontSize: 12,
+    },
+
+    reviewContent: {
+        flex: 1,
+        flexShrink: 1,
     },
 });
 

@@ -18,12 +18,15 @@ import {useRestaurant} from "../../../context/RestaurantContext";
 import {useItems} from "../../../context/ItemContext";
 import {Ionicons} from "@expo/vector-icons";
 import colors from "../../../../constants/colors";
+import {useCart} from "../../../context/CartContext";
 
 const MenuItemsScreen = () => {
     const {API_URL} = useContext(AuthContext);
     const {currentRestaurant} = useRestaurant();
     const {itemsCache, getItem, setCurrentItem} = useItems();
     const {fetchItemsBatch, loading, error} = useFetchItems();
+    const {addToCart, getItemQuantityInCart} = useCart();
+
 
     const restaurantItems = useMemo(() => {
         return (currentRestaurant?.menu || []).map((menuItem) =>
@@ -47,6 +50,7 @@ const MenuItemsScreen = () => {
         });
     };
     const renderMenuItem = ({item}) => {
+        const quantityInCart = getItemQuantityInCart(item?._id, currentRestaurant?._id);
         return (
             <TouchableOpacity
                 onPress={() => handlePress(item)}
@@ -78,18 +82,34 @@ const MenuItemsScreen = () => {
                     </Text>
 
                     <View style={styles.itemFooter}>
-                        <Ionicons
-                            name="time-outline"
-                            size={14}
-                            color={colors.textTertiary}
-                        />
-                        <Text style={styles.preparationTime}>15-20 mins</Text>
-                        <Ionicons
-                            name="chevron-forward"
-                            size={20}
-                            color="#d1d5db"
-                            style={styles.arrowIcon}
-                        />
+                        <View style={styles.footerLeft}>
+                            <Ionicons
+                                name="time-outline"
+                                size={14}
+                                color={colors.textTertiary}
+                            />
+                            <Text style={styles.preparationTime}>15-20 mins</Text>
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.cartButton}
+                            onPress={(e) => {
+                                e.stopPropagation();
+                                addToCart(item, currentRestaurant);
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons
+                                name={quantityInCart > 0 ? "cart" : "cart-outline"}
+                                size={20}
+                                color={colors.success}
+                            />
+                            {quantityInCart > 0 && (
+                                <View style={styles.quantityBadge}>
+                                    <Text style={styles.quantityText}>{quantityInCart}</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
                     </View>
                 </View>
             </TouchableOpacity>
@@ -188,6 +208,35 @@ const styles = StyleSheet.create({
     headerText: {
         flex: 1,
     },
+    priceContainer: {
+        alignItems: 'flex-end',
+    },
+    cartButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    itemHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    itemFooter: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        borderTopWidth: 1,
+        borderTopColor: colors.borders,
+        paddingTop: 12,
+    },
+    cartButtonText: {
+        color: colors.background,
+        fontFamily: 'Poppins-Medium',
+        fontSize: 14,
+    },
+
+
     restaurantName: {
         fontSize: 22,
         fontFamily: "Poppins-SemiBold",
@@ -247,15 +296,11 @@ const styles = StyleSheet.create({
         fontFamily: "Poppins-Medium",
         color: colors.accent,
     },
+
     infoContainer: {
         padding: 16,
     },
-    itemHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 8,
-    },
+
     itemName: {
         fontSize: 18,
         fontFamily: "Poppins-SemiBold",
@@ -265,7 +310,7 @@ const styles = StyleSheet.create({
     },
     itemPrice: {
         fontSize: 16,
-        fontFamily: "Poppins-SemiBold",
+        fontFamily: 'Poppins-SemiBold',
         color: colors.success,
     },
     itemDescription: {
@@ -274,13 +319,6 @@ const styles = StyleSheet.create({
         fontFamily: "Poppins-Regular",
         lineHeight: 20,
         marginBottom: 12,
-    },
-    itemFooter: {
-        flexDirection: "row",
-        alignItems: "center",
-        borderTopWidth: 1,
-        borderTopColor: colors.borders,
-        paddingTop: 12,
     },
     preparationTime: {
         fontSize: 13,
@@ -314,5 +352,30 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         padding: 20,
+    },
+    footerLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    cartButton: {
+        position: 'relative',
+        padding: 8,
+    },
+    quantityBadge: {
+        position: 'absolute',
+        right: -4,
+        top: -4,
+        backgroundColor: colors.errorText,
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+    },
+    quantityText: {
+        color: colors.background,
+        fontSize: 12,
+        fontFamily: 'Poppins-SemiBold',
     },
 });

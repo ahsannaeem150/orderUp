@@ -62,7 +62,7 @@ const Cart = () => {
                     onPress={() => deleteRestaurant(item.restaurant._id)}
                     style={styles.deleteRestaurantButton}
                 >
-                    <Icon name="trash-outline" size={30} color="red"/>
+                    <Icon name="trash-outline" size={20} color={colors.textSecondary}/>
                 </TouchableOpacity>
             </View>
             <FlatList
@@ -70,16 +70,15 @@ const Cart = () => {
                 renderItem={renderItem(restaurantIndex, item.restaurant._id)}
                 keyExtractor={(item) => item._id}
                 ListFooterComponent={() => (
-                    <View style={styles.totalContainer}>
-                        <Text style={styles.totalText}>
-                            Total: Rs {calculateRestaurantTotal(item.order)}
-                        </Text>
+
+                    <View style={[styles.totalContainer, {paddingHorizontal: 16}]}>
+                        <Text style={styles.summaryLabel}>Total</Text>
+                        <Text style={styles.summaryTotal}>Rs {calculateRestaurantTotal(item.order)}</Text>
                     </View>
                 )}
             />
         </View>
     );
-
     const renderItem =
         (restaurantIndex, restaurantId) =>
             ({item, index}) =>
@@ -96,6 +95,7 @@ const Cart = () => {
                                 style={styles.itemImage}
                             />
                         </TouchableOpacity>
+
                         <View style={styles.itemDetails}>
                             <Text style={styles.itemName}>{item.name}</Text>
                             <Text style={styles.itemPrice}>Rs {item.price}</Text>
@@ -104,14 +104,14 @@ const Cart = () => {
                                     onPress={() => decreaseQuantity(restaurantIndex, index)}
                                     style={styles.quantityButton}
                                 >
-                                    <Icon name="remove-circle-outline" size={24} color="#333"/>
+                                    <Icon name="remove" size={18} color={colors.textSecondary}/>
                                 </TouchableOpacity>
                                 <Text style={styles.quantityText}>{item.quantity}</Text>
                                 <TouchableOpacity
                                     onPress={() => increaseQuantity(restaurantIndex, index)}
                                     style={styles.quantityButton}
                                 >
-                                    <Icon name="add-circle-outline" size={24} color="#333"/>
+                                    <Icon name="add" size={18} color={colors.textSecondary}/>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -119,7 +119,7 @@ const Cart = () => {
                             onPress={() => deleteItem(restaurantIndex, index)}
                             style={styles.deleteButton}
                         >
-                            <Icon name="trash-outline" size={24} color="red"/>
+                            <Icon name="close" size={18} color={colors.textSecondary}/>
                         </TouchableOpacity>
                     </View>
                 );
@@ -132,14 +132,8 @@ const Cart = () => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.tabs}>
-                <TouchableOpacity
-                    style={[styles.tab, styles.activeTab]}
-                >
-                    <Text style={[styles.tabText, styles.activeTabText]}>
-                        CART
-                    </Text>
-                </TouchableOpacity>
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Your Cart</Text>
             </View>
 
             <FlatList
@@ -149,48 +143,32 @@ const Cart = () => {
                 contentContainerStyle={styles.cartList}
                 ListEmptyComponent={() => (
                     <View style={styles.emptyContainer}>
-                        <View style={styles.emptyList}>
-                            <Image source={images.empty} style={styles.image}/>
-                            <Text style={styles.emptyText}>
-                                "Your cart is empty!"
-                            </Text>
-                        </View>
+                        <Image source={images.empty} style={styles.emptyImage}/>
+                        <Text style={styles.emptyText}>Your cart is empty</Text>
                     </View>
                 )}
                 ListFooterComponent={() => {
                     return (
                         cart.length > 0 && <View style={styles.footerContainer}>
-                            <View style={styles.cardContainer}>
-                                <Text style={styles.cardTitle}>Your Order</Text>
+                            <View style={styles.summaryCard}>
+                                <Text style={styles.summaryTitle}>Order Summary</Text>
                                 <FlatList
                                     data={combinedOrders}
                                     keyExtractor={(item) => item._id}
                                     renderItem={priceList}
                                     contentContainerStyle={styles.priceListContainer}
                                 />
-                                <View style={styles.cardFooter}>
-                                    <View style={{flex: 1}}>
-                                        <Text style={{color: "gray"}}>Total Price</Text>
-                                        <Text
-                                            style={{
-                                                fontFamily: "Poppins-SemiBold",
-                                                fontSize: 18,
-                                                marginTop: 5,
-                                            }}
-                                        >
-                                            Rs {grandTotal}
-                                        </Text>
+                                <View style={styles.summaryFooter}>
+                                    <View style={styles.totalContainer}>
+                                        <Text style={styles.summaryLabel}>Total</Text>
+                                        <Text style={styles.summaryTotal}>Rs {grandTotal}</Text>
                                     </View>
-
-                                    <View style={{flex: 0.5}}>
-                                        <BlackButton
-                                            onPress={() => {
-                                                handleCheckoutPress();
-                                            }}
-                                            title={"Checkout"}
-                                            buttonStyle={{backgroundColor: "black"}}
-                                        />
-                                    </View>
+                                    <BlackButton
+                                        onPress={handleCheckoutPress}
+                                        title="Checkout"
+                                        buttonStyle={styles.checkoutButton}
+                                        textStyle={styles.checkoutText}
+                                    />
                                 </View>
                             </View>
                         </View>
@@ -212,11 +190,193 @@ const priceList = ({item}) => (
 export default Cart;
 
 const styles = StyleSheet.create({
+    footerContainer: {
+        paddingHorizontal: 16,
+        marginBottom: 24,
+    },
+    summaryCard: {
+        backgroundColor: colors.background,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.borders,
+        padding: 16,
+    },
+    summaryTitle: {
+        fontSize: 18,
+        fontFamily: "Poppins-SemiBold",
+        color: colors.textPrimary,
+        marginBottom: 16,
+    },
+    priceListContainer: {
+        marginBottom: 16,
+    },
+    priceListItem: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borders,
+    },
+    priceListName: {
+        fontSize: 14,
+        fontFamily: "Poppins-Regular",
+        color: colors.textPrimary,
+        flex: 2,
+    },
+    priceListQuantity: {
+        fontSize: 14,
+        fontFamily: "Poppins-Regular",
+        color: colors.textSecondary,
+        flex: 1,
+        textAlign: 'center',
+    },
+    priceListPrice: {
+        fontSize: 14,
+        fontFamily: "Poppins-Medium",
+        color: colors.textPrimary,
+        flex: 1,
+        textAlign: 'right',
+    },
+    summaryFooter: {
+        marginTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: colors.borders,
+        paddingTop: 16,
+    },
+    totalContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    summaryLabel: {
+        fontSize: 16,
+        fontFamily: "Poppins-Medium",
+        color: colors.textPrimary,
+    },
+    summaryTotal: {
+        fontSize: 16,
+        fontFamily: "Poppins-SemiBold",
+        color: colors.textPrimary,
+    },
+    checkoutButton: {
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: colors.textPrimary,
+        height: 48,
+        borderRadius: 8,
+    },
+    checkoutText: {
+        color: colors.textPrimary,
+        fontFamily: "Poppins-Medium",
+    },
     container: {
         flex: 1,
-        padding: 16,
         backgroundColor: colors.background,
     },
+    header: {
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borders,
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontFamily: "Poppins-SemiBold",
+        color: colors.textPrimary,
+    },
+    restaurantContainer: {
+        marginHorizontal: 16,
+        marginVertical: 8,
+        backgroundColor: colors.background,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.borders,
+    },
+    restaurantHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borders,
+    },
+    restaurantName: {
+        fontSize: 18,
+        fontFamily: "Poppins-Medium",
+        color: colors.textPrimary,
+    },
+
+    cartItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borders,
+    },
+    itemImage: {
+        width: 56,
+        height: 56,
+        borderRadius: 8,
+        marginRight: 16,
+    },
+    itemDetails: {
+        flex: 1,
+    },
+    itemName: {
+        fontSize: 16,
+        fontFamily: "Poppins-Medium",
+        color: colors.textPrimary,
+        marginBottom: 4,
+    },
+    itemPrice: {
+        fontSize: 14,
+        fontFamily: "Poppins-Regular",
+        color: colors.textSecondary,
+        marginBottom: 8,
+    },
+    quantityContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.borders,
+        borderRadius: 20,
+        padding: 4,
+        alignSelf: 'flex-start',
+    },
+    quantityButton: {
+        paddingHorizontal: 8,
+    },
+    quantityText: {
+        fontSize: 14,
+        fontFamily: "Poppins-Medium",
+        color: colors.textPrimary,
+        marginHorizontal: 4,
+    },
+    deleteButton: {
+        padding: 8,
+        marginLeft: 8,
+    },
+    totalText: {
+        fontSize: 16,
+        fontFamily: "Poppins-SemiBold",
+        color: colors.textPrimary,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 40,
+    },
+    emptyImage: {
+        width: 200,
+        height: 200,
+        marginBottom: 24,
+        opacity: 0.8,
+    },
+    emptyText: {
+        fontSize: 16,
+        fontFamily: "Poppins-Medium",
+        color: colors.textSecondary,
+    },
+
     tabs: {
         flexDirection: "row",
         marginBottom: 16,
@@ -239,121 +399,30 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
         fontFamily: "Poppins-SemiBold",
     },
-    emptyContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        height: Dimensions.get("window").height - 200,
-        padding: 20,
-    },
+
     emptyList: {flex: 1, justifyContent: "center", alignItems: "center"},
     image: {
         width: 200,
         height: 200,
         marginBottom: 24,
     },
-    emptyText: {
-        fontSize: 16,
-        color: colors.textSecondary,
-    },
-    header: {
-        fontSize: 24,
-        fontWeight: "bold",
-        marginBottom: 20,
-        textAlign: "center",
-    },
+
     emptyCartContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
     },
-    emptyImage: {
-        width: "80%",
-        height: 200,
-        marginBottom: 20,
-    },
+
     emptyCartText: {
         fontSize: 18,
         color: "#666",
     },
-    restaurantContainer: {
-        backgroundColor: "#fff",
-        marginBottom: 20,
-        borderRadius: 10,
-        padding: 15,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowOffset: {width: 0, height: 2},
-        shadowRadius: 6,
-        elevation: 3,
-    },
-    restaurantHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 10,
-    },
-    restaurantName: {
-        fontSize: 20,
-        fontWeight: "bold",
-    },
+
     deleteRestaurantButton: {
         padding: 8,
     },
     cartList: {
         paddingBottom: 24,
-    },
-    cartItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#f9f9f9",
-        padding: 16,
-        borderRadius: 10,
-        marginBottom: 12,
-    },
-    itemImage: {
-        width: 60,
-        height: 60,
-        borderRadius: 8,
-        marginRight: 16,
-    },
-    itemDetails: {
-        flex: 1,
-    },
-    itemName: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: "#333",
-    },
-    itemPrice: {
-        fontSize: 14,
-        color: "green",
-        marginVertical: 4,
-    },
-    quantityContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    quantityButton: {
-        paddingHorizontal: 6,
-    },
-    quantityText: {
-        fontSize: 16,
-        fontWeight: "500",
-        marginHorizontal: 8,
-    },
-    deleteButton: {
-        marginLeft: 16,
-    },
-    totalContainer: {
-        flexDirection: "row",
-        justifyContent: "flex-end",
-        marginTop: 10,
-    },
-    totalText: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#333",
     },
     cardContainer: {
         backgroundColor: "#fff",
@@ -371,32 +440,7 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         marginBottom: 15,
     },
-    priceListContainer: {
-        marginBottom: 10,
-        backgroundColor: "rgba(194, 217, 236, 0.45)",
-    },
-    priceListItem: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        paddingVertical: 5,
-        borderBottomWidth: 1,
-        borderBottomColor: "#ddd",
-    },
-    priceListName: {
-        fontSize: 16,
-        flex: 1,
-    },
-    priceListQuantity: {
-        fontSize: 16,
-        textAlign: "center",
-        width: 40,
-        alignSelf: "center",
-    },
-    priceListPrice: {
-        fontSize: 16,
-        fontWeight: "bold",
-        color: "green",
-    },
+
     cardFooter: {
         marginTop: 15,
         flexDirection: "row",
