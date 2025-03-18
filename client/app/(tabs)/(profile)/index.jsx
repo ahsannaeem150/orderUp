@@ -2,12 +2,12 @@ import React, {useContext, useEffect, useState} from "react";
 import {View, Text, TouchableOpacity, StyleSheet, Image} from "react-native";
 import {AntDesign} from "@expo/vector-icons";
 import {router} from "expo-router";
-import {AuthContext} from "../context/authContext";
-import {images} from "../../constants";
-import colors from "../../constants/colors";
-import UploadImageButton from "../components/UploadImageButton";
+import {AuthContext} from "../../context/authContext";
+import {images} from "../../../constants";
+import colors from "../../../constants/colors";
+import UploadImageButton from "../../components/UploadImageButton";
 
-const Profile = () => {
+const Index = () => {
     const {state, setState, updateState, API_URL} = useContext(AuthContext);
 
     const logout = async () => {
@@ -18,13 +18,13 @@ const Profile = () => {
         router.replace("../(auth)/sign-in");
     };
 
-    console.log("Profile lg state=>", state);
+    console.log("Index lg state=>", state);
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Profile</Text>
                 <TouchableOpacity
-                    onPress={() => router.push("/profile-edit-form")}
+                    onPress={() => router.push('(profile)/[settings]/profile-edit-form')}
                     style={styles.settingsButton}
                 >
                     <AntDesign name="setting" size={24} color={colors.textPrimary}/>
@@ -200,4 +200,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Profile;
+export default Index;

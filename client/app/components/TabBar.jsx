@@ -23,7 +23,7 @@ const TabBar = ({state, descriptors, navigation}) => {
         "(orders)": (props) => (
             <AntDesign name="hourglass" size={26} color={secondaryColor} {...props} />
         ),
-        profile: (props) => (
+        "(profile)": (props) => (
             <AntDesign name="user" size={26} color={secondaryColor} {...props} />
         ),
     };
