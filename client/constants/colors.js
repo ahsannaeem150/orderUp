@@ -3,7 +3,8 @@ const colors = {
     primary: "#2A4D6E",
     secondary: "#5B7A9D",
     // accent: "#ff1c8d",
-    accent: "#ff1c8d",
+    // accent: "#ff1c8d",
+    accent: "#1A1A1A",
 
     // accent: "#FF6B6B",
     success: "#0a8d92",

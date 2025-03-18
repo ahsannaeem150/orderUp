@@ -1,20 +1,14 @@
 import React, {useContext, useEffect, useState} from "react";
 import {View, Text, TouchableOpacity, StyleSheet, Image} from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {AntDesign} from "@expo/vector-icons";
 import {router} from "expo-router";
 import {AuthContext} from "../context/authContext";
 import {images} from "../../constants";
-import EmailCard from "../components/ProfileInfoCard";
-import UploadImageButton from "../components/UploadImageButton";
-import axios from "axios";
-import base64 from "react-native-base64";
-import {Buffer} from "buffer";
-import ProfileInfoCard from "../components/ProfileInfoCard";
 import colors from "../../constants/colors";
+import UploadImageButton from "../components/UploadImageButton";
 
 const Profile = () => {
     const {state, setState, updateState, API_URL} = useContext(AuthContext);
-    const [imageUri, setImageUri] = useState(null);
 
     const logout = async () => {
         setTimeout(() => {
@@ -25,166 +19,185 @@ const Profile = () => {
     };
 
     console.log("Profile lg state=>", state);
-    useEffect(() => {
-        const getProfilePicture = async () => {
-            console.log("REQUEST INITITATED");
-            try {
-                const profilePicture = await axios.get(
-                    `/${state.user?._id}/profile/image`,
-                    {
-                        params: {
-                            profilePicture: state.user?.profilePicture,
-                        },
-                        responseType: "arraybuffer",
-                    }
-                );
-
-                if (profilePicture) {
-                    const base64Data = Buffer.from(
-                        profilePicture.data,
-                        "binary"
-                    ).toString("base64");
-
-                    const mimeType = profilePicture.headers["content-type"];
-                    setImageUri(`data:${mimeType};base64,${base64Data}`);
-                    console.log("PROFILE PICTURE RECEIVED :");
-                }
-            } catch (error) {
-                console.log(
-                    "Image Fetching Error",
-                    error.response?.data?.message || error
-                );
-            }
-        };
-        getProfilePicture();
-    }, []);
     return (
         <View style={styles.container}>
-            <View style={styles.tabs}>
-                <TouchableOpacity
-                    style={[styles.tab, styles.activeTab]}
-                >
-                    <Text style={[styles.tabText, styles.activeTabText]}>
-                        PROFILE
-                    </Text>
-                </TouchableOpacity>
-            </View>
-            <View style={{
-                flex: 1,
-                alignItems: "center",
-                marginTop: 50,
-                padding: 16,
-                marginBottom: 50,
-                backgroundColor: colors.background,
-            }}>
-
-                <View style={styles.profileImageContainer}>
-                    <Image source={{uri: imageUri}} style={styles.profileImage}/>
-                    <UploadImageButton style={styles.uploadButton}/>
-                </View>
-                <Text style={styles.name}>{`${state.user?.name}`}</Text>
-                <Text style={styles.email}>{state.user?.email}</Text>
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Profile</Text>
                 <TouchableOpacity
                     onPress={() => router.push("/profile-edit-form")}
-                    style={{alignSelf: "flex-end", marginBottom: 5, marginEnd: 5}}
+                    style={styles.settingsButton}
                 >
-                    <Text style={{fontFamily: "Poppins-SemiBold"}}>Edit Info</Text>
-                </TouchableOpacity>
-                <ProfileInfoCard
-                    icon={"user"}
-                    title="Username"
-                    titleValue={state.user?.name}
-                />
-                <ProfileInfoCard
-                    icon={"mail"}
-                    title="Email"
-                    titleValue={state.user?.email}
-                />
-                <ProfileInfoCard
-                    icon={"phone"}
-                    title="Phone"
-                    titleValue={state.user?.phone}
-                />
-                <ProfileInfoCard
-                    icon={"infocirlceo"}
-                    title="Address"
-                    titleValue={state.user?.address?.city}
-                />
-                <TouchableOpacity onPress={() => logout()} style={styles.logoutButton}>
-                    <Text style={styles.logoutButtonText}>Logout</Text>
+                    <AntDesign name="setting" size={24} color={colors.textPrimary}/>
                 </TouchableOpacity>
             </View>
 
+            <View style={styles.content}>
+                <View style={styles.profileImageContainer}>
+                    <Image
+                        source={{
+                            uri: state.user?.profilePicture
+                                ? `${API_URL}/images/${state.user.profilePicture}`
+                                : images.profilePlaceholder
+                        }}
+                        style={styles.profileImage}
+                    />
+                    <UploadImageButton style={styles.editBadge}/>
+                </View>
+
+                <View style={styles.infoSection}>
+                    <Text style={styles.name}>{state.user?.name}</Text>
+                    <Text style={styles.email}>{state.user?.email}</Text>
+                </View>
+
+                <View style={styles.infoCards}>
+                    <ProfileInfoCard
+                        icon="user"
+                        title="Username"
+                        value={state.user?.name}
+                    />
+                    <ProfileInfoCard
+                        icon="mail"
+                        title="Email"
+                        value={state.user?.email}
+                    />
+                    <ProfileInfoCard
+                        icon="phone"
+                        title="Phone"
+                        value={state.user?.phone || "Not provided"}
+                    />
+                    <ProfileInfoCard
+                        icon="enviromento"
+                        title="Location"
+                        value={state.user?.address?.city || "Not provided"}
+                    />
+                </View>
+
+                <TouchableOpacity
+                    style={styles.logoutButton}
+                    onPress={logout}
+                >
+                    <AntDesign name="logout" size={18} color={colors.errorText}/>
+                    <Text style={styles.logoutText}>Sign Out</Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 };
 
-export default Profile;
+const ProfileInfoCard = ({icon, title, value}) => (
+    <View style={styles.card}>
+        <AntDesign name={icon} size={20} color={colors.textSecondary}/>
+        <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>{title}</Text>
+            <Text style={styles.cardValue}>{value}</Text>
+        </View>
+    </View>
+);
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        alignItems: "center",
-        padding: 16,
         backgroundColor: colors.background,
     },
-    tabs: {
-        flexDirection: "row",
-        marginBottom: 16,
-    },
-    tab: {
-        flex: 1,
-        padding: 12,
-        alignItems: "center",
-        borderBottomWidth: 2,
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+        borderBottomWidth: 1,
         borderBottomColor: colors.borders,
     },
-    activeTab: {
-        borderBottomColor: colors.accent,
+    settingsButton: {
+        padding: 8,
     },
-    tabText: {
-        fontSize: 14,
-        color: colors.textSecondary,
+    editBadge: {
+        position: "absolute",
+        bottom: 8,
+        right: 8,
+        backgroundColor: colors.textPrimary,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        justifyContent: "center",
+        alignItems: "center",
     },
-    activeTabText: {
-        color: colors.textPrimary,
+
+    headerTitle: {
+        fontSize: 24,
         fontFamily: "Poppins-SemiBold",
+        color: colors.textPrimary,
+    },
+    content: {
+        padding: 24,
+        alignItems: "center",
     },
     profileImageContainer: {
         position: "relative",
-        width: 100,
-        height: 100,
+        marginBottom: 24,
     },
     profileImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        borderWidth: 2,
+        borderColor: colors.borders,
     },
-    uploadButton: {
-        position: "absolute",
-        bottom: 0,
-        right: 0,
-        backgroundColor: "rgba(255, 255, 255, 0.7)",
-        borderRadius: 20,
+    infoSection: {
+        alignItems: "center",
+        marginBottom: 32,
     },
     name: {
-        fontSize: 24,
-        fontWeight: "bold",
-        marginBottom: 10,
+        fontSize: 20,
+        fontFamily: "Poppins-SemiBold",
+        color: colors.textPrimary,
+        marginBottom: 4,
     },
     email: {
+        fontSize: 14,
+        fontFamily: "Poppins-Regular",
+        color: colors.textSecondary,
+    },
+    infoCards: {
+        width: "100%",
+        gap: 12,
+    },
+    card: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.borders,
+        backgroundColor: colors.background,
+        gap: 16,
+    },
+    cardText: {
+        flex: 1,
+    },
+    cardTitle: {
+        fontSize: 14,
+        fontFamily: "Poppins-Regular",
+        color: colors.textSecondary,
+    },
+    cardValue: {
         fontSize: 16,
-        color: "gray",
-        marginBottom: 30,
+        fontFamily: "Poppins-Medium",
+        color: colors.textPrimary,
+        marginTop: 4,
     },
     logoutButton: {
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        backgroundColor: colors.accent,
-        borderRadius: 5,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginTop: 32,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
     },
-    logoutButtonText: {
-        color: "white",
+    logoutText: {
         fontSize: 16,
+        fontFamily: "Poppins-Medium",
+        color: colors.errorText,
     },
 });
+
+export default Profile;

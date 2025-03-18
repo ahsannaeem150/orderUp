@@ -164,11 +164,10 @@ const Orders = () => {
                 onPress={() =>
                     handleOrderPress(
                         order._id,
-                        isHistorical || ["Cancelled", "Completed"].includes(order.status)
-                    )
+                        isHistorical || ["Cancelled", "Completed"].includes(order.status))
                 }
             >
-                <View style={styles.restaurantHeader}>
+                <View style={styles.cardHeader}>
                     <Image
                         source={{
                             uri: restaurant?.logo
@@ -177,47 +176,35 @@ const Orders = () => {
                         }}
                         style={styles.restaurantLogo}
                     />
-                    <View style={styles.restaurantInfo}>
+                    <View style={styles.headerInfo}>
                         <Text style={styles.restaurantName}>{restaurant?.name}</Text>
                         <Text style={styles.orderTime}>{orderTime}</Text>
                     </View>
-                    <Text
-                        style={[
-                            styles.status,
-                            {backgroundColor: statusColors[order.status]},
-                        ]}
-                    >
-                        {order.status}
-                    </Text>
-                    {!isHistorical &&
-                        ["Cancelled", "Completed"].includes(order.status) && (
-                            <TouchableOpacity onPress={() => handleRemoveOrder(order._id)}>
-                                <Ionicons
-                                    name="close-circle"
-                                    size={24}
-                                    color={colors.errorText}
-                                />
-                            </TouchableOpacity>
-                        )}
+                    <View style={styles.statusContainer}>
+                        <View style={[styles.statusBadge, {backgroundColor: statusColors[order.status]}]}>
+                            <Text style={styles.statusText}>{order.status}</Text>
+                        </View>
+                        {!isHistorical &&
+                            ["Cancelled", "Completed"].includes(order.status) && (
+                                <TouchableOpacity
+                                    onPress={() => handleRemoveOrder(order._id)}
+                                    style={styles.closeButton}
+                                >
+                                    <Ionicons name="close" size={18} color={colors.textSecondary}/>
+                                </TouchableOpacity>
+                            )}
+                    </View>
                 </View>
 
-                <View style={styles.detailsRow}>
-                    <Ionicons name="fast-food" size={16} color={colors.textSecondary}/>
-                    <Text style={styles.detailText}>{totalItems} items</Text>
-                    <Ionicons
-                        name="time"
-                        size={16}
-                        color={colors.textSecondary}
-                        style={styles.detailIcon}
-                    />
-                    <Text style={styles.detailText}>Est. 30-45 mins</Text>
-                    <Ionicons
-                        name="cash"
-                        size={16}
-                        color={colors.textSecondary}
-                        style={styles.detailIcon}
-                    />
-                    <Text style={styles.detailText}>Rs {totalPrice.toFixed(2)}</Text>
+                <View style={styles.detailsContainer}>
+                    <View style={styles.detailItem}>
+                        <Ionicons name="fast-food" size={16} color={colors.textSecondary}/>
+                        <Text style={styles.detailText}>{totalItems} items</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                        <Ionicons name="cash" size={16} color={colors.textSecondary}/>
+                        <Text style={styles.detailText}>Rs {totalPrice.toFixed(2)}</Text>
+                    </View>
                 </View>
 
                 {!isHistorical && (
@@ -256,24 +243,32 @@ const Orders = () => {
 
     return (
         <View style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Your Orders</Text>
+            </View>
+
             <View style={styles.tabs}>
                 <TouchableOpacity
                     style={[styles.tab, !showHistory && styles.activeTab]}
                     onPress={() => setShowHistory(false)}
                 >
-                    <Text style={[styles.tabText, !showHistory && styles.activeTabText]}>
-                        Active Orders
-                    </Text>
+                    <Text style={styles.tabText}>Active</Text>
+                    <View style={styles.counterBadge}>
+                        <Text style={styles.counterText}>{Object.keys(activeOrders).length}</Text>
+                    </View>
                 </TouchableOpacity>
+
                 <TouchableOpacity
                     style={[styles.tab, showHistory && styles.activeTab]}
                     onPress={() => setShowHistory(true)}
                 >
-                    <Text style={[styles.tabText, showHistory && styles.activeTabText]}>
-                        Order History
-                    </Text>
+                    <Text style={styles.tabText}>History</Text>
+                    <View style={styles.counterBadge}>
+                        <Text style={styles.counterText}>{Object.keys(historicalOrders).length}</Text>
+                    </View>
                 </TouchableOpacity>
             </View>
+
             <FlatList
                 data={Object.values(showHistory ? historicalOrders : activeOrders)}
                 renderItem={renderOrderItem}
@@ -286,15 +281,20 @@ const Orders = () => {
                         {isLoading ? (
                             <ActivityIndicator size="large" color={colors.primary}/>
                         ) : (
-                            <View style={styles.emptyList}>
-                                <Image source={images.empty} style={styles.image}/>
+                            <View style={styles.emptyContent}>
+                                <Image
+                                    source={images.empty}
+                                    style={styles.emptyImage}
+                                    resizeMode="contain"
+                                />
                                 <Text style={styles.emptyText}>
-                                    {showHistory ? "No historical orders" : "No active orders"}
+                                    {showHistory ? "No past orders" : "No active orders"}
                                 </Text>
                             </View>
                         )}
                     </View>
                 )}
+                contentContainerStyle={styles.listContent}
             />
         </View>
     );
@@ -319,52 +319,69 @@ const statusColors = {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 16,
         backgroundColor: colors.background,
+    },
+    header: {
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borders,
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontFamily: "Poppins-SemiBold",
+        color: colors.textPrimary,
     },
     tabs: {
         flexDirection: "row",
-        marginBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borders,
+        marginHorizontal: 16,
     },
     tab: {
         flex: 1,
-        padding: 12,
-        alignItems: "center",
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
         borderBottomWidth: 2,
-        borderBottomColor: colors.borders,
+        borderBottomColor: 'transparent',
     },
     activeTab: {
-        borderBottomColor: colors.accent,
+        borderBottomColor: colors.textPrimary,
     },
     tabText: {
-        fontSize: 14,
+        fontSize: 16,
+        fontFamily: "Poppins-Medium",
         color: colors.textSecondary,
+        marginRight: 8,
     },
-    activeTabText: {
+    counterBadge: {
+        backgroundColor: colors.borders,
+        borderRadius: 12,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+    },
+    counterText: {
+        fontSize: 12,
+        fontFamily: "Poppins-Medium",
         color: colors.textPrimary,
-        fontFamily: "Poppins-SemiBold",
     },
-    header: {
-        fontSize: 24,
-        fontFamily: "Poppins-SemiBold",
-        color: colors.primary,
-        marginBottom: 24,
+    listContent: {
+        paddingHorizontal: 16,
+        paddingTop: 16,
     },
     card: {
         backgroundColor: colors.background,
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.borders,
         padding: 16,
-        marginBottom: 16,
-        shadowColor: colors.primary,
-        shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 2,
+        marginBottom: 12,
     },
-    restaurantHeader: {
+    cardHeader: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 16,
+        marginBottom: 12,
     },
     restaurantLogo: {
         width: 48,
@@ -372,18 +389,108 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         marginRight: 12,
     },
-    restaurantInfo: {
+    headerInfo: {
         flex: 1,
     },
     restaurantName: {
         fontSize: 16,
-        fontFamily: "Poppins-SemiBold",
+        fontFamily: "Poppins-Medium",
         color: colors.textPrimary,
+        marginBottom: 4,
     },
     orderTime: {
+        fontSize: 12,
+        fontFamily: "Poppins-Regular",
+        color: colors.textSecondary,
+    },
+    statusContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    statusBadge: {
+        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    statusText: {
+        fontSize: 12,
+        fontFamily: "Poppins-Medium",
+        color: colors.textInverted,
+    },
+    closeButton: {
+        padding: 4,
+    },
+    detailsContainer: {
+        flexDirection: 'row',
+        gap: 16,
+        marginBottom: 12,
+    },
+    detailItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    detailText: {
         fontSize: 14,
-        color: colors.textTertiary,
-        marginTop: 4,
+        fontFamily: "Poppins-Regular",
+        color: colors.textSecondary,
+    },
+    progressContainer: {
+        height: 4,
+        backgroundColor: colors.borders,
+        borderRadius: 2,
+        overflow: "hidden",
+        marginBottom: 12,
+    },
+    progressBar: {
+        height: "100%",
+        backgroundColor: colors.textPrimary,
+    },
+    cancelButton: {
+        borderWidth: 1,
+        borderColor: colors.accent,
+        borderRadius: 8,
+        paddingVertical: 8,
+        alignItems: "center",
+    },
+    cancelButtonText: {
+        fontSize: 14,
+        fontFamily: "Poppins-Medium",
+        color: colors.accent,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 40,
+    },
+    emptyContent: {
+        alignItems: 'center',
+        gap: 16,
+    },
+    emptyImage: {
+        width: 160,
+        height: 160,
+        opacity: 0.8,
+    },
+    emptyText: {
+        fontSize: 16,
+        fontFamily: "Poppins-Medium",
+        color: colors.textSecondary,
+        textAlign: 'center',
+    },
+    activeTabText: {
+        color: colors.textPrimary,
+        fontFamily: "Poppins-SemiBold",
+    },
+    restaurantHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    restaurantInfo: {
+        flex: 1,
     },
     status: {
         paddingHorizontal: 12,
@@ -398,53 +505,15 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 12,
     },
-    detailText: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        marginRight: 16,
-    },
     detailIcon: {
         marginLeft: 16,
         marginRight: 4,
-    },
-    progressContainer: {
-        height: 4,
-        backgroundColor: colors.borders,
-        borderRadius: 2,
-        overflow: "hidden",
-        marginBottom: 12,
-    },
-    progressBar: {
-        height: "100%",
-        backgroundColor: colors.primary,
-    },
-    cancelButton: {
-        borderWidth: 1,
-        borderColor: colors.errorText,
-        borderRadius: 8,
-        paddingVertical: 8,
-        alignItems: "center",
-    },
-    cancelButtonText: {
-        color: colors.errorText,
-        fontFamily: "Poppins-Medium",
-    },
-    emptyContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        height: Dimensions.get("window").height - 200,
-        padding: 20,
     },
     emptyList: {flex: 1, justifyContent: "center", alignItems: "center"},
     image: {
         width: 200,
         height: 200,
         marginBottom: 24,
-    },
-    emptyText: {
-        fontSize: 16,
-        color: colors.textSecondary,
     },
     loadingContainer: {
         flex: 1,
