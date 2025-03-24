@@ -8,19 +8,15 @@ import {
     RefreshControl,
     SafeAreaView,
     ActivityIndicator,
-    StatusBar,
     TouchableOpacity,
-    TextInput,
 } from "react-native";
 import axios from "axios";
-import {Button} from "react-native";
 
 import {router} from "expo-router";
 import {AuthContext} from "../../context/authContext";
 import {images} from "../../../constants";
 import RestaurantCard from "../../components/RestaurantCard";
 import SearchField from "../../components/SearchField";
-import {useFetchRestaurants} from "../../hooks/useFetchRestaurants";
 import RestaurantHorizontalList from "../../components/RestaurantHorizontalList";
 import {useRestaurant} from "../../context/RestaurantContext";
 import colors from "../../../constants/colors";
@@ -229,7 +225,7 @@ const styles = StyleSheet.create({
     },
     welcomeText: {
         fontSize: 14,
-        color: colors.muted,
+        color: colors.secondary,
     },
     loadingContainer: {
         flex: 1,

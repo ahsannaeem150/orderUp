@@ -1,7 +1,9 @@
 const colors = {
     // primary: "black",
-    primary: "#2A4D6E",
-    secondary: "#5B7A9D",
+    // primary: "#2A4D6E",
+    primary: "#1A1A1A",
+    // secondary: "#5B7A9D",
+    secondary: "rgba(40,44,49,0.7)",
     // accent: "#ff1c8d",
     // accent: "#ff1c8d",
     accent: "#1A1A1A",
