@@ -7,14 +7,17 @@ import {
     StyleSheet,
     TouchableOpacity,
     Image,
-    StatusBar,
     ActivityIndicator,
 } from "react-native";
 import {AuthContext} from "../context/authContext";
-import {images} from "../../constants";
 import {router} from "expo-router";
 import {useFetchItems} from "../hooks/useFetchItems";
 import colors from "../../constants/colors";
+import {AntDesign} from "@expo/vector-icons";
+
+// Stock threshold constants
+const LOW_STOCK_THRESHOLD = 20; // Percentage
+const CRITICAL_STOCK_THRESHOLD = 10; // Percentage
 
 const HomePage = () => {
     const [refreshing, setRefreshing] = useState(false);
@@ -22,136 +25,151 @@ const HomePage = () => {
     const {items, fetchItems} = useFetchItems(
         `/restaurant/${state.restaurant._id}/items`
     );
+    console.log(items)
+    const getStockPercentage = (item) => {
+        // Assuming maxStock is available in your item model
+        const maxStock = item.maxStock || 100; // Fallback to 100 if not available
+        return Math.round((item.quantity / maxStock) * 100);
+    };
+
+    const getStockStatus = (percentage) => {
+        if (percentage <= CRITICAL_STOCK_THRESHOLD) return 'critical';
+        if (percentage <= LOW_STOCK_THRESHOLD) return 'low';
+        return 'healthy';
+    };
+
     const handleNavigateItem = (item) => {
         setItem(item);
-        router.push({
-            pathname: `/items/${item._id}`,
-        });
+        router.push(`/items/${item._id}`);
     };
-    // Function to refresh items on pull down
+
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        fetchItems().then(() => {
-            setRefreshing(false);
-        });
+        fetchItems().then(() => setRefreshing(false));
     }, []);
 
     useEffect(() => {
-        fetchItems();
+        fetchItems()
     }, []);
 
-    const renderItem = ({item}) => (
-        <View
-            style={[
-                styles.card,
-                item.id === "add" && {
-                    backgroundColor: "#ffffff",
-                    borderColor: "gray",
-                    height: items ? (items.length % 2 === 0 ? 100 : 250) : 100,
-                    justifyContent: "center",
-                    alignItems: "center",
-                },
-            ]}
-        >
-            {item.id === "add" ? (
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => {
-                        router.navigate("/add-items");
-                    }}
-                >
-                    <Text style={styles.addIcon}>+</Text>
-                </TouchableOpacity>
-            ) : (
-                <TouchableOpacity
-                    style={{width: "100%", flex: 1}}
-                    onPress={() => {
-                        handleNavigateItem(item);
-                    }}
-                >
-                    {item.image ? (
-                        <Image
-                            source={{uri: `${API_URL}/images/${item.image}`}}
-                            style={[
-                                {
-                                    height: "70%",
-                                    borderTopLeftRadius: 10,
-                                    borderTopRightRadius: 10,
-                                },
-                                styles.image,
-                            ]}
-                            resizeMode="cover"
-                            onError={() => console.log("Error loading image")}
-                        />
-                    ) : (
-                        <View style={styles.imagePlaceholder}>
-                            <Text style={styles.imagePlaceholderText}>No Image</Text>
-                        </View>
-                    )}
-                    <View style={styles.cardContent}>
-                        <Text style={styles.itemName}>{item.name}</Text>
-                        <Text style={styles.itemPrice}>{item.price}</Text>
-                        <Text style={styles.itemStock}>Stock: {item.stock}</Text>
+    const renderItem = ({item}) => {
+        const stockPercentage = getStockPercentage(item);
+        const stockStatus = getStockStatus(stockPercentage);
+
+        return (
+            <TouchableOpacity
+                style={styles.card}
+                onPress={() => handleNavigateItem(item)}
+            >
+                {item.image ? (
+                    <Image
+                        source={{uri: `${API_URL}/images/${item.image}`}}
+                        style={styles.image}
+                        resizeMode="cover"
+                    />
+                ) : (
+                    <View style={styles.imagePlaceholder}>
+                        <AntDesign name="picture" size={24} color={colors.textSecondary}/>
                     </View>
-                </TouchableOpacity>
-            )}
-        </View>
-    );
+                )}
+
+                <View style={styles.cardContent}>
+                    <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+
+                    <View style={styles.metaContainer}>
+                        <Text style={styles.category}>{item.category}</Text>
+                        <View style={[
+                            styles.statusIndicator,
+                            {backgroundColor: item.availability ? colors.success : colors.error}
+                        ]}/>
+                    </View>
+
+                    {/* Stock Progress Bar */}
+                    <View style={styles.progressContainer}>
+                        <View style={[
+                            styles.progressBar,
+                            {
+                                width: `${stockPercentage}%`,
+                                backgroundColor: stockStatus === 'healthy'
+                                    ? colors.success
+                                    : stockStatus === 'low'
+                                        ? colors.warning
+                                        : colors.error
+                            }
+                        ]}/>
+                    </View>
+
+                    <View style={styles.inventoryRow}>
+                        <Text style={styles.price}>Rs {item.price}</Text>
+                        <View style={styles.stockInfo}>
+                            <Text style={[
+                                styles.stock,
+                                stockStatus !== 'healthy' && styles.lowStockText
+                            ]}>
+                                {item.stock} in stock
+                            </Text>
+                            {stockStatus !== 'healthy' && (
+                                <AntDesign
+                                    name="exclamationcircle"
+                                    size={14}
+                                    color={
+                                        stockStatus === 'critical'
+                                            ? colors.error
+                                            : colors.warning
+                                    }
+                                />
+                            )}
+                        </View>
+                    </View>
+
+                    {item.description && (
+                        <Text style={styles.description} numberOfLines={2}>
+                            {item.description}
+                        </Text>
+                    )}
+                </View>
+            </TouchableOpacity>
+        );
+    };
 
     if (!items) {
         return (
-            <ActivityIndicator
-                style={{flex: 1, justifyContent: "center", alignItems: "center"}}
-                size="large"
-                color="#0000ff"
-            />
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary}/>
+            </View>
         );
     }
 
     return (
-        <View style={{flex: 1, backgroundColor: "white"}}>
+        <View style={styles.container}>
             <FlatList
-                data={[...(items ?? []), {id: "add", name: "+", image: ""}]} // Adding a blank card for adding new items
+                data={items}
                 renderItem={renderItem}
                 keyExtractor={(item) => item._id}
                 numColumns={2}
                 columnWrapperStyle={styles.row}
                 contentContainerStyle={styles.list}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh}/>
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={colors.primary}
+                    />
                 }
-                ListHeaderComponent={() => (
-                    <View style={[{backgroundColor: "white"}, styles.container]}>
-                        <View style={styles.headerContainer}>
-                            <View style={styles.headerContent}>
-                                <View style={{flex: 1, alignItems: "flex-start"}}>
-                                    <Text style={styles.welcomeText}>Welcome Back</Text>
-                                    <Text style={styles.username}>{state.restaurant?.name}</Text>
-                                </View>
-                                <View style={styles.logoContainer}>
-                                    <Image
-                                        source={images.logoSmall}
-                                        style={styles.logo}
-                                        resizeMode="contain"
-                                    />
-                                </View>
-                            </View>
-                            <View style={styles.divider}/>
-                            <View style={styles.searchContainer}></View>
-                        </View>
+                ListHeaderComponent={
+                    <View style={styles.header}>
+                        <Text style={styles.title}>{state.restaurant?.name}</Text>
+                        <Text style={styles.subtitle}>Menu Items</Text>
                     </View>
-                )}
+                }
             />
-            <View
-                style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    marginBottom: 80,
-                }}
+
+            <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => router.navigate("/add-items")}
             >
-                <View style={styles.divider}/>
-            </View>
+                <AntDesign name="plus" size={24} color={colors.textInverted}/>
+            </TouchableOpacity>
         </View>
     );
 };
@@ -160,106 +178,134 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
-        padding: 20,
     },
-    headerContainer: {
-        marginBottom: 20,
-        flex: 1,
-        alignItems: "center",
+    header: {
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borders,
     },
-    headerContent: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        marginBottom: 24,
+    title: {
+        fontSize: 24,
+        fontFamily: "Poppins-SemiBold",
+        color: colors.textPrimary,
     },
-    welcomeText: {
-        fontSize: 20,
+    subtitle: {
+        fontSize: 16,
         fontFamily: "Poppins-Regular",
-        textAlign: "center",
-    },
-    username: {
-        fontSize: 22,
-        fontFamily: "Poppins-Bold",
-        textAlign: "center",
-    },
-    logoContainer: {
-        marginTop: 10,
-        alignItems: "center",
-    },
-    divider: {
-        width: "90%",
-        height: 1,
-        backgroundColor: "#e5e7eb",
-        marginVertical: 10,
-    },
-    logo: {
-        width: 100,
-        height: 50,
-    },
-    searchContainer: {
-        marginTop: -30,
-        alignItems: "center",
+        color: colors.textSecondary,
+        marginTop: 4,
     },
     list: {
-        flexGrow: 1,
+        paddingHorizontal: 8,
     },
     row: {
         justifyContent: "space-between",
+        paddingHorizontal: 8,
     },
     card: {
-        backgroundColor: "white",
-        borderRadius: 10,
-        elevation: 3,
-        margin: 10,
         flex: 1,
-        height: 250,
-        justifyContent: "center",
-        alignItems: "center",
+        backgroundColor: colors.background,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.borders,
+        margin: 8,
+        overflow: "hidden",
     },
-    addCard: {},
-    imagePlaceholder: {
+    image: {
         width: "100%",
         height: 150,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
+    },
+    imagePlaceholder: {
+        height: 150,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#e0e0e0",
-    },
-    imagePlaceholderText: {
-        color: "#a0a0a0",
-        fontSize: 16,
+        backgroundColor: colors.borders,
     },
     cardContent: {
+        padding: 12,
+    },
+    itemName: {
+        fontFamily: "Poppins-SemiBold",
+        fontSize: 16,
+        color: colors.textPrimary,
+        marginBottom: 8,
+    },
+    metaContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    category: {
+        fontFamily: "Poppins-Medium",
+        fontSize: 12,
+        color: colors.textSecondary,
+        textTransform: "uppercase",
+    },
+    statusIndicator: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+    },
+    progressContainer: {
+        height: 4,
+        backgroundColor: colors.borders,
+        borderRadius: 2,
+        overflow: "hidden",
+        marginVertical: 8,
+    },
+    progressBar: {
+        height: "100%",
+    },
+    inventoryRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    price: {
+        fontFamily: "Poppins-SemiBold",
+        fontSize: 16,
+        color: colors.success,
+    },
+    stockInfo: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+    },
+    stock: {
+        fontFamily: "Poppins-Regular",
+        fontSize: 12,
+        color: colors.textSecondary,
+    },
+    lowStockText: {
+        color: colors.warning,
+    },
+    criticalStockText: {
+        color: colors.error,
+    },
+    description: {
+        fontFamily: "Poppins-Regular",
+        fontSize: 12,
+        color: colors.textSecondary,
+        lineHeight: 16,
+    },
+    addButton: {
+        position: "absolute",
+        bottom: 24,
+        right: 24,
+        backgroundColor: colors.primary,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        justifyContent: "center",
+        alignItems: "center",
+        elevation: 4,
+    },
+    loadingContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        padding: 10,
-    },
-    itemName: {
-        fontFamily: "Poppins-Bold",
-        fontSize: 18,
-    },
-    itemPrice: {
-        fontFamily: "Poppins-Regular",
-        fontSize: 16,
-        color: "green",
-    },
-    itemStock: {
-        fontFamily: "Poppins-Regular",
-        fontSize: 14,
-        color: "gray",
-    },
-    addButton: {
-        justifyContent: "center",
-        alignItems: "center",
-        width: "100%",
-        height: "100%",
-    },
-    addIcon: {
-        fontSize: 50,
-        color: "gray",
     },
 });
 
