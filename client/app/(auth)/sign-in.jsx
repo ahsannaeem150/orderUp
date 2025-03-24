@@ -1,111 +1,193 @@
-import { View, Text, TouchableOpacity, Alert } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useContext, useState } from "react";
-import { AuthContext } from "../context/authContext";
-import FormField from "../components/FormField";
-import { StyleSheet } from "react-native";
-import CustomButton from "../components/CustomButtons";
-import { router } from "expo-router";
+import {View, Text, TouchableOpacity, Alert, TextInput, StyleSheet, ActivityIndicator} from "react-native";
+import React, {useContext, useState} from "react";
+import {AuthContext} from "../context/authContext";
+import {router} from "expo-router";
 import axios from "axios";
+import colors from "../../constants/colors";
 
 const SignIn = () => {
-  //GlobalState
-  const { state, setState, updateState } = useContext(AuthContext);
-  //Local State
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+    const {setState, updateState} = useContext(AuthContext);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
-  const handleLoginButtonPress = async () => {
-    try {
-      setLoading(true);
-      if (!email || !password) {
-        Alert.alert("Please enter email and password");
-      }
-      //API call to SIGN IN
-      const { data } = await axios.post("/auth/login", {
-        email,
-        password,
-      });
-      if (!data.success) {
-        Alert.alert(data.message);
-        return;
-      }
-      console.log("SIGN IN LOG Data => ", data);
-      //Set the user to Global state
-      setState({ user: data.user, token: data.token });
-      updateState({ user: data.user, token: data.token });
-      setLoading(false);
+    const handleLogin = async () => {
+        try {
+            setLoading(true);
+            if (!email || !password) {
+                Alert.alert("Error", "Please fill in all fields");
+                return;
+            }
 
-      //Store the token in AsyncStorage
-      router.replace("(home)");
-      console.log(data && data.message);
-      alert(data && data.message);
-    } catch (error) {
-      console.log(error?.response?.data?.message);
-      Alert.alert(error?.response?.data?.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text
-        style={{
-          fontFamily: "Poppins-ExtraBold",
-          fontSize: 20,
-          marginBottom: 20,
-        }}
-      >
-        Sign In
-      </Text>
-      <FormField
-        title={"Email"}
-        value={email}
-        handleChangeText={(text) => setEmail(text)}
-        isPassword={false}
-        placeHolder={"Enter Email"}
-      />
-      <FormField
-        title={"Password"}
-        value={password}
-        handleChangeText={(text) => setPassword(text)}
-        isPassword={true}
-        placeHolder={"Enter Password"}
-        otherStyle={{ marginTop: 10 }}
-      />
-      <CustomButton
-        title={"LOGIN"}
-        otherStyles={{ marginTop: 30 }}
-        onPress={() => handleLoginButtonPress()}
-      />
-      <View style={styles.container}>
-        <Text style={styles.text}>Don't have an account?</Text>
-        <TouchableOpacity onPress={() => router.navigate("sign-up")}>
-          <Text style={styles.link}>Sign Up</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+            const {data} = await axios.post("/auth/login", {email, password});
+
+            if (data.success) {
+                setState({user: data.user, token: data.token});
+                updateState({user: data.user, token: data.token});
+                router.replace("(home)");
+            }
+        } catch (error) {
+            Alert.alert("Error", error.response?.data?.message || "Login failed");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.content}>
+                <View style={styles.header}>
+                    <Text style={styles.title}>Sign In</Text>
+                    <Text style={styles.subtitle}>Continue to your account</Text>
+                </View>
+
+                <View style={styles.formContainer}>
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Email Address</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter your email"
+                            placeholderTextColor={colors.textSecondary}
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Password</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter your password"
+                            placeholderTextColor={colors.textSecondary}
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry={!showPassword}
+                        />
+                        <TouchableOpacity
+                            style={styles.toggleButton}
+                            onPress={() => setShowPassword(!showPassword)}
+                        >
+                            <Text style={styles.toggleText}>
+                                {showPassword ? "Hide" : "Show"}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.button, loading && styles.disabledButton]}
+                        onPress={handleLogin}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color={colors.textInverted}/>
+                        ) : (
+                            <Text style={styles.buttonText}>Sign In</Text>
+                        )}
+                    </TouchableOpacity>
+
+                    <View style={styles.footer}>
+                        <Text style={styles.footerText}>Don't have an account?</Text>
+                        <TouchableOpacity onPress={() => router.navigate("sign-up")}>
+                            <Text style={styles.footerLink}>Create Account</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </View>
+    );
 };
 
-export default SignIn;
 const styles = StyleSheet.create({
-  container: {
-    justifyContent: "center",
-    paddingTop: 20,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  text: {
-    fontSize: 18,
-    color: "black",
-    fontFamily: "Poppins-Regular",
-  },
-  link: {
-    fontSize: 18,
-    color: "blue",
-    fontFamily: "Poppins-SemiBold",
-    marginLeft: 8,
-  },
+    container: {
+        flex: 1,
+        backgroundColor: colors.background,
+        paddingHorizontal: 24,
+        justifyContent: 'center',
+    },
+    content: {
+        maxWidth: 400,
+        width: '100%',
+        alignSelf: 'center',
+    },
+    header: {
+        marginBottom: 40,
+        alignItems: 'center',
+    },
+    title: {
+        fontSize: 32,
+        fontFamily: "Poppins-SemiBold",
+        color: colors.textPrimary,
+        marginBottom: 8,
+    },
+    subtitle: {
+        fontSize: 16,
+        fontFamily: "Poppins-Regular",
+        color: colors.textSecondary,
+        textAlign: 'center',
+    },
+    formContainer: {
+        gap: 24,
+    },
+    inputGroup: {
+        gap: 8,
+    },
+    label: {
+        fontSize: 14,
+        fontFamily: "Poppins-Medium",
+        color: colors.textPrimary,
+    },
+    input: {
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.borders,
+        borderRadius: 8,
+        padding: 16,
+        fontSize: 16,
+        fontFamily: "Poppins-Regular",
+        color: colors.textPrimary,
+    },
+    toggleButton: {
+        position: 'absolute',
+        right: 16,
+        bottom: 16,
+    },
+    toggleText: {
+        color: colors.textSecondary,
+        fontFamily: "Poppins-Medium",
+        fontSize: 14,
+    },
+    button: {
+        backgroundColor: colors.textPrimary,
+        borderRadius: 8,
+        padding: 18,
+        alignItems: 'center',
+        marginTop: 16,
+    },
+    disabledButton: {
+        opacity: 0.7,
+    },
+    buttonText: {
+        color: colors.textInverted,
+        fontSize: 16,
+        fontFamily: "Poppins-SemiBold",
+    },
+    footer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 24,
+    },
+    footerText: {
+        color: colors.textSecondary,
+        fontFamily: "Poppins-Regular",
+    },
+    footerLink: {
+        color: colors.accent,
+        fontFamily: "Poppins-SemiBold",
+    },
 });
+
+export default SignIn;
