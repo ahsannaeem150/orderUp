@@ -9,7 +9,7 @@ const TabBar = ({state, descriptors, navigation}) => {
     const primaryColor = colors.primary;
     const secondaryColor = colors.secondary;
     const icons = {
-        home: (props) => (
+        '(home)': (props) => (
             <AntDesign name="home" size={26} color={secondaryColor} {...props} />
         ),
         '(orders)': (props) => (

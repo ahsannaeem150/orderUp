@@ -3,10 +3,10 @@ import React, {useState, useContext} from "react";
 import axios from "axios";
 import {Picker} from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import {AuthContext} from "../context/authContext";
+import {AuthContext} from "../../../context/authContext";
 import {router} from "expo-router";
-import {useUploadImage} from "../hooks/useSeparateUploadImage";
-import colors from "../../constants/colors";
+import {useUploadImage} from "../../../hooks/useSeparateUploadImage";
+import colors from "../../../../constants/colors";
 
 const AddItemDetail = () => {
     const {state} = useContext(AuthContext);

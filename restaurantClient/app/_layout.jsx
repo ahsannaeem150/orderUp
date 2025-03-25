@@ -6,6 +6,7 @@ import {router, SplashScreen, Stack} from "expo-router";
 import {AuthContext, AuthProvider} from "./context/authContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {OrderProvider} from "./context/OrderContext";
+import {ItemProvider} from "./context/ItemContext";
 
 SplashScreen.preventAutoHideAsync();
 SplashScreen.hideAsync();
@@ -30,14 +31,14 @@ const RootLayout = () => {
     return (
         <AuthProvider>
             <OrderProvider>
-
-                <Stack>
-                    <Stack.Screen name="index" options={{headerShown: false}}/>
-                    <Stack.Screen name="(auth)" options={{headerShown: false}}/>
-                    <Stack.Screen name="(tabs)" options={{headerShown: false}}/>
-                </Stack>
+                <ItemProvider>
+                    <Stack>
+                        <Stack.Screen name="index" options={{headerShown: false}}/>
+                        <Stack.Screen name="(auth)" options={{headerShown: false}}/>
+                        <Stack.Screen name="(tabs)" options={{headerShown: false}}/>
+                    </Stack>
+                </ItemProvider>
             </OrderProvider>
-
         </AuthProvider>
     );
 };

@@ -33,7 +33,6 @@ const ItemDetailsScreen = () => {
     const [review, setReview] = useState("");
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [loadingReviews, setLoadingReviews] = useState(false);
     const [averageRating, setAverageRating] = useState(0);
     const [showAllReviews, setShowAllReviews] = useState(false);
     const {restaurantId, itemId} = useLocalSearchParams();
@@ -47,7 +46,7 @@ const ItemDetailsScreen = () => {
     const [error, setError] = useState(null);
     const [quantity, setQuantity] = useState(1);
 
-    const {reviews, fetchReviews} = useFetchReviews(itemId);
+    const {reviews, fetchReviews, reviewsLoading} = useFetchReviews(itemId);
     const {cacheReviews} = useReviews();
     const {addToCart, getItemQuantityInCart} = useCart();
     const quantityInCart = getItemQuantityInCart(currentItem?._id, currentRestaurant?._id);
@@ -60,14 +59,11 @@ const ItemDetailsScreen = () => {
     useEffect(() => {
         const loadInitialReviews = async () => {
             try {
-                setLoadingReviews(true);
                 if (!reviews || reviews.length === 0) {
                     await fetchReviews();
                 }
             } catch (error) {
                 console.log("Initial reviews load error:", error);
-            } finally {
-                setLoadingReviews(false);
             }
         };
 
@@ -262,7 +258,7 @@ const ItemDetailsScreen = () => {
 
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Customer Reviews</Text>
-                        {loadingReviews ? (
+                        {reviewsLoading ? (
                             <ActivityIndicator size="small" color={colors.accent}/>
                         ) : (reviews || []).length > 0 ? (
                             <>
