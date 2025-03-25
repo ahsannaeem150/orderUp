@@ -1,111 +1,175 @@
 import {router} from "expo-router";
 import {useContext, useEffect, useState} from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    Image,
-    TouchableOpacity,
-    ScrollView,
-    ActivityIndicator,
-    Alert,
-    FlatList
+    View, Text, StyleSheet, Image, TouchableOpacity, ScrollView,
+    ActivityIndicator, Alert, TextInput, Modal, KeyboardAvoidingView,
+    Platform, Pressable
 } from "react-native";
 import {AuthContext} from "../../../context/authContext";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import colors from "../../../../constants/colors";
 import {useItems} from "../../../context/ItemContext";
-import StarRating from "react-native-star-rating-widget";
-import {useFetchReviews} from "../../../hooks/useFetchItemReviews";
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
+import axios from "axios";
 
 const ItemDetailsPage = () => {
     const {state, API_URL} = useContext(AuthContext);
-    const {currentItem, deleteItem} = useItems();
-    const [averageRating, setAverageRating] = useState(0);
-    const [showAllReviews, setShowAllReviews] = useState(false);
+    const {currentItem, updateItem} = useItems();
     const [loading, setLoading] = useState(false);
-    const {reviews, fetchReviews, reviewsLoading} = useFetchReviews(currentItem._id);
-    console.log(currentItem)
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedItem, setEditedItem] = useState({});
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [stockAmount, setStockAmount] = useState("");
+    const [showStockModal, setShowStockModal] = useState(false);
 
     useEffect(() => {
-        const loadInitialReviews = async () => {
-            try {
-                if (!reviews || reviews.length === 0) {
-                    await fetchReviews();
+        if (currentItem) {
+            setEditedItem({...currentItem});
+        }
+    }, [currentItem]);
+
+    const handleSave = async () => {
+        try {
+            setLoading(true);
+            const changes = Object.entries(editedItem).reduce((acc, [key, value]) => {
+                if (JSON.stringify(currentItem[key]) !== JSON.stringify(value)) {
+                    acc[key] = value;
                 }
-            } catch (error) {
-                console.log("Initial reviews load error:", error);
+                return acc;
+            }, {});
+
+            if (Object.keys(changes).length === 0) {
+                setIsEditing(false);
+                return;
             }
-        };
 
-        if (currentItem._id) {
-            loadInitialReviews();
+            const response = await axios.patch(
+                `${API_URL}/restaurant/${state.restaurant._id}/items/${currentItem._id}`,
+                {operation: 'general', ...changes}
+            );
+
+            updateItem(response.data.item);
+            setIsEditing(false);
+        } catch (error) {
+            Alert.alert("Update failed", error.response?.data?.message || "Something went wrong");
+        } finally {
+            setLoading(false);
         }
-    }, [currentItem._id]);
-
-    useEffect(() => {
-        if (reviews?.length > 0) {
-            const total = reviews?.reduce((sum, r) => sum + r.rating, 0);
-            setAverageRating(Math.round((total / reviews.length) * 2) / 2);
-        }
-    }, [reviews]);
-
-    const handleDelete = async () => {
-        Alert.alert(
-            "Delete Item",
-            "Are you sure you want to permanently delete this item?",
-            [
-                {text: "Cancel", style: "cancel"},
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: async () => {
-                        setLoading(true);
-                        try {
-                            await deleteItem(currentItem._id);
-                            router.back();
-                        } catch (error) {
-                            Alert.alert("Error", "Failed to delete item");
-                        }
-                        setLoading(false);
-                    }
-                }
-            ]
-        );
     };
 
-    const renderReview = ({item}) => (
-        <View style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-                <Image
-                    source={{uri: `${API_URL}/images/${item.userId.profilePicture}`}}
-                    style={styles.avatar}
-                />
-                <View style={styles.reviewUser}>
-                    <Text style={styles.reviewName}>{item.userId.name}</Text>
-                    <StarRating
-                        rating={Math.round(item.rating)}
-                        starSize={16}
-                        color={colors.primary}
-                        enableHalfStar
-                        emptyColor={colors.borders}
+    const handleImageUpdate = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 0.8,
+            });
+
+            if (!result.canceled) {
+                setLoading(true);
+                const formData = new FormData();
+                formData.append('operation', 'image');
+                formData.append('image', {
+                    uri: result.assets[0].uri,
+                    name: 'image.jpg',
+                    type: 'image/jpeg'
+                });
+
+                const response = await axios.patch(
+                    `${API_URL}/restaurant/${state.restaurant._id}/items/${currentItem._id}`,
+                    formData,
+                    {headers: {'Content-Type': 'multipart/form-data'}}
+                );
+
+                updateItem(response.data.item);
+            }
+        } catch (error) {
+            Alert.alert("Image update failed", error.response?.data?.message || "Couldn't upload image");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleStockUpdate = async (operationType) => {
+        try {
+            setLoading(true);
+            const response = await axios.patch(
+                `${API_URL}/restaurant/${state.restaurant._id}/items/${currentItem._id}`,
+                {
+                    operation: 'stock',
+                    type: operationType,
+                    amount: Number(stockAmount)
+                }
+            );
+
+            updateItem(response.data.item);
+            setShowStockModal(false);
+            setStockAmount("");
+        } catch (error) {
+            Alert.alert("Stock update failed", error.response?.data?.message || "Invalid amount");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const toggleAvailability = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.patch(
+                `${API_URL}/restaurant/${state.restaurant._id}/items/${currentItem._id}`,
+                {operation: 'availability'}
+            );
+            updateItem(response.data.item);
+        } catch (error) {
+            Alert.alert("Update failed", error.response?.data?.message || "Couldn't toggle availability");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const renderField = (label, field, isNumeric = false, options) => (
+        <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>{label}</Text>
+            {isEditing ? (
+                options ? (
+                    <View style={styles.optionsRow}>
+                        {options.map(option => (
+                            <Pressable
+                                key={option}
+                                style={[styles.optionButton, editedItem[field] === option && styles.selectedOption]}
+                                onPress={() => setEditedItem(prev => ({...prev, [field]: option}))}>
+                                <Text style={styles.optionText}>{option}</Text>
+                            </Pressable>
+                        ))}
+                    </View>
+                ) : field === 'expiryDate' ? (
+                    <TouchableOpacity
+                        style={styles.dateInput}
+                        onPress={() => setShowDatePicker(true)}>
+                        <Text>{new Date(editedItem.expiryDate)?.toLocaleDateString() || 'Select date'}</Text>
+                    </TouchableOpacity>
+                ) : (
+                    <TextInput
+                        style={styles.input}
+                        value={String(editedItem[field] || '')}
+                        onChangeText={text => setEditedItem(prev => ({
+                            ...prev,
+                            [field]: isNumeric ? Number(text) : text
+                        }))}
+                        keyboardType={isNumeric ? 'numeric' : 'default'}
                     />
-                </View>
-                <Text style={styles.reviewDate}>
-                    {new Date(item.createdAt).toLocaleDateString()}
+                )
+            ) : (
+                <Text style={styles.fieldValue}>
+                    {field === 'expiryDate'
+                        ? new Date(editedItem.expiryDate)?.toLocaleDateString() || 'N/A'
+                        : isNumeric && (field === 'price' || field === 'costPrice')
+                            ? `Rs ${editedItem[field]}`
+                            : editedItem[field]}
                 </Text>
-            </View>
-            {item.comment && (
-                <Text style={styles.reviewComment}>{item.comment}</Text>
             )}
         </View>
     );
-
-    const formatDate = (dateString) => {
-        if (!dateString) return "N/A";
-        const options = {year: 'numeric', month: 'short', day: 'numeric'};
-        return new Date(dateString).toLocaleDateString(undefined, options);
-    };
 
     if (!currentItem || loading) {
         return (
@@ -115,193 +179,217 @@ const ItemDetailsPage = () => {
         );
     }
 
-    const stockPercentage = Math.round((currentItem.stock / currentItem.maxStock) * 100);
-    const visibleReviews = showAllReviews ? reviews : reviews?.slice(0, 3);
-
     return (
-        <ScrollView style={styles.container}>
-            {/* Header Section */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary}/>
-                </TouchableOpacity>
-                <Text style={styles.title}>{currentItem.name}</Text>
-                <View style={styles.headerActions}>
-                    <TouchableOpacity onPress={() => router.push(`/edit-item/${currentItem._id}`)}>
-                        <MaterialCommunityIcons name="pencil" size={24} color={colors.primary}/>
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.container}
+            keyboardVerticalOffset={100}>
+            <ScrollView
+                contentContainerStyle={styles.scrollContainer}
+                keyboardShouldPersistTaps="handled">
+
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()}>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary}/>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handleDelete}>
-                        <MaterialCommunityIcons name="delete" size={24} color={colors.errorText}/>
-                    </TouchableOpacity>
-                </View>
-            </View>
 
-            {/* Main Content */}
-            <View style={styles.content}>
-                <Image
-                    source={{uri: `${API_URL}/images/${currentItem.image}`}}
-                    style={styles.itemImage}
-                    resizeMode="cover"
-                />
-
-                {/* Inventory Overview */}
-                <View style={styles.statsGrid}>
-                    <StatBlock label="Price" value={`Rs ${currentItem.price}`}/>
-                    <StatBlock label="Cost" value={`Rs ${currentItem.costPrice}`}/>
-                    <StatBlock label="Stock" value={currentItem.stock}/>
-                    <StatBlock label="Min Stock" value={currentItem.minStock}/>
-                </View>
-
-                {/* Stock Status */}
-                <View style={styles.section}>
-                    <View style={styles.progressHeader}>
-                        <Text style={styles.sectionTitle}>Stock Level</Text>
-                        <Text style={styles.percentage}>{stockPercentage}%</Text>
-                    </View>
-                    <View style={styles.progressContainer}>
-                        <View style={[
-                            styles.progressBar,
-                            {
-                                width: `${stockPercentage}%`,
-                                backgroundColor: stockPercentage > 20
-                                    ? colors.success
-                                    : stockPercentage > 10
-                                        ? colors.warningBg
-                                        : colors.errorText
-                            }
-                        ]}/>
-                    </View>
-                    <Text style={styles.stockText}>
-                        {currentItem.stock} / {currentItem.maxStock} {currentItem.unit}
+                    <Text style={styles.title} numberOfLines={1}>
+                        {isEditing ? "Editing Item" : currentItem.name}
                     </Text>
+
+                    <View style={styles.headerActions}>
+                        {isEditing ? (
+                            <>
+                                <TouchableOpacity onPress={handleSave}>
+                                    <MaterialCommunityIcons name="check" size={24} color={colors.success}/>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setIsEditing(false)}>
+                                    <MaterialCommunityIcons name="close" size={24} color={colors.error}/>
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <TouchableOpacity onPress={() => setIsEditing(true)}>
+                                <MaterialCommunityIcons name="pencil" size={24} color={colors.primary}/>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
 
-                {/* Product Details */}
-                <View style={styles.detailsGrid}>
-                    <DetailBlock label="Category" value={currentItem.category}/>
-                    <DetailBlock label="Preparation" value={`${currentItem.preparationTime} mins`}/>
-                    <DetailBlock label="Packaging" value={currentItem.packaging}/>
-                    <DetailBlock label="Barcode" value={currentItem.barcode}/>
-                </View>
+                {/* Main Content */}
+                <View style={styles.content}>
+                    {/* Image Section */}
+                    <TouchableOpacity
+                        onPress={handleImageUpdate}
+                        style={styles.imageContainer}
+                        disabled={!isEditing}>
+                        <Image
+                            source={{uri: `${API_URL}/images/${currentItem.image}`}}
+                            style={styles.itemImage}
+                        />
+                        {isEditing && (
+                            <View style={styles.imageOverlay}>
+                                <MaterialCommunityIcons name="pencil" size={28} color="white"/>
+                            </View>
+                        )}
+                    </TouchableOpacity>
 
-                {/* Supplier Information */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Supplier Information</Text>
-                    <DetailRow label="Name" value={currentItem.supplier?.name}/>
-                    <DetailRow label="Contact" value={currentItem.supplier?.contact}/>
-                    <DetailRow label="Expiry Date" value={formatDate(currentItem.expiryDate)}/>
-                </View>
-
-                {/* Dietary Tags */}
-                {currentItem.tags?.length > 0 && (
+                    {/* Basic Information */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Dietary Information</Text>
-                        <View style={styles.tagsContainer}>
-                            {currentItem.tags.map(tag => (
-                                <View key={tag} style={styles.tag}>
+                        <Text style={styles.sectionTitle}>Basic Information</Text>
+                        <View style={styles.grid}>
+                            {renderField("Item Name", "name")}
+                            {renderField("Description", "description")}
+                            {renderField("Price", "price", true)}
+                            {renderField("Cost Price", "costPrice", true)}
+                        </View>
+                    </View>
+
+                    {/* Inventory Management */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Inventory</Text>
+                        <View style={styles.grid}>
+                            {renderField("Current Stock", "stock", true)}
+                            {renderField("Max Stock", "maxStock", true)}
+                            {renderField("Min Stock", "minStock", true)}
+                            {renderField("Unit", "unit", false, ["pieces", "kg", "liters", "packets"])}
+                        </View>
+
+                        <View style={styles.stockRow}>
+                            <TouchableOpacity
+                                style={styles.stockButton}
+                                onPress={() => setShowStockModal(true)}>
+                                <MaterialCommunityIcons name="package-variant" size={20} color="white"/>
+                                <Text style={styles.buttonText}>Manage Stock</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.availabilityButton,
+                                    {backgroundColor: currentItem.availability ? colors.success : colors.error}
+                                ]}
+                                onPress={toggleAvailability}>
+                                <Text style={styles.buttonText}>
+                                    {currentItem.availability ? 'Available' : 'Unavailable'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Product Details */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Product Details</Text>
+                        <View style={styles.grid}>
+                            {renderField("Category", "category", false,
+                                ["Appetizer", "Main Course", "Dessert", "Beverage", "Ingredient"])}
+                            {renderField("Preparation Time", "preparationTime", true)}
+                            {renderField("Weight", "weight", true)}
+                            {renderField("Expiry Date", "expiryDate")}
+                        </View>
+                    </View>
+
+                    {/* Supplier Information */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Supplier</Text>
+                        <View style={styles.grid}>
+                            {renderField("Supplier Name", "supplier.name")}
+                            {renderField("Supplier Contact", "supplier.contact")}
+                        </View>
+                    </View>
+
+                    {/* System Information */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>System Info</Text>
+                        <View style={styles.systemInfo}>
+                            <Text style={styles.infoText}>
+                                Created: {new Date(currentItem.createdAt).toLocaleDateString()}
+                            </Text>
+                            <Text style={styles.infoText}>
+                                Last Updated: {new Date(currentItem.updatedAt).toLocaleDateString()}
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Dietary Tags */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Dietary Tags</Text>
+                        <View style={styles.optionsRow}>
+                            {["Vegetarian", "Vegan", "Gluten-Free", "Spicy", "Seasonal"].map(tag => (
+                                <Pressable
+                                    key={tag}
+                                    style={[styles.tagButton, editedItem.tags?.includes(tag) && styles.selectedTag]}
+                                    onPress={() => {
+                                        if (!isEditing) return;
+                                        const newTags = editedItem.tags?.includes(tag)
+                                            ? editedItem.tags.filter(t => t !== tag)
+                                            : [...(editedItem.tags || []), tag];
+                                        setEditedItem(prev => ({...prev, tags: newTags}));
+                                    }}>
                                     <Text style={styles.tagText}>{tag}</Text>
-                                </View>
+                                </Pressable>
                             ))}
                         </View>
                     </View>
-                )}
-
-                {/* System Info */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>System Information</Text>
-                    <DetailRow label="Created" value={formatDate(currentItem.createdAt)}/>
-                    <DetailRow label="Last Updated" value={formatDate(currentItem.updatedAt)}/>
                 </View>
-            </View>
 
-            {/* Reviews Section */}
-            <View style={styles.section}>
-                <TouchableOpacity
-                    style={styles.sectionHeader}
-                    onPress={() => setShowAllReviews(!showAllReviews)}
-                >
-                    <Text style={styles.sectionTitle}>
-                        Customer Reviews ({reviews?.length || 0})
-                    </Text>
-                    <View style={styles.ratingContainer}>
-                        {reviews?.length > 0 && (
-                            <>
-                                <Text style={styles.ratingText}>{averageRating}</Text>
-                                <MaterialCommunityIcons
-                                    name="star"
-                                    size={16}
-                                    color={colors.warningBg}
-                                />
-                            </>
-                        )}
-                        <MaterialCommunityIcons
-                            name={showAllReviews ? "chevron-up" : "chevron-down"}
-                            size={24}
-                            color={colors.textSecondary}
-                        />
-                    </View>
-                </TouchableOpacity>
-
-                {reviewsLoading ? (
-                    <ActivityIndicator size="small" color={colors.primary}/>
-                ) : reviews?.length > 0 ? (
-                    <>
-                        <FlatList
-                            data={visibleReviews}
-                            renderItem={renderReview}
-                            keyExtractor={item => item._id}
-                            scrollEnabled={false}
-                            contentContainerStyle={styles.reviewsContainer}
-                        />
-                        {reviews.length > 3 && (
-                            <TouchableOpacity
-                                style={styles.showMoreButton}
-                                onPress={() => setShowAllReviews(!showAllReviews)}
-                            >
-                                <Text style={styles.showMoreText}>
-                                    {showAllReviews ? "Show Less" : "Show All Reviews"}
-                                </Text>
-                            </TouchableOpacity>
-                        )}
-                    </>
-                ) : (
-                    <Text style={styles.emptyText}>No reviews yet</Text>
+                {/* Date Picker */}
+                {showDatePicker && (
+                    <DateTimePicker
+                        value={editedItem.expiryDate || new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={(event, date) => {
+                            setShowDatePicker(false);
+                            if (date) setEditedItem(prev => ({...prev, expiryDate: date}));
+                        }}
+                    />
                 )}
-            </View>
-        </ScrollView>
+
+                {/* Stock Management Modal */}
+                <Modal visible={showStockModal} transparent animationType="slide">
+                    <View style={styles.modalBackdrop}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Update Stock Level</Text>
+
+                            <Text style={styles.modalSubtitle}>
+                                Current Stock: {currentItem.stock}
+                            </Text>
+
+                            <TextInput
+                                style={styles.modalInput}
+                                placeholder="Enter new stock amount"
+                                keyboardType="numeric"
+                                value={stockAmount}
+                                onChangeText={setStockAmount}
+                            />
+
+                            <View style={styles.modalButtonRow}>
+                                <TouchableOpacity
+                                    style={[styles.modalButton, styles.cancelButton]}
+                                    onPress={() => setShowStockModal(false)}>
+                                    <Text style={styles.buttonText}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.modalButton}
+                                    onPress={() => handleStockUpdate('adjust')}>
+                                    <Text style={styles.buttonText}>Update Stock</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 };
-
-// Reusable Components
-const StatBlock = ({label, value}) => (
-    <View style={styles.statBlock}>
-        <Text style={styles.statLabel}>{label}</Text>
-        <Text style={styles.statValue}>{value}</Text>
-    </View>
-);
-
-const DetailBlock = ({label, value}) => (
-    value ? (
-        <View style={styles.detailBlock}>
-            <Text style={styles.detailLabel}>{label}</Text>
-            <Text style={styles.detailValue}>{value}</Text>
-        </View>
-    ) : null
-);
-
-const DetailRow = ({label, value}) => (
-    value ? (
-        <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{label}:</Text>
-            <Text style={styles.detailValue}>{value}</Text>
-        </View>
-    ) : null
-);
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
+    },
+    scrollContainer: {
+        paddingBottom: 100,
     },
     loadingContainer: {
         flex: 1,
@@ -312,17 +400,16 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         padding: 16,
+        backgroundColor: 'white',
         borderBottomWidth: 1,
         borderBottomColor: colors.borders,
     },
-    backButton: {
-        marginRight: 16,
-    },
     title: {
         flex: 1,
-        fontSize: 20,
+        fontSize: 18,
         fontFamily: "Poppins-SemiBold",
         color: colors.textPrimary,
+        marginHorizontal: 16,
     },
     headerActions: {
         flexDirection: "row",
@@ -331,180 +418,179 @@ const styles = StyleSheet.create({
     content: {
         padding: 16,
     },
-    itemImage: {
-        width: "100%",
-        height: 300,
+    imageContainer: {
         borderRadius: 12,
+        overflow: 'hidden',
         marginBottom: 24,
     },
-    statsGrid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 16,
-        marginBottom: 24,
+    itemImage: {
+        width: '100%',
+        height: 200,
+        backgroundColor: colors.borders,
     },
-    statBlock: {
-        flex: 1,
-        minWidth: "48%",
-        backgroundColor: colors.background,
-        borderWidth: 1,
-        borderColor: colors.borders,
-        borderRadius: 8,
-        padding: 16,
-    },
-    statLabel: {
-        fontFamily: "Poppins-Regular",
-        fontSize: 14,
-        color: colors.textSecondary,
-        marginBottom: 8,
-    },
-    statValue: {
-        fontFamily: "Poppins-SemiBold",
-        fontSize: 18,
-        color: colors.textPrimary,
-    },
-    detailsGrid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 16,
-        marginBottom: 24,
-    },
-    detailBlock: {
-        width: "48%",
-        padding: 12,
-        borderWidth: 1,
-        borderColor: colors.borders,
-        borderRadius: 8,
+    imageOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     section: {
         marginBottom: 24,
-        paddingHorizontal: 16,
     },
     sectionTitle: {
-        fontFamily: "Poppins-SemiBold",
+        fontFamily: 'Poppins-SemiBold',
         fontSize: 16,
         color: colors.textPrimary,
+        marginBottom: 16,
     },
-    sectionHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingVertical: 12,
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginBottom: 16,
     },
-    ratingContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
+    fieldContainer: {
+        width: '48%',
+        minHeight: 70,
+        backgroundColor: colors.background,
+        borderRadius: 8,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.borders,
     },
-    ratingText: {
-        fontFamily: "Poppins-SemiBold",
-        color: colors.textPrimary,
-        fontSize: 14,
-    },
-    progressContainer: {
-        height: 6,
-        backgroundColor: colors.borders,
-        borderRadius: 3,
-        overflow: "hidden",
-        marginVertical: 8,
-    },
-    progressBar: {
-        height: "100%",
-    },
-    stockText: {
-        fontFamily: "Poppins-Regular",
-        color: colors.textSecondary,
-        fontSize: 14,
-    },
-    detailRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.borders,
-    },
-    detailLabel: {
-        fontFamily: "Poppins-Regular",
-        color: colors.textSecondary,
-        flex: 1,
-    },
-    detailValue: {
-        fontFamily: "Poppins-Medium",
-        color: colors.textPrimary,
-        flex: 1,
-        textAlign: "right",
-    },
-    tagsContainer: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 8,
-        marginTop: 12,
-    },
-    tag: {
-        backgroundColor: colors.borders,
-        borderRadius: 20,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-    },
-    tagText: {
-        fontFamily: "Poppins-Medium",
+    fieldLabel: {
+        fontFamily: 'Poppins-Regular',
         fontSize: 12,
         color: colors.textSecondary,
+        marginBottom: 4,
     },
-    reviewCard: {
+    fieldValue: {
+        fontFamily: 'Poppins-Medium',
+        fontSize: 14,
+        color: colors.textPrimary,
+    },
+    input: {
+        fontFamily: 'Poppins-Medium',
+        fontSize: 14,
+        color: colors.primary,
+        paddingVertical: 4,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.primary,
+    },
+    stockRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 16,
+    },
+    stockButton: {
+        flex: 1,
+        flexDirection: 'row',
+        backgroundColor: colors.primary,
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    availabilityButton: {
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        justifyContent: 'center',
+    },
+    buttonText: {
+        color: 'white',
+        fontFamily: 'Poppins-Medium',
+        fontSize: 14,
+    },
+    optionsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    optionButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+        backgroundColor: colors.borders,
+    },
+    selectedOption: {
+        backgroundColor: colors.primary,
+    },
+    tagButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+        backgroundColor: colors.borders,
+    },
+    selectedTag: {
+        backgroundColor: colors.success,
+    },
+    tagText: {
+        fontFamily: 'Poppins-Medium',
+        fontSize: 12,
+        color: 'white',
+    },
+    dateInput: {
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.primary,
+    },
+    systemInfo: {
+        backgroundColor: colors.background,
+        borderRadius: 8,
+        padding: 16,
+        gap: 8,
+    },
+    infoText: {
+        fontFamily: 'Poppins-Regular',
+        fontSize: 14,
+        color: colors.textSecondary,
+    },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        width: '80%',
+        borderRadius: 12,
+        padding: 20,
+    },
+    modalTitle: {
+        fontFamily: 'Poppins-SemiBold',
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    modalSubtitle: {
+        fontFamily: 'Poppins-Regular',
+        textAlign: 'center',
+        marginBottom: 16,
+        color: colors.textSecondary,
+    },
+    modalInput: {
         borderWidth: 1,
         borderColor: colors.borders,
         borderRadius: 8,
-        padding: 16,
-        marginBottom: 12,
-    },
-    reviewHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        marginBottom: 8,
-    },
-    avatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: colors.borders,
-    },
-    reviewUser: {
-        flex: 1,
-        gap: 4,
-    },
-    reviewName: {
-        fontFamily: "Poppins-Medium",
-        color: colors.textPrimary,
-        fontSize: 14,
-    },
-    reviewDate: {
-        fontFamily: "Poppins-Regular",
-        color: colors.textSecondary,
-        fontSize: 12,
-    },
-    reviewComment: {
-        fontFamily: "Poppins-Regular",
-        color: colors.textPrimary,
-        fontSize: 14,
-        lineHeight: 20,
-    },
-    emptyText: {
-        fontFamily: "Poppins-Regular",
-        color: colors.textSecondary,
-        textAlign: "center",
-        paddingVertical: 16,
-    },
-    showMoreButton: {
         padding: 12,
-        alignItems: "center",
-        borderTopWidth: 1,
-        borderTopColor: colors.borders,
+        marginBottom: 16,
+        fontFamily: 'Poppins-Regular',
     },
-    showMoreText: {
-        fontFamily: "Poppins-Medium",
-        color: colors.primary,
+    modalButtonRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    modalButton: {
+        flex: 1,
+        backgroundColor: colors.primary,
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    cancelButton: {
+        backgroundColor: colors.error,
     },
 });
 

@@ -15,6 +15,7 @@ import {getActiveOrdersController} from "../controllers/restaurantControllers/ge
 import {getSingleOrderController} from "../controllers/restaurantControllers/getSingleOrder.js";
 import {getHistoricOrderController} from "../controllers/restaurantControllers/getHistoricOrder.js";
 import {getHistoricOrdersController} from "../controllers/restaurantControllers/getHistoricOrders.js";
+import {updateItemController} from "../controllers/restaurantControllers/updateItem.js";
 
 //router object
 const router = express.Router();
@@ -45,6 +46,7 @@ router.get("/restaurant/:id/profile/:type", getProfilePictureController);
 router.get("/restaurant/:id/items", getItemsController);
 router.get("/restaurant/:restaurantId/item/:itemId", getItemController);
 router.delete("/restaurant/:restaurantId/item/:itemId", deleteItemController);
+router.patch('/restaurant/:restaurantId/items/:itemId', upload.single("image"), updateItemController)
 
 //orders
 router.get("/:restaurantId/orders", getRestaurantOrders);

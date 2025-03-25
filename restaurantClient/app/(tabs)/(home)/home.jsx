@@ -1,4 +1,4 @@
-import React, {useCallback, useContext, useEffect, useState} from "react";
+import React, {useCallback, useContext, useEffect, useMemo, useState} from "react";
 import {
     View,
     Text,
@@ -20,11 +20,11 @@ import {useItems} from "../../context/ItemContext";
 const HomePage = () => {
     const [refreshing, setRefreshing] = useState(false);
     const {state, API_URL} = useContext(AuthContext);
-    const {cacheItems, setCurrentItem} = useItems();
+    const {cacheItems, itemsCache, setCurrentItem} = useItems();
     const {items, fetchItems} = useFetchItems(
         `/restaurant/${state.restaurant._id}/items`
     );
-
+    const restaurantItems = Object.values(itemsCache);
     const getStockStatus = (item) => {
         const percentage = (item.stock / item.maxStock) * 100;
         if (percentage <= 10) return 'critical';
@@ -37,23 +37,24 @@ const HomePage = () => {
         router.push(`/(home)/[item]/itemPage`);
     };
 
-    const onRefresh = useCallback(() => {
+    const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        fetchItems().then(() => setRefreshing(false));
-    }, []);
+        try {
+            await fetchItems();
+        } finally {
+            setRefreshing(false);
+        }
+    }, [fetchItems]);
 
     useEffect(() => {
-        const loadItems = async () => {
-            try {
-                const items = await fetchItems();
-                cacheItems(items);
-            } catch (error) {
-                console.log(error)
-            }
-        };
-        loadItems();
-    }, []);
+        if (items) {
+            cacheItems(items);
+        }
+    }, [items]);
 
+    useEffect(() => {
+        if (!items) fetchItems();
+    }, []);
 
     const renderItem = ({item}) => {
         const stockStatus = getStockStatus(item);
@@ -127,7 +128,7 @@ const HomePage = () => {
     return (
         <View style={styles.container}>
             <FlatList
-                data={items}
+                data={restaurantItems}
                 renderItem={renderItem}
                 keyExtractor={(item) => item._id}
                 contentContainerStyle={styles.list}

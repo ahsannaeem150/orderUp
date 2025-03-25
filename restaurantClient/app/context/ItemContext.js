@@ -6,7 +6,6 @@ export const ItemProvider = ({children}) => {
     const [itemsCache, setItemsCache] = useState({});
     const [currentItem, setCurrentItem] = useState(null);
     const [reviewsCache, setReviewsCache] = useState({});
-
     const getReviews = (itemId) => reviewsCache[itemId] || [];
 
     const cacheReviews = (itemId, reviews) => {
@@ -16,12 +15,18 @@ export const ItemProvider = ({children}) => {
         }));
     };
 
+    const updateItem = (item) => {
+        setCurrentItem(item)
+        setItemsCache(prev => ({
+            ...prev,
+            [item._id]: item
+        }));
+    }
     const cacheItems = (items) => {
         const newCache = items.reduce((acc, item) => {
             acc[item._id] = item;
             return acc;
         }, {});
-
         setItemsCache(prev => ({...prev, ...newCache}));
     };
 
@@ -36,6 +41,7 @@ export const ItemProvider = ({children}) => {
             reviewsCache,
             setReviewsCache,
             getItem,
+            updateItem,
             currentItem,
             setCurrentItem
         }}>
