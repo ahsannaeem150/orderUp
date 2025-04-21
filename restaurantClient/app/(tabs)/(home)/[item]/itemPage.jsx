@@ -19,20 +19,20 @@ import { Keyboard } from "react-native";
 
 
 const EditableField = ({
-                            label,
-                            field,
-                            numeric = true,
-                            options,
-                            date,
-                            isEditing,
-                            editedItem,
-                            setEditedItem,
-                            currentItem,
-                            handleRemoveTag,
-                            setIsTagModalVisible,
-                            setDatePickerField,
-                            setShowDatePicker
-                        }) => {
+                           label,
+                           field,
+                           numeric = true,
+                           options,
+                           date,
+                           isEditing,
+                           editedItem,
+                           setEditedItem,
+                           currentItem,
+                           handleRemoveTag,
+                           setIsTagModalVisible,
+                           setDatePickerField,
+                           setShowDatePicker
+                       }) => {
     const getNestedValue = (obj, path) => {
         return path.split('.').reduce((acc, part) => acc?.[part], obj);
     };
@@ -41,6 +41,8 @@ const EditableField = ({
         ? getNestedValue(editedItem, field)
         : editedItem[field];
 
+    const isName = field === 'name';
+    const isDescription = field === 'description';
 
     const handleTextChange = (text) => {
         if (field.includes('.')) {
@@ -61,7 +63,7 @@ const EditableField = ({
     };
 
     return (
-        <View style={styles.fieldContainer}>
+        <View style={[styles.fieldContainer, isDescription && styles.descriptionContainer, isName && styles.nameContainer]}>
             <Text style={styles.fieldLabel}>{label}</Text>
 
             {isEditing ? (
@@ -117,12 +119,14 @@ const EditableField = ({
                     </TouchableOpacity>
                 ) : (
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, isDescription && styles.descriptionInput]}
                         value={String(currentValue || '')}
                         onChangeText={handleTextChange}
                         keyboardType={numeric ? 'numeric' : 'default'}
                         autoCapitalize="none"
-                        keyboardShouldPersistTaps="handled"
+                        multiline={isDescription}
+                        numberOfLines={isDescription ? 4 : 1}
+                        textAlignVertical={isDescription ? 'top' : 'center'}
                     />
                 )
             ) : field === 'tags' ? (
@@ -134,7 +138,7 @@ const EditableField = ({
                     ))}
                 </View>
             ) : (
-                <Text style={styles.fieldValue}>
+                <Text style={[styles.fieldValue, isDescription && styles.descriptionText]}>
                     {date ?
                         (editedItem[field] ? dayjs(editedItem[field]).format('MMM D, YYYY') : 'N/A') :
                         numeric && field.toLowerCase().includes('price') ?
@@ -491,15 +495,22 @@ const ItemDetailsPage = () => {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Basic Information</Text>
                         <View style={styles.grid}>
+                            <View style={{width: '100%'}}>
+
                             <EditableField label="Item Name" field="name" numeric={false} isEditing={isEditing}
                                            editedItem={editedItem}
                                            setEditedItem={setEditedItem}
                                            handleRemoveTag={handleRemoveTag}
-                            currentItem/>
-                            <EditableField label="Description" field="description" numeric={false} isEditing={isEditing}
-                                           editedItem={editedItem}
-                                           setEditedItem={setEditedItem}
-                                           handleRemoveTag={handleRemoveTag} currentItem/>
+                                           currentItem/>
+                            </View>
+
+                            <View style={{width: '100%'}}>
+                                <EditableField label="Description" field="description" numeric={false} isEditing={isEditing}
+                                               editedItem={editedItem}
+                                               setEditedItem={setEditedItem}
+                                               handleRemoveTag={handleRemoveTag} currentItem/>
+                            </View>
+
                             <EditableField label="Price" field="price" isEditing={isEditing}
                                            editedItem={editedItem}
                                            setEditedItem={setEditedItem}
@@ -517,6 +528,7 @@ const ItemDetailsPage = () => {
                             <EditableField label="Tags" field="tags" numeric={false} isEditing={isEditing}
                                            editedItem={editedItem}
                                            setEditedItem={setEditedItem}
+                                           setIsTagModalVisible={setIsTagModalVisible}
                                            handleRemoveTag={handleRemoveTag} currentItem/>
                         </View>
                     </View>
@@ -635,7 +647,7 @@ const ItemDetailsPage = () => {
                     </View>
 
                     {/* Reviews Section */}
-                    <View style={styles.section}>
+                    <View>
                         <TouchableOpacity
                             style={styles.sectionHeader}
                             onPress={() => setShowAllReviews(!showAllReviews)}>
@@ -751,6 +763,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.borders,
     },
+    nameContainer:{width:"100%"},
     title: {
         flex: 1,
         fontSize: 18,
@@ -766,15 +779,7 @@ const styles = StyleSheet.create({
     dateInput: {
         paddingVertical: 8,
     },
-    input: {
-        fontFamily: 'Poppins-Medium',
-        fontSize: 14,
-        color: colors.primary,
-        paddingVertical: 4,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.primary,
-        includeFontPadding: false,
-    },
+
     modalTagText: {
         fontFamily: 'Poppins-Regular',
         fontSize: 14,
@@ -950,26 +955,14 @@ const styles = StyleSheet.create({
         gap: 12,
         marginBottom: 16,
     },
-    fieldContainer: {
-        width: '48%',
-        minHeight: 70,
-        backgroundColor: colors.background,
-        borderRadius: 8,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: colors.borders,
-    },
+
     fieldLabel: {
         fontFamily: 'Poppins-Regular',
         fontSize: 12,
         color: colors.textSecondary,
         marginBottom: 4,
     },
-    fieldValue: {
-        fontFamily: 'Poppins-Medium',
-        fontSize: 14,
-        color: colors.textPrimary,
-    },
+
     availabilityButton: {
         padding: 12,
         borderRadius: 8,
@@ -1094,6 +1087,48 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins-SemiBold',
         color: colors.textPrimary,
         fontSize: 14,
+    },
+    descriptionContainer: {
+        width: '100%',
+        minHeight: 120,
+    },
+    descriptionInput: {
+        height: 100,
+        padding: 8,
+        textAlign: 'left',
+        borderWidth: 1,
+        borderColor: colors.borders,
+        borderRadius: 8,
+    },
+    descriptionText: {
+        flex: 1,
+        lineHeight: 20,
+    },
+
+    fieldContainer: {
+        width: '48%',
+        minHeight: 70,
+        backgroundColor: colors.background,
+        borderRadius: 8,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.borders,
+        justifyContent: 'flex-start',
+    },
+    fieldValue: {
+        fontFamily: 'Poppins-Medium',
+        fontSize: 14,
+        color: colors.textPrimary,
+        flexShrink: 1,
+    },
+    input: {
+        fontFamily: 'Poppins-Medium',
+        fontSize: 14,
+        color: colors.primary,
+        paddingVertical: 4,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.primary,
+        includeFontPadding: false,
     },
 });
 
