@@ -29,7 +29,7 @@ const colors = {
 
     warningBg: "#FEFCBF", // Pale yellow
     warningText: "#B7791F", // Dark yellow
-
+    error: "#ff2a2a", // Dark red
     // Special
     highlight: "#FFD700", // For rating stars
     activeIcon: "#2A4D6E",

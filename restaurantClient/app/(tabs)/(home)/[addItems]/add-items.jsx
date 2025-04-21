@@ -10,6 +10,8 @@ import colors from "../../../../constants/colors";
 
 const AddItemDetail = () => {
     const {state} = useContext(AuthContext);
+    const [newTag, setNewTag] = useState('');
+    const [customTags, setCustomTags] = useState([]);
     const [formData, setFormData] = useState({
         name: "",
         description: "",
@@ -18,14 +20,13 @@ const AddItemDetail = () => {
         stock: "",
         maxStock: "",
         minStock: "",
-        category: "Main Course",
+        category: "Fast Food",
         tags: [],
         supplierName: "",
         supplierContact: "",
         expiryDate: new Date(),
         preparationTime: "",
         unit: "pieces",
-        weight: ""
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
     const {selectImage, selectedImage} = useUploadImage();
@@ -50,7 +51,7 @@ const AddItemDetail = () => {
                 maxStock: parseInt(formData.maxStock),
                 minStock: parseInt(formData.minStock),
                 preparationTime: parseInt(formData.preparationTime),
-                weight: formData.weight ? parseFloat(formData.weight) : undefined,
+
                 tags: JSON.stringify(formData.tags),
                 expiryDate: formData.expiryDate.toISOString(),
                 availability: true
@@ -128,7 +129,7 @@ const AddItemDetail = () => {
                 <View style={styles.row}>
                     <View style={styles.halfWidth}>
                         <Input
-                            label="Price (₹)"
+                            label="Price (Rs)"
                             value={formData.price}
                             onChangeText={v => updateField('price', v)}
                             keyboardType="numeric"
@@ -137,7 +138,7 @@ const AddItemDetail = () => {
                     </View>
                     <View style={styles.halfWidth}>
                         <Input
-                            label="Cost Price (₹)"
+                            label="Cost Price (Rs)"
                             value={formData.costPrice}
                             onChangeText={v => updateField('costPrice', v)}
                             keyboardType="numeric"
@@ -202,17 +203,10 @@ const AddItemDetail = () => {
                         </View>
                     </View>
                 </View>
-                <Input
-                    label="Weight/Volume"
-                    value={formData.weight}
-                    onChangeText={v => updateField('weight', v)}
-                    keyboardType="numeric"
-                    maxLength={8}
-                />
             </View>
 
 
-            {/* Categorization */}
+            {/* Categorization Section */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Categorization</Text>
                 <View style={styles.row}>
@@ -221,7 +215,7 @@ const AddItemDetail = () => {
                         <Picker
                             selectedValue={formData.category}
                             onValueChange={v => updateField('category', v)}>
-                            {["Appetizer", "Main Course", "Dessert", "Beverage", "Ingredient"].map(cat => (
+                            {["Fast Food", "Desi", "Chinese & Asian", "Healthy & Diet Food", "Bakery & Desserts", "Beverages", "Street Food"].map(cat => (
                                 <Picker.Item key={cat} label={cat} value={cat}/>
                             ))}
                         </Picker>
@@ -229,23 +223,51 @@ const AddItemDetail = () => {
                 </View>
 
                 <Text style={styles.label}>Dietary Tags</Text>
+
+                {/* Custom Tag Input */}
+                <View style={styles.customTagContainer}>
+                    <TextInput
+                        style={styles.customTagInput}
+                        placeholder="Enter custom tag"
+                        value={newTag}
+                        onChangeText={setNewTag}
+                        placeholderTextColor={colors.textSecondary}
+                    />
+                    <TouchableOpacity
+                        style={styles.addTagButton}
+                        onPress={() => {
+                            if (newTag.trim()) {
+                                const trimmedTag = newTag.trim();
+                                if (![...customTags, ...["Vegetarian", "Vegan", "Gluten-Free", "Spicy", "Seasonal"]].includes(trimmedTag)) {
+                                    setCustomTags([...customTags, trimmedTag]);
+                                }
+                                setNewTag('');
+                            }
+                        }}>
+                        <Text style={styles.addTagButtonText}>Add</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Tags Display */}
                 <View style={styles.tagContainer}>
-                    {["Vegetarian", "Vegan", "Gluten-Free", "Spicy", "Seasonal"].map(tag => (
-                        <TouchableOpacity
-                            key={tag}
-                            style={[
-                                styles.tagButton,
-                                formData.tags.includes(tag) && styles.selectedTag
-                            ]}
-                            onPress={() => toggleTag(tag)}>
-                            <Text style={[
-                                styles.tagText,
-                                formData.tags.includes(tag) && styles.selectedTagText
-                            ]}>
-                                {tag}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
+                    {["Vegetarian", "Vegan", "Gluten-Free", "Spicy", "Seasonal"]
+                        .concat(customTags)
+                        .map(tag => (
+                            <TouchableOpacity
+                                key={tag}
+                                style={[
+                                    styles.tagButton,
+                                    formData.tags.includes(tag) && styles.selectedTag
+                                ]}
+                                onPress={() => toggleTag(tag)}>
+                                <Text style={[
+                                    styles.tagText,
+                                    formData.tags.includes(tag) && styles.selectedTagText
+                                ]}>
+                                    {tag}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
                 </View>
             </View>
 
@@ -367,6 +389,32 @@ const styles = StyleSheet.create({
         fontFamily: "Poppins-SemiBold",
         color: colors.textPrimary,
         marginBottom: 24,
+    },
+    customTagContainer: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 8,
+    },
+    customTagInput: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: colors.borders,
+        borderRadius: 8,
+        padding: 12,
+        fontFamily: 'Poppins-Regular',
+        color: colors.textPrimary,
+    },
+    addTagButton: {
+        backgroundColor: colors.primary,
+        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    addTagButtonText: {
+        color: colors.textInverted,
+        fontFamily: 'Poppins-Medium',
     },
     section: {
         borderWidth: 1,

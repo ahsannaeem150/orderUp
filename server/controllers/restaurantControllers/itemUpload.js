@@ -82,6 +82,7 @@ export const addMenuItemController = async (req, res) => {
             weight: weight ? parseFloat(weight) : undefined,
             expiryDate: new Date(expiryDate),
             image: image._id,
+            createdAt: Date.now(),
             restaurant: restaurantId,
             availability: true
         });

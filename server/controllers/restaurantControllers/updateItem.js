@@ -49,8 +49,16 @@ export const updateItemController = async (req, res) => {
         // Apply the update
         const updatedItem = await menuModel.findByIdAndUpdate(
             itemId,
-            {$set: update},
-            {new: true, runValidators: true}
+            {
+                $set: {
+                    ...update,
+                    updatedAt: Date.now()
+                }
+            },
+            {
+                new: true,
+                runValidators: true
+            }
         );
 
         res.json({

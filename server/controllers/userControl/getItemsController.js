@@ -6,7 +6,7 @@ export const getItemsController = async (req, res) => {
     try {
         const restaurant = await restaurantModel.findById(req.params.id).populate({
             path: "menu",
-            select: "_id name price description availability category image costPrice stock maxStock minStock preparationTime unit weight createdAt updatedAt expiryDate supplier tags",
+            select: "_id name price description totalSold dailySales lastSoldDate popularityScore discount discountStart discountEnd profitMargin stockPercentage lowStockAlert status category image costPrice stock maxStock minStock preparationTime unit weight createdAt updatedAt expiryDate supplier tags",
         });
 
         return res.status(200).json({
@@ -18,7 +18,17 @@ export const getItemsController = async (req, res) => {
                 description: item.description,
                 image: item.image,
                 category: item.category,
-                availability: item.availability,
+                totalSold: item.totalSold,
+                dailySales: item.dailySales,
+                lastSoldDate: item.lastSoldDate,
+                popularityScore: item.popularityScore,
+                discount: item.discount,
+                discountStart: item.discountStart,
+                discountEnd: item.discountEnd,
+                profitMargin: item.profitMargin,
+                stockPercentage: item.stockPercentage,
+                lowStockAlert: item.lowStockAlert,
+                status: item.status,
                 costPrice: item.costPrice,
                 stock: item.stock,
                 maxStock: item.maxStock,
