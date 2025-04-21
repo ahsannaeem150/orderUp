@@ -8,10 +8,10 @@ import {AuthContext} from "../../../context/authContext";
 
 const ProfileEditForm = () => {
     const {state, setState, updateState} = useContext(AuthContext);
-    const [username, setUsername] = useState(state.user?.name || "");
-    const [phone, setPhone] = useState(state.user?.phone || "");
-    const [city, setCity] = useState(state.user?.address?.city || "");
-    const [address, setAddress] = useState(state.user?.address?.address || "");
+    const [username, setUsername] = useState(state.agent?.username || "");
+    const [phone, setPhone] = useState(state.agent?.phone || "");
+    const [city, setCity] = useState(state.agent?.address?.city || "");
+    const [address, setAddress] = useState(state.agent?.address?.address || "");
 
     const handleUpdate = async () => {
         try {
@@ -21,19 +21,19 @@ const ProfileEditForm = () => {
             }
 
             const formData = {
-                name: username,
+                username,
                 phone,
                 address: {city, address}
             };
 
             const {data} = await axios.put(
-                `/${state.user._id}/profile/update`,
+                `/agent/${state.agent._id}/profile/update`,
                 formData
             );
 
             if (data.success) {
-                setState({...state, user: data.user});
-                updateState({...state, user: data.user});
+                setState({...state, agent: data.agent});
+                updateState({...state, agent: data.agent});
                 router.back();
             }
         } catch (error) {

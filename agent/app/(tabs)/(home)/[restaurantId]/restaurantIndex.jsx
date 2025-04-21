@@ -11,21 +11,15 @@ import {
 } from "react-native";
 import {router} from "expo-router";
 import {AuthContext} from "../../../context/authContext";
-import {useFetchItems} from "../../../hooks/useFetchItems";
 import PageHeader from "../../../components/PageHeader";
 import {images} from "../../../../constants";
-import {useRestaurant} from "../../../context/RestaurantContext";
-import {useItems} from "../../../context/ItemContext";
+import {useRestaurant} from "../../../context/OrderContext";
 import {Ionicons} from "@expo/vector-icons";
 import colors from "../../../../constants/colors";
-import {useCart} from "../../../context/CartContext";
 
 const MenuItemsScreen = () => {
     const {API_URL} = useContext(AuthContext);
     const {currentRestaurant} = useRestaurant();
-    const {itemsCache, getItem, setCurrentItem} = useItems();
-    const {fetchItemsBatch, loading, error} = useFetchItems();
-    const {addToCart, getItemQuantityInCart} = useCart();
 
 
     const restaurantItems = useMemo(() => {

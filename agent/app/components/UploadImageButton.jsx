@@ -40,7 +40,7 @@ const UploadImageButton = ({style}) => {
 
                 // Upload the image
                 const response = await axios.put(
-                    `/${state.user._id}/profile/image`,
+                    `/agent/${state.agent._id}/profile/image`,
                     formData,
                     {
                         headers: {
@@ -49,9 +49,9 @@ const UploadImageButton = ({style}) => {
                     }
                 );
 
-                console.log("Returned User=>", response.data.user);
-                setState({...state, user: response.data.user});
-                updateState({...state, user: response.data.user});
+                console.log("Returned agent=>", response.data.agent);
+                setState({...state, agent: response.data.agent});
+                updateState({...state, agent: response.data.agent});
             }
         } catch (error) {
             console.log(error.response?.data?.message || error.message);

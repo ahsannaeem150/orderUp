@@ -1,10 +1,8 @@
 import { View, Text } from "react-native";
 import React, { useContext, useEffect, useState } from "react";
-import CustomButton from "./components/CustomButtons";
 import { router } from "expo-router";
 import { AuthContext } from "./context/authContext";
 import SplashScreen from "./components/SplashScreen";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const App = () => {
   const [appIsReady, setAppIsReady] = useState(false);
@@ -19,10 +17,10 @@ const App = () => {
         console.warn(e);
       } finally {
         setAppIsReady(true);
-        if (!loading && state.user !== undefined) {
+        if (!loading && state.agent !== undefined) {
           router.replace("(home)");
         }
-        if (!loading && state.user === undefined) {
+        if (!loading && state.agent === undefined) {
           router.replace("./sign-in");
         }
       }

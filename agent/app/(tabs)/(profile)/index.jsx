@@ -12,8 +12,8 @@ const Index = () => {
 
     const logout = async () => {
         setTimeout(() => {
-            setState({user: undefined, token: ""});
-            updateState({user: undefined, token: ""});
+            setState({agent: undefined, token: ""});
+            updateState({agent: undefined, token: ""});
         }, 500);
         router.replace("../(auth)/sign-in");
     };
@@ -35,8 +35,8 @@ const Index = () => {
                 <View style={styles.profileImageContainer}>
                     <Image
                         source={{
-                            uri: state.user?.profilePicture
-                                ? `${API_URL}/images/${state.user.profilePicture}`
+                            uri: state.agent?.profilePicture
+                                ? `${API_URL}/images/${state.agent.profilePicture}`
                                 : images.profilePlaceholder
                         }}
                         style={styles.profileImage}
@@ -45,30 +45,30 @@ const Index = () => {
                 </View>
 
                 <View style={styles.infoSection}>
-                    <Text style={styles.name}>{state.user?.name}</Text>
-                    <Text style={styles.email}>{state.user?.email}</Text>
+                    <Text style={styles.name}>{state.agent?.username}</Text>
+                    <Text style={styles.email}>{state.agent?.email}</Text>
                 </View>
 
                 <View style={styles.infoCards}>
                     <ProfileInfoCard
                         icon="user"
                         title="Username"
-                        value={state.user?.name}
+                        value={state.agent?.username}
                     />
                     <ProfileInfoCard
                         icon="mail"
                         title="Email"
-                        value={state.user?.email}
+                        value={state.agent?.email}
                     />
                     <ProfileInfoCard
                         icon="phone"
                         title="Phone"
-                        value={state.user?.phone || "Not provided"}
+                        value={state.agent?.phone || "Not provided"}
                     />
                     <ProfileInfoCard
                         icon="enviromento"
                         title="Location"
-                        value={state.user?.address?.city || "Not provided"}
+                        value={state.agent?.address?.city || "Not provided"}
                     />
                 </View>
 

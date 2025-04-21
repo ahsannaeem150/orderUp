@@ -20,11 +20,11 @@ const SignIn = () => {
                 return;
             }
 
-            const {data} = await axios.post("/auth/login", {email, password});
+            const {data} = await axios.post("/auth/agent/login", {email, password});
 
             if (data.success) {
-                setState({user: data.user, token: data.token});
-                updateState({user: data.user, token: data.token});
+                setState({agent: data.agent, token: data.token});
+                updateState({agent: data.agent, token: data.token});
                 router.replace("(home)");
             }
         } catch (error) {

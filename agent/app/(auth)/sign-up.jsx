@@ -19,8 +19,8 @@ const SignUp = () => {
                 return;
             }
 
-            const {data} = await axios.post("/auth/register", {
-                name: username,
+            const {data} = await axios.post("/auth/agent/register", {
+                username,
                 email,
                 password,
                 profilePicture: "66d1b047b588f463a39a8938",

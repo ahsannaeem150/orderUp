@@ -7,6 +7,7 @@ import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import http from "http";
 import restaurantRoutes from "./routes/restaurantRoutes.js";
+import agentRoutes from "./routes/agentRoutes.js"
 import multer from "multer";
 import socketIoSetup from "./helpers/socketIO.js";
 
@@ -36,6 +37,7 @@ app.use("/api/welcome", (req, res) => {
 });
 app.use("/api/", userRoutes);
 app.use("/api/", restaurantRoutes);
+app.use("/api/" , agentRoutes)
 
 //PORT
 const PORT = process.env.PORT || 8080;

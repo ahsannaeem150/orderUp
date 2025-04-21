@@ -10,14 +10,6 @@ const TabLayout = () => {
                 options={{title: "Home", headerShown: false}}
             />
             <Tabs.Screen
-                name="cart"
-                options={{title: "Cart", headerShown: false}}
-            />
-            <Tabs.Screen
-                name="(orders)"
-                options={{title: "Orders", headerShown: false}}
-            />
-            <Tabs.Screen
                 name="(profile)"
                 options={{title: "Profile", headerShown: false}}
             />
