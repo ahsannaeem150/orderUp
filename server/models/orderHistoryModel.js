@@ -42,6 +42,15 @@ const OrderHistorySchema = new mongoose.Schema(
             type: String,
             default: "30-45 mins",
         },
+        agent: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "agents"
+        },
+        deliveryPath: [{
+            lat: Number,
+            lng: Number,
+            timestamp: { type: Date, default: Date.now }
+        }],
         acceptedAt: Date,
         completedAt: Date,
         cancelledAt: Date,

@@ -61,6 +61,15 @@ const OrderSchema = new mongoose.Schema(
             enum: ["Pending", "Preparing", "Ready", "Completed", "Cancelled"],
             default: "Pending",
         },
+        agent: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "agents"
+        },
+        deliveryPath: [{
+            lat: Number,
+            lng: Number,
+            timestamp: { type: Date, default: Date.now }
+        }],
         statusTimestamps: {
             Pending: {type: Date},
             Preparing: {type: Date},
