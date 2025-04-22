@@ -2,26 +2,33 @@ import { restaurantModel } from "../../models/restaurantModel.js";
 
 export const updateProfileController = async (req, res) => {
   try {
-    //GET Restaurant ID
     const restaurantId = req.params.id;
-    //Find Restaurant
     const restaurant = await restaurantModel.findById(restaurantId);
+
     if (!restaurant) {
       return res
         .status(404)
-        .json({ success: false, message: "Restaurant not found." });
+        .json({ success: false, message: "restaurant not found." });
     }
 
-    restaurant.name = req.body.name;
+    if (req.body.location) {
+      restaurant.location = {
+        lat: req.body.location.lat,
+        lng: req.body.location.lng,
+        updatedAt: new Date(),
+      };
+    }
+
+    restaurant.name = req.body.username;
     restaurant.phone = req.body.phone;
     restaurant.address.address = req.body.address.address;
     restaurant.address.city = req.body.address.city;
 
     await restaurant.save();
-
+    console.log(restaurant);
     return res.status(201).json({
       success: true,
-      message: "Restaurant updated successfully.",
+      message: "restaurant updated successfully.",
       restaurant: restaurant,
     });
   } catch (error) {

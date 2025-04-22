@@ -3,7 +3,6 @@ import { agentModel } from "../../models/agentModel.js";
 
 export const updateProfileController = async (req, res) => {
   try {
-    console.log("HHSHHSAHSA");
     const agentId = req.params.id;
     const agent = await agentModel.findById(agentId);
 

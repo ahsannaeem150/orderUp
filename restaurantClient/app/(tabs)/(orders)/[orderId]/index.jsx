@@ -798,11 +798,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textPrimary,
   },
-  agentDetails: {
-    fontFamily: "Poppins-Regular",
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
   agentStatus: {
     fontFamily: "Poppins-Regular",
     fontSize: 12,

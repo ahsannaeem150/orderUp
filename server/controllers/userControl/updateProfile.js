@@ -2,26 +2,33 @@ import { userModel } from "../../models/userModel.js";
 
 export const updateProfileController = async (req, res) => {
   try {
-    //GET USER ID
     const userId = req.params.id;
-    //FIND USER
     const user = await userModel.findById(userId);
+
     if (!user) {
       return res
         .status(404)
-        .json({ success: false, message: "User not found." });
+        .json({ success: false, message: "user not found." });
     }
 
-    user.name = req.body.name;
+    if (req.body.location) {
+      user.location = {
+        lat: req.body.location.lat,
+        lng: req.body.location.lng,
+        updatedAt: new Date(),
+      };
+    }
+
+    user.name = req.body.username;
     user.phone = req.body.phone;
     user.address.address = req.body.address.address;
     user.address.city = req.body.address.city;
 
     await user.save();
-
+    console.log(user);
     return res.status(201).json({
       success: true,
-      message: "User updated successfully.",
+      message: "user updated successfully.",
       user: user,
     });
   } catch (error) {

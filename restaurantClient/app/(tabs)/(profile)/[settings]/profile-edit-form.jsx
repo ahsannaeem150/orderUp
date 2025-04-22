@@ -19,14 +19,16 @@ import { MaterialIcons } from "@expo/vector-icons";
 
 const ProfileEditForm = () => {
   const { state, setState, updateState } = useContext(AuthContext);
-  const [username, setUsername] = useState(state.agent?.username || "");
-  const [phone, setPhone] = useState(state.agent?.phone || "");
-  const [city, setCity] = useState(state.agent?.address?.city || "");
-  const [address, setAddress] = useState(state.agent?.address?.address || "");
+  const [username, setUsername] = useState(state.restaurant?.name || "");
+  const [phone, setPhone] = useState(state.restaurant?.phone || "");
+  const [city, setCity] = useState(state.restaurant?.address?.city || "");
+  const [address, setAddress] = useState(
+    state.restaurant?.address?.address || ""
+  );
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [locationStatus, setLocationStatus] = useState("");
   const [currentLocation, setCurrentLocation] = useState(
-    state.agent?.location || null
+    state.restaurant?.location || null
   );
 
   const getCurrentLocation = async () => {
@@ -49,7 +51,7 @@ const ProfileEditForm = () => {
 
       setCurrentLocation(updatedLocation);
       setLocationStatus("Location captured");
-      setTimeout(() => setLocationStatus(""), 2000); // Clear status after 2 seconds
+      setTimeout(() => setLocationStatus(""), 2000);
 
       return updatedLocation;
     } catch (error) {
@@ -80,13 +82,12 @@ const ProfileEditForm = () => {
       };
 
       const { data } = await axios.put(
-        `/agent/${state.agent._id}/profile/update`,
+        `/restaurant/${state.restaurant._id}/update`,
         formData
       );
 
       if (data.success) {
-        setState({ ...state, agent: data.agent });
-        updateState({ ...state, agent: data.agent });
+        setState({ ...state, restaurant: data.restaurant });
         router.back();
       }
     } catch (error) {
