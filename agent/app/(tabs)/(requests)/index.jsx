@@ -99,7 +99,7 @@ const OrderRequestCard = ({ order, onAccept, onReject, formatTime }) => {
     }, []);
 
     return (
-        <TouchableOpacity onPress={()=>{router.push("(requests)/requestDetail.jsx")}}>
+        <TouchableOpacity onPress={()=>{router.push("(requests)/requestDetail")}}>
 
         <LinearGradient
             colors={['#ffffff', '#f8f9fa']}
