@@ -106,32 +106,6 @@ const OrderDetailScreen = ({ route }) => {
           </View>
         </View>
 
-        {/* Order Timeline */}
-        <View style={styles.timelineContainer}>
-          <View style={styles.timeline}>
-            <TimelineStep
-              title="Requested"
-              isActive={true}
-              isCompleted={true}
-            />
-            <TimelineStep
-              title="Accepted"
-              isActive={false}
-              isCompleted={false}
-            />
-            <TimelineStep
-              title="Picked Up"
-              isActive={false}
-              isCompleted={false}
-            />
-            <TimelineStep
-              title="Delivered"
-              isActive={false}
-              isCompleted={false}
-            />
-          </View>
-        </View>
-
         {/* Order Details */}
         <View style={styles.detailsContainer}>
           <DetailSection title="Restaurant Details" icon="restaurant">
@@ -207,24 +181,6 @@ const OrderDetailScreen = ({ route }) => {
     </SafeAreaView>
   );
 };
-
-// Reusable Components
-const TimelineStep = ({ title, isActive, isCompleted }) => (
-  <View style={styles.timelineStep}>
-    <View
-      style={[
-        styles.timelineDot,
-        isCompleted && styles.completedDot,
-        isActive && styles.activeDot,
-      ]}
-    >
-      {isCompleted && <Ionicons name="checkmark" size={12} color="white" />}
-    </View>
-    <Text style={[styles.timelineTitle, isActive && styles.activeTitle]}>
-      {title}
-    </Text>
-  </View>
-);
 
 const DetailSection = ({ title, icon, children }) => (
   <View style={styles.sectionContainer}>

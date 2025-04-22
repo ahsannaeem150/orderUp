@@ -1,363 +1,497 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import {
-    View,
-    Text,
-    ScrollView,
-    SafeAreaView,
-    TouchableOpacity,
-    Image,
-    StyleSheet,
-    Animated
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import colors from '../../../constants/colors';
-import {router} from "expo-router";
+  View,
+  Text,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import colors from "../../../constants/colors";
+import { router } from "expo-router";
+import axios from "axios";
+import { AuthContext } from "../../context/authContext";
 
 const OrderRequestsScreen = () => {
-    const [orders, setOrders] = useState([
-        {
-            id: '#REQ2984',
-            restaurant: 'Burger Kingdom',
-            pickup: {
-                address: '12 Food Street, Downtown',
-                distance: '1.2 km',
-                time: '8-10 min'
-            },
-            delivery: {
-                address: '24 Park Avenue',
-                distance: '3.4 km',
-                time: '18-22 min'
-            },
-            payment: '₹185',
-            items: [
-                { name: 'Classic Burger', quantity: 2 },
-                { name: 'Fries', quantity: 1 },
-                { name: 'Coke', quantity: 2 }
-            ],
-            expiresIn: 300 // 5 minutes in seconds
-        },
-        // Add more dummy orders as needed
-    ]);
+  const { socket, state } = useContext(AuthContext);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    const handleAccept = (orderId) => {
-        setOrders(orders.filter(order => order.id !== orderId));
-        // Add your acceptance logic here
+  const fetchRequests = useCallback(async () => {
+    try {
+      const response = await axios.get(`/agent/${state.agent._id}/requests`);
+      setRequests(response.data.requests);
+      console.log(response.data.requests);
+      setError(null);
+    } catch (err) {
+      setError("Failed to load requests");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+
+    const handleNewRequest = (request) => {
+      setRequests((prev) => [...prev, request]);
     };
 
-    const handleReject = (orderId) => {
-        setOrders(orders.filter(order => order.id !== orderId));
-        // Add your rejection logic here
+    const handleRequestUpdate = (updatedRequest) => {
+      setRequests((prev) =>
+        prev.filter((req) => req._id !== updatedRequest._id)
+      );
     };
 
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
+    socket.on("new-assignment-request", handleNewRequest);
+    socket.on("assignment-request-updated", handleRequestUpdate);
 
+    return () => {
+      socket.off("new-assignment-request", handleNewRequest);
+      socket.off("assignment-request-updated", handleRequestUpdate);
+    };
+  }, []);
+
+  const handleResponse = async (requestId, accept) => {
+    try {
+      socket.emit("respond-to-assignment", {
+        requestId,
+        accept,
+      });
+
+      // Optimistic update
+      setRequests((prev) => prev.filter((req) => req._id !== requestId));
+    } catch (err) {
+      Alert.alert("Error", "Failed to submit response");
+      fetchRequests(); // Refresh on error
+    }
+  };
+
+  const navigateToDetail = (request) => {
+    router.push({
+      pathname: "(requests)/requestDetail",
+      params: { requestId: request._id },
+    });
+  };
+
+  if (loading) {
     return (
-        <SafeAreaView style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>New Requests</Text>
-                    <View style={styles.notificationBadge}>
-                        <Text style={styles.badgeText}>{orders.length}</Text>
-                    </View>
-                </View>
-
-                {orders.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="fast-food" size={48} color={colors.borders} />
-                        <Text style={styles.emptyText}>No new requests available</Text>
-                    </View>
-                ) : (
-                    orders.map((order) => (
-                        <OrderRequestCard
-                            key={order.id}
-                            order={order}
-                            onAccept={handleAccept}
-                            onReject={handleReject}
-                            formatTime={formatTime}
-                        />
-                    ))
-                )}
-            </ScrollView>
-        </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
     );
-};
+  }
 
-const OrderRequestCard = ({ order, onAccept, onReject, formatTime }) => {
-    const [timeLeft, setTimeLeft] = useState(order.expiresIn);
-    const progress = timeLeft / order.expiresIn;
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
-
+  if (error) {
     return (
-        <TouchableOpacity onPress={()=>{router.push("(requests)/requestDetail")}}>
-
-        <LinearGradient
-            colors={['#ffffff', '#f8f9fa']}
-            style={styles.card}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-        >
-            <View style={styles.cardHeader}>
-                <Text style={styles.timeBadge}>
-                    ⏳ {formatTime(timeLeft)} remaining
-                </Text>
-                <View style={styles.progressBar}>
-                    <Animated.View
-                        style={[
-                            styles.progressFill,
-                            { width: `${progress * 100}%` }
-                        ]}
-                    />
-                </View>
-            </View>
-
-            <View style={styles.restaurantInfo}>
-                {/*<Image*/}
-                {/*    source={require('../../../assets/restaurant-placeholder.png')}*/}
-                {/*    style={styles.logo}*/}
-                {/*/>*/}
-                <View>
-                    <Text style={styles.restaurantName}>{order.restaurant}</Text>
-                    <Text style={styles.orderId}>{order.id}</Text>
-                </View>
-            </View>
-
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Order Items</Text>
-                {order.items.map((item, index) => (
-                    <View key={index} style={styles.itemRow}>
-                        <Ionicons name="fast-food" size={16} color={colors.textSecondary} />
-                        <Text style={styles.itemText}>
-                            {item.quantity}x {item.name}
-                        </Text>
-                    </View>
-                ))}
-            </View>
-
-            <View style={styles.detailsContainer}>
-                <View style={styles.detailSection}>
-                    <Ionicons name="location" size={20} color={colors.primary} />
-                    <View style={styles.detailContent}>
-                        <Text style={styles.detailTitle}>Pickup</Text>
-                        <Text style={styles.detailText}>{order.pickup.address}</Text>
-                        <Text style={styles.distanceText}>
-                            {order.pickup.distance} • {order.pickup.time}
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.detailSection}>
-                    <Ionicons name="navigate" size={20} color={colors.success} />
-                    <View style={styles.detailContent}>
-                        <Text style={styles.detailTitle}>Delivery</Text>
-                        <Text style={styles.detailText}>{order.delivery.address}</Text>
-                        <Text style={styles.distanceText}>
-                            {order.delivery.distance} • {order.delivery.time}
-                        </Text>
-                    </View>
-                </View>
-            </View>
-
-            <View style={styles.paymentSection}>
-                <Text style={styles.paymentText}>Earnings: {order.payment}</Text>
-            </View>
-
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    style={[styles.button, styles.rejectButton]}
-                    onPress={() => onReject(order.id)}
-                >
-                    <Ionicons name="close" size={20} color="white" />
-                    <Text style={styles.buttonText}>Reject</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.button, styles.acceptButton]}
-                    onPress={() => onAccept(order.id)}
-                >
-                    <Ionicons name="checkmark" size={20} color="white" />
-                    <Text style={styles.buttonText}>Accept</Text>
-                </TouchableOpacity>
-            </View>
-        </LinearGradient>
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity onPress={fetchRequests}>
+          <Text style={styles.retryText}>Try Again</Text>
         </TouchableOpacity>
-
+      </View>
     );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Assignment Requests</Text>
+          <View style={styles.notificationBadge}>
+            <Text style={styles.badgeText}>{requests.length}</Text>
+          </View>
+        </View>
+
+        {requests.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="fast-food" size={48} color={colors.borders} />
+            <Text style={styles.emptyText}>No active requests</Text>
+          </View>
+        ) : (
+          requests.map((request) => (
+            <RequestCard
+              key={request._id}
+              request={request}
+              onRespond={handleResponse}
+              onViewDetail={() => navigateToDetail(request)}
+            />
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
 };
 
+// Update the RequestCard component with additional user and order info
+const RequestCard = ({ request, onRespond, onViewDetail }) => {
+  return (
+    <TouchableOpacity onPress={onViewDetail}>
+      <LinearGradient
+        colors={["#ffffff", "#f8f9fa"]}
+        style={styles.card}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        {/* User Information Section */}
+        <View style={styles.userSection}>
+          <Ionicons name="person-circle" size={24} color={colors.primary} />
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{request.order.user.name}</Text>
+            <Text style={styles.userContact}>{request.order.user.phone}</Text>
+            <Text style={styles.userAddress}>
+              {request.order.deliveryAddress}
+            </Text>
+          </View>
+        </View>
+
+        {/* Restaurant Information */}
+        <View style={styles.restaurantInfo}>
+          <View style={styles.restaurantHeader}>
+            <Text style={styles.restaurantName}>
+              {request.order.restaurant.name}
+            </Text>
+            <Text style={styles.orderId}>
+              Order #: {request.order._id.slice(0, 7)}
+            </Text>
+          </View>
+          <View style={styles.restaurantDetails}>
+            <Ionicons name="location" size={16} color={colors.textSecondary} />
+            <Text style={styles.restaurantAddress}>
+              {request.order.restaurant.address.address}
+            </Text>
+          </View>
+        </View>
+
+        {/* Order Items Preview */}
+        <View style={styles.itemsSection}>
+          <Text style={styles.sectionTitle}>Order Items</Text>
+          {request.order.items.slice(0, 2).map((item, index) => (
+            <View key={index} style={styles.itemPreview}>
+              <Text style={styles.itemName}>
+                {item.quantity}x {item.name}
+              </Text>
+              <Text style={styles.itemPrice}>
+                ₹{item.price * item.quantity}
+              </Text>
+            </View>
+          ))}
+          {request.order.items.length > 2 && (
+            <Text style={styles.moreItemsText}>
+              + {request.order.items.length - 2} more items
+            </Text>
+          )}
+        </View>
+
+        {/* Order Meta Information */}
+        <View style={styles.metaSection}>
+          <View style={styles.metaItem}>
+            <Ionicons name="time" size={16} color={colors.textSecondary} />
+            <Text style={styles.metaText}>
+              {new Date(request.order.createdAt).toLocaleTimeString()}
+            </Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Ionicons name="calendar" size={16} color={colors.textSecondary} />
+            <Text style={styles.metaText}>
+              {new Date(request.order.createdAt).toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.button, styles.rejectButton]}
+            onPress={() => onRespond(request._id, false)}
+          >
+            <Ionicons name="close" size={20} color="white" />
+            <Text style={styles.buttonText}>Decline</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.acceptButton]}
+            onPress={() => onRespond(request._id, true)}
+          >
+            <Ionicons name="checkmark" size={20} color="white" />
+            <Text style={styles.buttonText}>Accept</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+};
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.background,
-    },
-    scrollContainer: {
-        padding: 16,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    title: {
-        fontSize: 24,
-        fontFamily: 'Poppins-SemiBold',
-        color: colors.textPrimary,
-    },
-    notificationBadge: {
-        backgroundColor: colors.primary,
-        borderRadius: 12,
-        width: 24,
-        height: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    badgeText: {
-        color: 'white',
-        fontSize: 12,
-        fontFamily: 'Poppins-Medium',
-    },
-    card: {
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 16,
-        elevation: 2,
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-    },
-    cardHeader: {
-        marginBottom: 16,
-    },
-    timeBadge: {
-        color: colors.warning,
-        fontFamily: 'Poppins-Medium',
-        marginBottom: 8,
-    },
-    progressBar: {
-        height: 4,
-        backgroundColor: colors.borders,
-        borderRadius: 2,
-        overflow: 'hidden',
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: colors.warning,
-    },
-    restaurantInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    logo: {
-        width: 48,
-        height: 48,
-        borderRadius: 8,
-        marginRight: 12,
-    },
-    restaurantName: {
-        fontFamily: 'Poppins-SemiBold',
-        fontSize: 16,
-    },
-    orderId: {
-        color: colors.textSecondary,
-        fontSize: 12,
-    },
-    section: {
-        marginBottom: 16,
-    },
-    sectionTitle: {
-        fontFamily: 'Poppins-SemiBold',
-        color: colors.textSecondary,
-        marginBottom: 8,
-    },
-    itemRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 4,
-        gap: 8,
-    },
-    itemText: {
-        color: colors.textPrimary,
-    },
-    detailsContainer: {
-        gap: 12,
-        marginBottom: 16,
-    },
-    detailSection: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    detailContent: {
-        flex: 1,
-    },
-    detailTitle: {
-        fontFamily: 'Poppins-Medium',
-        color: colors.textPrimary,
-    },
-    detailText: {
-        color: colors.textSecondary,
-        fontSize: 14,
-    },
-    distanceText: {
-        color: colors.textTertiary,
-        fontSize: 12,
-        marginTop: 4,
-    },
-    paymentSection: {
-        borderTopWidth: 1,
-        borderTopColor: colors.borders,
-        paddingTop: 16,
-        marginBottom: 16,
-    },
-    paymentText: {
-        fontFamily: 'Poppins-SemiBold',
-        color: colors.success,
-        textAlign: 'center',
-    },
-    buttonContainer: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    button: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 14,
-        borderRadius: 12,
-        gap: 8,
-    },
-    acceptButton: {
-        backgroundColor: colors.success,
-    },
-    rejectButton: {
-        backgroundColor: colors.primary,
-    },
-    buttonText: {
-        color: 'white',
-        fontFamily: 'Poppins-Medium',
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        padding: 40,
-    },
-    emptyText: {
-        color: colors.textSecondary,
-        marginTop: 16,
-        fontSize: 16,
-    },
+  cardHeader: {
+    marginBottom: 8,
+  },
+
+
+  logo: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+
+  section: {
+    marginBottom: 16,
+  },
+
+  itemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 4,
+    gap: 8,
+  },
+  itemText: {
+    color: colors.textPrimary,
+  },
+  detailsContainer: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  detailSection: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  detailContent: {
+    flex: 1,
+  },
+  detailTitle: {
+    fontFamily: "Poppins-Medium",
+    color: colors.textPrimary,
+  },
+  detailText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  distanceText: {
+    color: colors.textTertiary,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  paymentSection: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borders,
+    paddingTop: 16,
+    marginBottom: 16,
+  },
+  paymentText: {
+    fontFamily: "Poppins-SemiBold",
+    color: colors.success,
+    textAlign: "center",
+  },
+
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContainer: {
+    padding: 20,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  title: {
+    fontSize: 22,
+    fontFamily: "Poppins-SemiBold",
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
+  },
+  notificationBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    width: 28,
+    height: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 2,
+  },
+  badgeText: {
+    color: "white",
+    fontSize: 14,
+    fontFamily: "Poppins-SemiBold",
+  },
+  card: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    backgroundColor: 'white',
+    elevation: 3,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  userSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borders,
+    paddingBottom: 16,
+  },
+  userInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  userName: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  userContact: {
+    color: colors.primary,
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+  },
+  userAddress: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontFamily: "Poppins-Regular",
+    lineHeight: 18,
+  },
+  restaurantInfo: {
+    marginBottom: 16,
+    gap: 8,
+  },
+  restaurantHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  restaurantName: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 16,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  orderId: {
+    color: colors.textTertiary,
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
+    marginLeft: 8,
+  },
+  restaurantDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.background,
+    padding: 12,
+    borderRadius: 8,
+  },
+  restaurantAddress: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    flex: 1,
+  },
+  itemsSection: {
+    marginVertical: 12,
+    gap: 8,
+  },
+  sectionTitle: {
+    fontFamily: "Poppins-SemiBold",
+    color: colors.textPrimary,
+    fontSize: 15,
+    marginBottom: 8,
+  },
+  itemPreview: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  itemName: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    flex: 1,
+  },
+  itemPrice: {
+    color: colors.success,
+    fontFamily: "Poppins-Medium",
+    fontSize: 14,
+    marginLeft: 12,
+  },
+  moreItemsText: {
+    color: colors.textTertiary,
+    fontSize: 12,
+    fontFamily: "Poppins-Italic",
+    marginTop: 4,
+  },
+  metaSection: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.borders,
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.background,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  metaText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 16,
+  },
+  button: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+    elevation: 2,
+  },
+  acceptButton: {
+    backgroundColor: colors.success,
+    shadowColor: colors.success,
+  },
+  rejectButton: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+  },
+  buttonText: {
+    color: "white",
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 15,
+    letterSpacing: 0.5,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    padding: 40,
+    gap: 16,
+  },
+  emptyText: {
+    color: colors.textSecondary,
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    textAlign: "center",
+  },
 });
 
 export default OrderRequestsScreen;

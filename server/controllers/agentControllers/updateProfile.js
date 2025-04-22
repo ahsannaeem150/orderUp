@@ -1,16 +1,24 @@
 import { userModel } from "../../models/userModel.js";
-import {agentModel} from "../../models/agentModel.js";
+import { agentModel } from "../../models/agentModel.js";
 
 export const updateProfileController = async (req, res) => {
   try {
-    //GET USER ID
+    console.log("HHSHHSAHSA");
     const agentId = req.params.id;
-    //FIND USER
     const agent = await agentModel.findById(agentId);
+
     if (!agent) {
       return res
         .status(404)
         .json({ success: false, message: "agent not found." });
+    }
+
+    if (req.body.location) {
+      agent.location = {
+        lat: req.body.location.lat,
+        lng: req.body.location.lng,
+        updatedAt: new Date(),
+      };
     }
 
     agent.username = req.body.username;
@@ -19,7 +27,7 @@ export const updateProfileController = async (req, res) => {
     agent.address.city = req.body.address.city;
 
     await agent.save();
-
+    console.log(agent);
     return res.status(201).json({
       success: true,
       message: "agent updated successfully.",

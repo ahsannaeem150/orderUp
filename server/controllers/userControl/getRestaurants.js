@@ -5,7 +5,7 @@ export const getRestaurantsController = async (req, res) => {
   try {
     const restaurants = await restaurantModel
       .find()
-      .populate("menu", "_id name price image") // Add this populate
+      .populate("menu", "_id name price image")
       .select("_id name address logo thumbnail phone");
 
     return res.status(200).json({ restaurants });
