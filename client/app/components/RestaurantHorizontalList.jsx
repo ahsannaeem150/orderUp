@@ -50,7 +50,7 @@ const RestaurantHorizontalList = ({ posts, onRestaurantClick }) => {
       horizontal
       keyExtractor={(item) => item._id}
       renderItem={({ item }) => (
-        <ItemCard item={item} onPress={onRestaurantClick} />
+        <ItemCard item={item} onPress={() => [onRestaurantClick(item)]} />
       )}
     />
   );

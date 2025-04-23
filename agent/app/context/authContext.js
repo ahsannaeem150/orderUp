@@ -13,9 +13,7 @@ const AuthProvider = ({ children }) => {
     token: "",
   });
 
-  const appState = useRef(AppState.currentState);
-
-  const ip = "192.168.100.51";
+  const ip = "192.168.43.17";
   const API_URL = `http://${ip}:8080/api`;
   axios.defaults.baseURL = API_URL;
   const [socket, setSocket] = useState(null);
