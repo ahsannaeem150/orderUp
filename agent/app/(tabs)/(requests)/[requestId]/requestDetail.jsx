@@ -1,136 +1,168 @@
-import React, { useState, useEffect } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import {
   View,
   Text,
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
-  Image,
   StyleSheet,
   Dimensions,
-  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker } from "react-native-maps";
 import colors from "../../../../constants/colors";
+import { useRequest } from "../../../context/RequestContext";
+import { AuthContext } from "../../../context/authContext";
 
 const OrderDetailScreen = ({ route }) => {
-  const order = {
-    id: "#REQ2984",
-    restaurant: {
-      name: "Burger Kingdom",
-      contact: "1212112",
-      address: "Hafiz coloney",
-    },
-    customer: {
-      name: "Burger Kingdom",
-      contact: "1212112",
-      address: "Hafiz coloney",
-    },
-    pickup: {
-      address: "12 Food Street, Downtown",
-      distance: "1.2 km",
-      time: "8-10 min",
-    },
-    delivery: {
-      address: "24 Park Avenue",
-      distance: "3.4 km",
-      time: "18-22 min",
-    },
-    payment: "₹185",
-    items: [
-      { name: "Classic Burger", quantity: 2 },
-      { name: "Fries", quantity: 1 },
-      { name: "Coke", quantity: 2 },
-    ],
-    expiresIn: 300, // 5 minutes in seconds
-  };
-  const [timeLeft, setTimeLeft] = useState(order.expiresIn);
-  const mapHeight = Dimensions.get("window").height * 0.35;
+  const { state } = useContext(AuthContext);
+  const { currentRequest } = useRequest();
+  const mapRef = useRef(null);
 
+  const mapHeight = Dimensions.get("window").height * 0.5;
+
+  console.log("Agent location:", state.agent?.location);
+  console.log(
+    "Restaurant location:",
+    currentRequest.order?.restaurant?.location
+  );
+  console.log("Customer location:", currentRequest?.order?.user?.location);
+
+  useEffect(() => {
+    if (mapRef.current && currentRequest?.order) {
+      const coordinates = [];
+
+      // Agent location
+      if (state.agent?.location?.lat && state.agent?.location?.lng) {
+        coordinates.push({
+          latitude: state.agent.location.lat,
+          longitude: state.agent.location.lng,
+        });
+      }
+
+      // Restaurant location
+      const restaurantLocation = currentRequest.order.restaurant?.location;
+      if (restaurantLocation?.lat && restaurantLocation?.lng) {
+        coordinates.push({
+          latitude: restaurantLocation.lat,
+          longitude: restaurantLocation.lng,
+        });
+      }
+
+      // Customer location
+      const userLocation = currentRequest.order.user?.location;
+      if (userLocation?.lat && userLocation?.lng) {
+        coordinates.push({
+          latitude: userLocation.lat,
+          longitude: userLocation.lng,
+        });
+      }
+
+      // Adjust map to show all markers
+      if (coordinates.length > 0) {
+        mapRef.current.fitToCoordinates(coordinates, {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+          animated: true,
+        });
+      }
+    }
+  }, [state.agent?.location, currentRequest?.order]);
   const initialRegion = {
-    latitude: 28.7041,
-    longitude: 77.1025,
+    latitude: currentRequest?.order?.restaurant?.location?.lat || 28.7041,
+    longitude: currentRequest?.order?.restaurant?.location?.lng || 77.1025,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   };
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  if (!currentRequest) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
+  const { order } = currentRequest;
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Map Section */}
         <View style={[styles.mapContainer, { height: mapHeight }]}>
           <MapView
+            ref={mapRef}
             style={styles.map}
             initialRegion={initialRegion}
-            showsUserLocation
+            showsUserLocation={false}
             showsMyLocationButton
           >
-            <Marker
-              coordinate={{ latitude: 28.7041, longitude: 77.1025 }}
-              title="Restaurant"
-            >
-              <View style={styles.marker}>
-                <Ionicons name="restaurant" size={20} color="white" />
-              </View>
-            </Marker>
+            {/* Agent Marker */}
+            {state.agent?.location?.lat && state.agent?.location?.lng && (
+              <Marker
+                coordinate={{
+                  latitude: state.agent.location.lat,
+                  longitude: state.agent.location.lng,
+                }}
+                title="Your Location"
+              >
+                <View style={styles.marker}>
+                  <Ionicons name="navigate" size={20} color="white" />
+                </View>
+              </Marker>
+            )}
 
-            <Marker
-              coordinate={{ latitude: 28.7289, longitude: 77.1077 }}
-              title="Customer"
-            >
-              <View style={styles.marker}>
-                <Ionicons name="person" size={20} color="white" />
-              </View>
-            </Marker>
+            {/* Restaurant Marker */}
+            {currentRequest?.order?.restaurant?.location?.lat &&
+              currentRequest.order.restaurant.location.lng && (
+                <Marker
+                  coordinate={{
+                    latitude: currentRequest.order.restaurant.location.lat,
+                    longitude: currentRequest.order.restaurant.location.lng,
+                  }}
+                  title="Restaurant"
+                >
+                  <View style={styles.marker}>
+                    <Ionicons name="restaurant" size={20} color="white" />
+                  </View>
+                </Marker>
+              )}
+
+            {/* Customer Marker */}
+            {currentRequest?.order?.user?.location?.lat &&
+              currentRequest.order.user.location.lng && (
+                <Marker
+                  coordinate={{
+                    latitude: currentRequest.order.user.location.lat,
+                    longitude: currentRequest.order.user.location.lng,
+                  }}
+                  title="Customer"
+                >
+                  <View style={styles.marker}>
+                    <Ionicons name="person" size={20} color="white" />
+                  </View>
+                </Marker>
+              )}
           </MapView>
-
-          <View style={styles.timeBadge}>
-            <Ionicons name="time" size={16} color={colors.warning} />
-            <Text style={styles.timeText}>
-              {formatTime(timeLeft)} remaining
-            </Text>
-          </View>
         </View>
 
         {/* Order Details */}
         <View style={styles.detailsContainer}>
           <DetailSection title="Restaurant Details" icon="restaurant">
             <DetailRow icon="storefront" text={order.restaurant.name} />
-            <DetailRow icon="location" text={order.restaurant.address} />
-            <DetailRow icon="call" text={order.restaurant.contact} />
             <DetailRow
-              icon="time"
-              text={`${order.pickup.distance} • ${order.pickup.time}`}
+              icon="location"
+              text={order.restaurant.address.address}
             />
+            <DetailRow icon="call" text={order.restaurant.phone} />
           </DetailSection>
 
           <DetailSection title="Customer Details" icon="person">
-            <DetailRow icon="person" text={order.customer.name} />
-            <DetailRow icon="home" text={order.customer.address} />
-            <DetailRow icon="call" text={order.customer.contact} />
-            <DetailRow
-              icon="navigate"
-              text={`${order.delivery.distance} • ${order.delivery.time}`}
-            />
-
-            {order.customer.notes && (
+            <DetailRow icon="person" text={order.user.name} />
+            <DetailRow icon="home" text={order.deliveryAddress} />
+            <DetailRow icon="call" text={order.user.phone} />
+            {order.notes && (
               <View style={styles.noteContainer}>
                 <Ionicons name="warning" size={16} color={colors.warning} />
-                <Text style={styles.noteText}>{order.customer.notes}</Text>
+                <Text style={styles.noteText}>{order.notes}</Text>
               </View>
             )}
           </DetailSection>
@@ -141,20 +173,13 @@ const OrderDetailScreen = ({ route }) => {
                 <Text style={styles.itemName}>
                   {item.quantity}x {item.name}
                 </Text>
-                <Text style={styles.itemPrice}>
-                  ₹{item.price * item.quantity}
-                </Text>
+                <Text style={styles.itemPrice}>Rs {item.total}</Text>
               </View>
             ))}
 
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Delivery Fee</Text>
-              <Text style={styles.totalValue}>₹{order.deliveryFee}</Text>
-            </View>
-
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total Earnings</Text>
-              <Text style={styles.totalValue}>₹{order.payment.total}</Text>
+              <Text style={styles.totalLabel}>Total Amount</Text>
+              <Text style={styles.totalValue}>Rs {order.totalAmount}</Text>
             </View>
           </DetailSection>
         </View>
@@ -368,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.success,
   },
   rejectButton: {
-    backgroundColor: colors.error,
+    backgroundColor: colors.primary,
   },
   buttonText: {
     color: "white",

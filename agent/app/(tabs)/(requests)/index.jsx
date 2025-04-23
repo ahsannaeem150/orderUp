@@ -14,9 +14,11 @@ import colors from "../../../constants/colors";
 import { router } from "expo-router";
 import axios from "axios";
 import { AuthContext } from "../../context/authContext";
+import { useRequest } from "../../context/RequestContext";
 
 const OrderRequestsScreen = () => {
   const { socket, state } = useContext(AuthContext);
+  const { currentRequest, setCurrentRequest } = useRequest();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,7 +27,6 @@ const OrderRequestsScreen = () => {
     try {
       const response = await axios.get(`/agent/${state.agent._id}/requests`);
       setRequests(response.data.requests);
-      console.log(response.data.requests);
       setError(null);
     } catch (err) {
       setError("Failed to load requests");
@@ -72,9 +73,9 @@ const OrderRequestsScreen = () => {
   };
 
   const navigateToDetail = (request) => {
+    setCurrentRequest(request);
     router.push({
       pathname: "(requests)/requestDetail",
-      params: { requestId: request._id },
     });
   };
 
@@ -176,7 +177,7 @@ const RequestCard = ({ request, onRespond, onViewDetail }) => {
                 {item.quantity}x {item.name}
               </Text>
               <Text style={styles.itemPrice}>
-                ₹{item.price * item.quantity}
+                Rs {item.price * item.quantity}
               </Text>
             </View>
           ))}
@@ -229,7 +230,6 @@ const styles = StyleSheet.create({
   cardHeader: {
     marginBottom: 8,
   },
-
 
   logo: {
     width: 48,
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     elevation: 3,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },

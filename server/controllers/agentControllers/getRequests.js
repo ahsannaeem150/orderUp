@@ -1,8 +1,4 @@
 import { agentModel } from "../../models/agentModel.js";
-import { orderModel } from "../../models/orderModel.js";
-import { restaurantModel } from "../../models/restaurantModel.js";
-import { imageModel } from "../../models/imageModel.js";
-import { userModel } from "../../models/userModel.js"; // Add user model import
 
 export const getRequestsController = async (req, res) => {
   try {
@@ -19,28 +15,15 @@ export const getRequestsController = async (req, res) => {
             populate: [
               {
                 path: "restaurant",
-                populate: {
-                  path: "logo",
-                  model: imageModel,
-                },
+                select: "name phone address location logo",
               },
               {
                 path: "items.itemId",
                 select: "name price image",
-                populate: {
-                  path: "image",
-                  model: imageModel,
-                },
               },
-              // Add user population
               {
                 path: "user",
-                select: "name phone profilePicture",
-                populate: {
-                  path: "profilePicture",
-                  model: imageModel,
-                  select: "url",
-                },
+                select: "name phone address profilePicture location",
               },
             ],
           },
@@ -66,19 +49,23 @@ export const getRequestsController = async (req, res) => {
           restaurant: {
             _id: order.restaurant._id,
             name: order.restaurant.name,
+            phone: order.restaurant.phone,
+            location: order.restaurant.location,
             address: order.restaurant.address,
-            logo: order.restaurant.logo?.url || null,
+            logo: order.restaurant.logo || null,
           },
           user: {
             _id: order.user._id,
             name: order.user.name,
             phone: order.user.phone,
-            profilePicture: order.user.profilePicture?.url || null,
+            location: order.user.location,
+            address: order.user.address,
+            profilePicture: order.user.profilePicture || null,
           },
           items: order.items.map((item) => ({
             name: item.itemId.name,
             price: item.itemId.price,
-            image: item.itemId.image?.url || null,
+            image: item.itemId.image || null,
             quantity: item.quantity,
             total: item.itemId.price * item.quantity,
           })),
