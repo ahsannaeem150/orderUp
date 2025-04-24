@@ -1,0 +1,25 @@
+{
+  "cli": {
+    "version": ">= 16.3.2",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk" // 🚨 Add this to generate APK
+      },
+      "ios": {} // Optional (keep if you need iOS builds)
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

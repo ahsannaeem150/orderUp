@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Restaurant",
+    "name": "ResUP",
     "slug": "restaurant",
     "scheme": "restaurant",
     "version": "1.0.0",
@@ -25,9 +25,15 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-router",
-      "expo-font"
-    ]
+    "plugins": ["expo-router", "expo-font"],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "3fc2f8aa-4a14-4dce-8b12-5ed586804731"
+      }
+    },
+    "owner": "ahsannaeem002x"
   }
 }

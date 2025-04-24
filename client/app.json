@@ -19,7 +19,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.ahsannaeem002x.orderup"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -27,6 +28,15 @@
     "plugins": [
       "expo-router",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "76fb2d1d-0b2f-4bc2-8772-7e083f8887ac"
+      }
+    },
+    "owner": "ahsannaeem002x"
   }
 }

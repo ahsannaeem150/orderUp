@@ -74,9 +74,7 @@ const OrderRequestsScreen = () => {
 
   const navigateToDetail = (request) => {
     setCurrentRequest(request);
-    router.push({
-      pathname: "(requests)/requestDetail",
-    });
+    router.push("(requests)/requestDetail");
   };
 
   if (loading) {
