@@ -44,7 +44,7 @@ const MenuItemsScreen = () => {
 
   const handlePress = (item) => {
     if (!item?._id) return;
-    console.log(item);
+
     router.push(`/(home)/${currentRestaurant._id}/${item._id}/itemIndex`);
   };
   const renderMenuItem = ({ item }) => {

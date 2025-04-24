@@ -12,7 +12,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { AuthContext } from "../../../../context/authContext";
-import StarRating from "react-native-star-rating-widget";
+import { Rating } from "react-native-ratings";
 import axios from "axios";
 import { useFetchReviews } from "../../../../hooks/useFetchItemReviews";
 import { images } from "../../../../../constants";
@@ -140,15 +140,16 @@ const ItemDetailsScreen = () => {
             {item.userId?.name || "Anonymous User"}
           </Text>
           <View style={styles.ratingTimeContainer}>
-            {/* <StarRating
-              rating={Math.round(item.rating)}
-              starSize={14}
-              onChange={() => {}}
-              starStyle={{ color: colors.highlight }}
-              enableHalfStar
-              animationConfig={{ scale: 1 }}
+            <Rating
+              type="star"
+              ratingCount={5}
+              startingValue={item.rating}
+              imageSize={14}
+              readonly
+              ratingColor={colors.highlight}
+              ratingBackgroundColor={colors.borders}
               style={styles.stars}
-            /> */}
+            />
             <Text style={styles.reviewTime}>
               {new Date(item.createdAt).toLocaleDateString("en-US", {
                 month: "short",
@@ -218,14 +219,17 @@ const ItemDetailsScreen = () => {
           <Text style={styles.description}>{currentItem.description}</Text>
 
           <View style={styles.ratingContainer}>
-            {/* <StarRating
-              rating={Math.round(averageRating)}
-              starSize={24}
-              onChange={() => {}}
-              starStyle={{ color: colors.highlight }}
-              animationConfig={{ scale: 1 }}
+            <Rating
+              type="star"
+              ratingCount={5}
+              startingValue={averageRating}
+              imageSize={24}
+              readonly
+              showRating={false}
+              ratingColor={colors.highlight}
+              ratingBackgroundColor={colors.borders}
               style={styles.stars}
-            /> */}
+            />
             <Text style={styles.ratingText}>
               {averageRating} ({reviews?.length} reviews)
             </Text>
@@ -302,17 +306,16 @@ const ItemDetailsScreen = () => {
 
             <Text style={styles.modalTitle}>How was your experience?</Text>
 
-            {/* <StarRating
-              rating={rating}
-              onChange={(rating) => {
-                setRating(Math.round(rating));
-              }}
-              starSize={32}
-              enableHalfStar
-              starStyle={{ color: colors.highlight }}
-              animationConfig={{ scale: 1 }}
+            <Rating
+              type="star"
+              ratingCount={5}
+              startingValue={rating}
+              imageSize={32}
+              onFinishRating={(value) => setRating(value)}
+              ratingColor={colors.highlight}
+              ratingBackgroundColor={colors.errorText}
               style={styles.modalStars}
-            /> */}
+            />
 
             <TextInput
               style={styles.input}
