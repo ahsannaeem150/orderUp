@@ -7,6 +7,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/76fb2d1d-0b2f-4bc2-8772-7e083f8887ac"
+    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -37,6 +41,9 @@
         "projectId": "76fb2d1d-0b2f-4bc2-8772-7e083f8887ac"
       }
     },
-    "owner": "ahsannaeem002x"
+    "owner": "ahsannaeem002x",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }

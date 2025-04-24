@@ -25,7 +25,10 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-router", "expo-font"],
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
     "extra": {
       "router": {
         "origin": false
@@ -34,6 +37,12 @@
         "projectId": "3fc2f8aa-4a14-4dce-8b12-5ed586804731"
       }
     },
-    "owner": "ahsannaeem002x"
+    "owner": "ahsannaeem002x",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3fc2f8aa-4a14-4dce-8b12-5ed586804731"
+    }
   }
 }

@@ -17,8 +17,6 @@ import axios from "axios";
 import { useFetchReviews } from "../../../../hooks/useFetchItemReviews";
 import { images } from "../../../../../constants";
 import { router, useLocalSearchParams } from "expo-router";
-import { useFetchItems } from "../../../../hooks/useFetchItems";
-import RelatedItemsList from "../../../../components/RelatedItemsList";
 import PageHeader from "../../../../components/PageHeader";
 import { Ionicons } from "@expo/vector-icons";
 import { useItems } from "../../../../context/ItemContext";
@@ -142,7 +140,7 @@ const ItemDetailsScreen = () => {
             {item.userId?.name || "Anonymous User"}
           </Text>
           <View style={styles.ratingTimeContainer}>
-            <StarRating
+            {/* <StarRating
               rating={Math.round(item.rating)}
               starSize={14}
               onChange={() => {}}
@@ -150,7 +148,7 @@ const ItemDetailsScreen = () => {
               enableHalfStar
               animationConfig={{ scale: 1 }}
               style={styles.stars}
-            />
+            /> */}
             <Text style={styles.reviewTime}>
               {new Date(item.createdAt).toLocaleDateString("en-US", {
                 month: "short",
@@ -220,14 +218,14 @@ const ItemDetailsScreen = () => {
           <Text style={styles.description}>{currentItem.description}</Text>
 
           <View style={styles.ratingContainer}>
-            <StarRating
+            {/* <StarRating
               rating={Math.round(averageRating)}
               starSize={24}
               onChange={() => {}}
               starStyle={{ color: colors.highlight }}
               animationConfig={{ scale: 1 }}
               style={styles.stars}
-            />
+            /> */}
             <Text style={styles.ratingText}>
               {averageRating} ({reviews?.length} reviews)
             </Text>
@@ -304,7 +302,7 @@ const ItemDetailsScreen = () => {
 
             <Text style={styles.modalTitle}>How was your experience?</Text>
 
-            <StarRating
+            {/* <StarRating
               rating={rating}
               onChange={(rating) => {
                 setRating(Math.round(rating));
@@ -314,7 +312,7 @@ const ItemDetailsScreen = () => {
               starStyle={{ color: colors.highlight }}
               animationConfig={{ scale: 1 }}
               style={styles.modalStars}
-            />
+            /> */}
 
             <TextInput
               style={styles.input}
