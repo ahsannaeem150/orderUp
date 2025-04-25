@@ -7,10 +7,12 @@ import mongoose from "mongoose";
 
 const setupChangeStream = async (io) => {
   try {
+    console.log("Attempting to start change stream");
     const changeStream = orderModel.watch([], {
       fullDocument: "updateLookup",
       readPreference: "primary",
     });
+    console.log("Change stream initialized successfully");
 
     changeStream.on("change", async (change) => {
       try {
@@ -31,6 +33,7 @@ const setupChangeStream = async (io) => {
         switch (change.operationType) {
           case "insert":
             io.of("/restaurant").to(restaurantId).emit("order-created", order);
+            io.of("/user").to(userId).emit("order-created", order);
             break;
 
           case "update":
@@ -177,6 +180,10 @@ const socketIoSetup = (server) => {
 
         await session.commitTransaction();
 
+        if (accept) {
+          await cleanupAssignmentRequests(orderId, io);
+        }
+
         // Notify Restaurant
         io.of("/restaurant")
           .to(order.restaurant.toString())
@@ -313,9 +320,14 @@ const socketIoSetup = (server) => {
           return socket.emit("order-error", "Invalid order update");
         }
         order.status = status;
+
+        if (["Completed", "Cancelled", "OutForDelivery"].includes(status)) {
+          await cleanupAssignmentRequests(orderId, io);
+        }
         if (["Completed", "Cancelled"].includes(status)) {
           if (status === "Completed") order.completedAt = Date.now();
           if (status === "Cancelled") order.cancelledAt = Date.now();
+
           // Move to history
           const historyOrder = new OrderHistoryModel(order.toObject());
           await historyOrder.save();
@@ -404,6 +416,34 @@ const socketIoSetup = (server) => {
   });
 
   return io;
+};
+
+const cleanupAssignmentRequests = async (orderId, io) => {
+  const order = await orderModel.findById(orderId).lean();
+  if (!order) return;
+
+  // Find all pending agent requests for this order
+  const pendingRequests = order.agentRequests.filter(
+    (req) => req.status === "Pending"
+  );
+
+  // Update all affected agents
+  for (const request of pendingRequests) {
+    await agentModel.updateOne(
+      { _id: request.agent, "assignmentRequests.order": orderId },
+      {
+        $set: {
+          "assignmentRequests.$.status": "Rejected",
+          "assignmentRequests.$.respondedAt": new Date(),
+        },
+      }
+    );
+
+    // Notify agents through socket
+    io.of("/agent")
+      .to(request.agent.toString())
+      .emit("assignment-request-removed", { orderId });
+  }
 };
 
 export default socketIoSetup;

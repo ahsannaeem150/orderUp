@@ -48,10 +48,16 @@ const OrderRequestsScreen = () => {
       );
     };
 
+    const handleRequestRemoval = ({ orderId }) => {
+      setRequests((prev) => prev.filter((req) => req.order._id !== orderId));
+    };
+
+    socket.on("assignment-request-removed", handleRequestRemoval);
     socket.on("new-assignment-request", handleNewRequest);
     socket.on("assignment-request-updated", handleRequestUpdate);
 
     return () => {
+      socket.off("assignment-request-removed", handleRequestRemoval);
       socket.off("new-assignment-request", handleNewRequest);
       socket.off("assignment-request-updated", handleRequestUpdate);
     };
@@ -68,7 +74,7 @@ const OrderRequestsScreen = () => {
       setRequests((prev) => prev.filter((req) => req._id !== requestId));
     } catch (err) {
       Alert.alert("Error", "Failed to submit response");
-      fetchRequests(); // Refresh on error
+      fetchRequests();
     }
   };
 

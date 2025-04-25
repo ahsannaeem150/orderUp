@@ -53,7 +53,6 @@ const checkout = () => {
       setIsCheckingOut(true);
       const userId = state.user._id;
 
-      // Exclude images from the cart
       const sanitizedCart = cart.map((restaurantCart) => ({
         restaurant: {
           _id: restaurantCart.restaurant._id,
@@ -76,11 +75,11 @@ const checkout = () => {
         address,
         notes,
         cart: sanitizedCart,
-        estimatedDeliveryTime, // Or calculate dynamically
+        estimatedDeliveryTime,
       });
 
       alert("Order placed successfully!");
-        setCart([]);
+      setCart([]);
 
       router.dismissAll();
       router.replace("(orders)");
