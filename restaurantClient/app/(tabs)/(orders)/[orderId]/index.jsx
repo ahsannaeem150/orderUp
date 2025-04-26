@@ -17,6 +17,7 @@ import { AuthContext } from "../../../context/authContext";
 import colors from "../../../../constants/colors";
 import { images } from "../../../../constants";
 import { TextInput, FlatList } from "react-native";
+import { KeyboardAvoidingView, Platform } from "react-native";
 
 const RestaurantOrderDetailScreen = () => {
   const { orderId, isHistorical } = useLocalSearchParams();
@@ -246,364 +247,383 @@ const RestaurantOrderDetailScreen = () => {
   const progress = Math.max(0, (currentStatusIndex + 1) / statusFlow.length);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Status Banner */}
-      {isHistoricalOrder && (
-        <View
-          style={[
-            styles.statusBanner,
-            { backgroundColor: colors[order.status] + "20" },
-          ]}
-        >
-          <Ionicons
-            name={
-              order.status === "Cancelled" ? "close-circle" : "checkmark-done"
-            }
-            size={24}
-            color={colors[order.status]}
-          />
-          <Text
-            style={[styles.statusBannerText, { color: colors[order.status] }]}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {isHistoricalOrder && (
+          <View
+            style={[
+              styles.statusBanner,
+              { backgroundColor: colors[order.status] + "20" },
+            ]}
           >
-            {order.status}
-            {order.cancelledAt &&
-              ` • ${new Date(order.cancelledAt).toLocaleDateString()}`}
-          </Text>
-        </View>
-      )}
-
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Details</Text>
-        <Text style={styles.orderNumber}>
-          #{order?._id?.slice(-6).toUpperCase()}
-        </Text>
-      </View>
-
-      {/* Preparation Progress */}
-      {!isHistoricalOrder && (
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View
-              style={[styles.progressFill, { width: `${progress * 100}%` }]}
+            <Ionicons
+              name={
+                order.status === "Cancelled" ? "close-circle" : "checkmark-done"
+              }
+              size={24}
+              color={colors[order.status]}
             />
-          </View>
-          <View style={styles.milestoneContainer}>
-            {statusFlow.map((status, index) => (
-              <View key={status} style={styles.milestone}>
-                <View
-                  style={[
-                    styles.milestoneDot,
-                    index <= currentStatusIndex && styles.activeMilestone,
-                  ]}
-                >
-                  {index <= currentStatusIndex && (
-                    <Ionicons
-                      name="checkmark"
-                      size={12}
-                      color={colors.textInverted}
-                    />
-                  )}
-                </View>
-                <Text
-                  style={[
-                    styles.milestoneText,
-                    index <= currentStatusIndex && styles.activeMilestoneText,
-                  ]}
-                >
-                  {status}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {/* Order Summary Card */}
-      <View style={styles.card}>
-        <View style={styles.summaryRow}>
-          <Ionicons name="calendar" size={20} color={colors.textSecondary} />
-          <Text style={styles.summaryText}>
-            {new Date(order.createdAt).toLocaleDateString()}
-          </Text>
-          <Ionicons
-            name="time"
-            size={20}
-            color={colors.textSecondary}
-            style={styles.summaryIcon}
-          />
-          <Text style={styles.summaryText}>
-            {new Date(order.createdAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Customer:</Text>
-          <Text style={styles.infoValue}>{order?.user?.name}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Contact:</Text>
-          <TouchableOpacity onPress={handleContactCustomer}>
-            <Text style={[styles.infoValue, { color: colors.primary }]}>
-              {order?.user?.phone}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {order.orderType === "Delivery" && (
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Delivery Address:</Text>
-            <Text style={styles.infoValue}>
-              {order.deliveryAddress.address}
+            <Text
+              style={[styles.statusBannerText, { color: colors[order.status] }]}
+            >
+              {order.status}
+              {order.cancelledAt &&
+                ` • ${new Date(order.cancelledAt).toLocaleDateString()}`}
             </Text>
           </View>
         )}
-      </View>
-
-      {/* Order Items */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Order Items</Text>
-        {order?.items?.map((item, index) => (
-          <View key={index} style={styles.itemContainer}>
-            <View style={styles.itemDetails}>
-              <Text style={styles.itemName}>{item.name}</Text>
-            </View>
-            <Text style={styles.itemQuantity}>{item.quantity}x</Text>
-            <View
-              style={{
-                flex: 2,
-                justifyContent: "flex-end",
-                alignSelf: "center",
-              }}
-            >
-              <Text style={styles.itemPrice}>
-                Rs{(item.price * item.quantity).toFixed(2)}
-              </Text>
-            </View>
-          </View>
-        ))}
-
-        <View style={styles.totalContainer}>
-          <View style={[styles.totalRow, styles.grandTotal]}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>
-              Rs{order.totalAmount?.toFixed(2)}
-            </Text>
-          </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Order Details</Text>
+          <Text style={styles.orderNumber}>
+            #{order?._id?.slice(-6).toUpperCase()}
+          </Text>
         </View>
-      </View>
-
-      {["Preparing", "Ready"].includes(order.status) && (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Assign Delivery Agent</Text>
-
-          {/* Current assignment status */}
-          {order.agent ? (
-            <View style={styles.assignmentStatus}>
-              <Text style={styles.agentName}>
-                Assigned Agent: {order.agent.username}
-              </Text>
-              {order.status === "Out for Delivery" && (
-                <Text style={styles.statusText}>En Route to Customer</Text>
-              )}
+        {/* Preparation Progress */}
+        {!isHistoricalOrder && (
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View
+                style={[styles.progressFill, { width: `${progress * 100}%` }]}
+              />
             </View>
-          ) : order.agentRequests?.length > 0 ? (
-            <View style={styles.pendingRequests}>
-              <Text style={styles.sectionHeader}>Pending Requests:</Text>
-              {order.agentRequests.map((request) => (
-                <View key={request.agent._id} style={styles.requestItem}>
-                  <Text style={styles.agentName}>{request.agent.username}</Text>
-                  <Text
+            <View style={styles.milestoneContainer}>
+              {statusFlow.map((status, index) => (
+                <View key={status} style={styles.milestone}>
+                  <View
                     style={[
-                      styles.requestStatus,
-                      request.status === "Pending" && styles.pendingStatus,
-                      request.status === "Accepted" && styles.acceptedStatus,
-                      request.status === "Rejected" && styles.rejectedStatus,
+                      styles.milestoneDot,
+                      index <= currentStatusIndex && styles.activeMilestone,
                     ]}
                   >
-                    {request.status}{" "}
-                    {request.status === "Pending" && "(Waiting response)"}
+                    {index <= currentStatusIndex && (
+                      <Ionicons
+                        name="checkmark"
+                        size={12}
+                        color={colors.textInverted}
+                      />
+                    )}
+                  </View>
+                  <Text
+                    style={[
+                      styles.milestoneText,
+                      index <= currentStatusIndex && styles.activeMilestoneText,
+                    ]}
+                  >
+                    {status}
                   </Text>
                 </View>
               ))}
             </View>
-          ) : (
-            <>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search available agents..."
-                placeholderTextColor={colors.textSecondary}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-
-              {searchLoading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                </View>
-              ) : (
-                <FlatList
-                  scrollEnabled={false}
-                  data={agents}
-                  keyExtractor={(item) => item._id}
-                  renderItem={({ item }) => (
-                    <View style={styles.agentCard}>
-                      <Image
-                        source={{
-                          uri: item.profilePicture
-                            ? `${API_URL}/images/${item.profilePicture}`
-                            : images.avatarPlaceholder,
-                        }}
-                        style={styles.agentAvatar}
-                      />
-                      <View style={styles.agentInfo}>
-                        <Text style={styles.agentName}>
-                          {item.firstName} {item.lastName}
-                        </Text>
-                        <Text style={styles.agentDetails}>
-                          @{item.username}
-                        </Text>
-                        <View style={styles.agentMeta}>
-                          <Text style={styles.agentDistance}>
-                            {Math.round(item.distance * 10) / 10} km away
-                          </Text>
-                          <Text style={styles.agentWorkload}>
-                            • Active Orders: {item.ordersAssigned?.length || 0}
-                          </Text>
-                        </View>
-                      </View>
-                      <TouchableOpacity
-                        style={[
-                          styles.requestButton,
-                          item.hasPendingRequest && styles.pendingButton,
-                        ]}
-                        onPress={() => handleSendAssignmentRequest(item._id)}
-                        disabled={isAssigning || item.hasPendingRequest}
-                      >
-                        <Text style={styles.requestButtonText}>
-                          {item.hasPendingRequest
-                            ? "Request Sent"
-                            : "Send Request"}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  ListEmptyComponent={
-                    <Text style={styles.noResultsText}>
-                      {searchQuery
-                        ? "No agents found"
-                        : "Search for available agents"}
-                    </Text>
-                  }
-                />
-              )}
-            </>
-          )}
-        </View>
-      )}
-      {/* Restaurant Actions */}
-      {!isHistoricalOrder && (
+          </View>
+        )}
+        {/* Order Summary Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Order Management</Text>
+          <View style={styles.summaryRow}>
+            <Ionicons name="calendar" size={20} color={colors.textSecondary} />
+            <Text style={styles.summaryText}>
+              {new Date(order.createdAt).toLocaleDateString()}
+            </Text>
+            <Ionicons
+              name="time"
+              size={20}
+              color={colors.textSecondary}
+              style={styles.summaryIcon}
+            />
+            <Text style={styles.summaryText}>
+              {new Date(order.createdAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+          </View>
 
-          {order.status === "Pending" && (
-            <>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.acceptButton]}
-                onPress={handleAcceptWithTime}
-                disabled={!!processingType}
-              >
-                {processingType === "accept" ? (
-                  <ActivityIndicator color={colors.textInverted} />
-                ) : (
-                  <>
-                    <Ionicons
-                      name="checkmark"
-                      size={20}
-                      color={colors.textInverted}
-                    />
-                    <Text style={styles.actionButtonText}>Accept Order</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+          <View style={styles.divider} />
 
-              <TouchableOpacity
-                style={[styles.actionButton, styles.rejectButton]}
-                onPress={() => handleStatusUpdate("Cancelled")}
-                disabled={!!processingType}
-              >
-                {processingType === "cancelled" ? (
-                  <ActivityIndicator color={colors.textInverted} />
-                ) : (
-                  <>
-                    <Ionicons
-                      name="close"
-                      size={20}
-                      color={colors.textInverted}
-                    />
-                    <Text style={styles.actionButtonText}>Reject Order</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </>
-          )}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Customer:</Text>
+            <Text style={styles.infoValue}>{order?.user?.name}</Text>
+          </View>
 
-          {order.status === "Preparing" && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.readyButton]}
-              onPress={() => handleStatusUpdate("Ready")}
-              disabled={!!processingType}
-            >
-              {processingType === "ready" ? (
-                <ActivityIndicator color={colors.textInverted} />
-              ) : (
-                <>
-                  <Ionicons
-                    name="fast-food"
-                    size={20}
-                    color={colors.textInverted}
-                  />
-                  <Text style={styles.actionButtonText}>Mark as Ready</Text>
-                </>
-              )}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Contact:</Text>
+            <TouchableOpacity onPress={handleContactCustomer}>
+              <Text style={[styles.infoValue, { color: colors.primary }]}>
+                {order?.user?.phone}
+              </Text>
             </TouchableOpacity>
-          )}
+          </View>
 
-          {order.status === "Ready" && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.completeButton]}
-              onPress={() => handleStatusUpdate("Completed")}
-              disabled={!!processingType}
-            >
-              {processingType === "completed" ? (
-                <ActivityIndicator color={colors.textInverted} />
-              ) : (
-                <>
-                  <Ionicons
-                    name="checkmark-done"
-                    size={20}
-                    color={colors.textInverted}
-                  />
-                  <Text style={styles.actionButtonText}>Complete Order</Text>
-                </>
-              )}
-            </TouchableOpacity>
+          {order.orderType === "Delivery" && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Delivery Address:</Text>
+              <Text style={styles.infoValue}>
+                {order.deliveryAddress.address}
+              </Text>
+            </View>
           )}
         </View>
-      )}
-    </ScrollView>
+        {/* Order Items */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Order Items</Text>
+          {order?.items?.map((item, index) => (
+            <View key={index} style={styles.itemContainer}>
+              <View style={styles.itemDetails}>
+                <Text style={styles.itemName}>{item.name}</Text>
+              </View>
+              <Text style={styles.itemQuantity}>{item.quantity}x</Text>
+              <View
+                style={{
+                  flex: 2,
+                  justifyContent: "flex-end",
+                  alignSelf: "center",
+                }}
+              >
+                <Text style={styles.itemPrice}>
+                  Rs{(item.price * item.quantity).toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          ))}
+
+          <View style={styles.totalContainer}>
+            <View style={[styles.totalRow, styles.grandTotal]}>
+              <Text style={styles.totalLabel}>Total Amount</Text>
+              <Text style={styles.totalValue}>
+                Rs{order.totalAmount?.toFixed(2)}
+              </Text>
+            </View>
+          </View>
+        </View>
+        {["Preparing", "Ready"].includes(order.status) && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Assign Delivery Agent</Text>
+
+            {/* Current assignment status */}
+            {order.agent ? (
+              <View style={styles.assignmentStatus}>
+                <Image
+                  source={{
+                    uri: order.agent.profilePicture
+                      ? `${API_URL}/images/${order.agent.profilePicture}`
+                      : images.avatarPlaceholder,
+                  }}
+                  style={styles.assignedAgentAvatar}
+                />
+                <View style={styles.agentStatusContainer}>
+                  <Text style={styles.agentName}>
+                    {order.agent.firstName} {order.agent.lastName}
+                  </Text>
+                  <Text style={styles.agentStatusText}>Assigned</Text>
+                </View>
+              </View>
+            ) : order.agentRequests?.length > 0 ? (
+              <View style={styles.pendingRequests}>
+                <Text style={styles.sectionHeader}>Pending Requests:</Text>
+                {order.agentRequests.map((request) => (
+                  <View
+                    key={`${request.agent._id}-${order._id}`}
+                    style={styles.requestItem}
+                  >
+                    <Image
+                      source={{
+                        uri: request.agent.profilePicture
+                          ? `${API_URL}/images/${request.agent.profilePicture}`
+                          : images.avatarPlaceholder,
+                      }}
+                      style={styles.requestAgentAvatar}
+                    />
+                    <View style={styles.requestInfo}>
+                      <Text style={styles.agentName}>
+                        {request.agent.username}
+                      </Text>
+                      <Text style={styles.requestStatusText}>
+                        {request.status}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search available agents..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+
+                {searchLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : (
+                  <FlatList
+                    scrollEnabled={false}
+                    data={agents}
+                    keyExtractor={(item) => item?._id}
+                    renderItem={({ item }) => (
+                      <View style={styles.agentCard}>
+                        <Image
+                          source={{
+                            uri: item.profilePicture
+                              ? `${API_URL}/images/${item.profilePicture}`
+                              : images.avatarPlaceholder,
+                          }}
+                          style={styles.agentAvatar}
+                        />
+                        <View style={styles.agentInfo}>
+                          <Text style={styles.agentName}>
+                            {item.firstName} {item.lastName}
+                          </Text>
+                          <Text style={styles.agentDetails}>
+                            @{item.username}
+                          </Text>
+                          <View style={styles.agentMeta}>
+                            <Text style={styles.agentDistance}>
+                              {Math.round(item.distance * 10) / 10} km away
+                            </Text>
+                            <Text style={styles.agentWorkload}>
+                              • Active Orders:{" "}
+                              {item.ordersAssigned?.length || 0}
+                            </Text>
+                          </View>
+                        </View>
+                        <TouchableOpacity
+                          style={[
+                            styles.requestButton,
+                            item.hasPendingRequest && styles.pendingButton,
+                          ]}
+                          onPress={() => handleSendAssignmentRequest(item._id)}
+                          disabled={isAssigning || item.hasPendingRequest}
+                        >
+                          <Text style={styles.requestButtonText}>
+                            {item.hasPendingRequest
+                              ? "Request Sent"
+                              : "Send Request"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    ListEmptyComponent={
+                      <Text style={styles.noResultsText}>
+                        {searchQuery
+                          ? "No agents found"
+                          : "Search for available agents"}
+                      </Text>
+                    }
+                  />
+                )}
+              </>
+            )}
+          </View>
+        )}
+        {/* Restaurant Actions */}
+        {!isHistoricalOrder && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Order Management</Text>
+
+            {order.status === "Pending" && (
+              <>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.acceptButton]}
+                  onPress={handleAcceptWithTime}
+                  disabled={!!processingType}
+                >
+                  {processingType === "accept" ? (
+                    <ActivityIndicator color={colors.textInverted} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="checkmark"
+                        size={20}
+                        color={colors.textInverted}
+                      />
+                      <Text style={styles.actionButtonText}>Accept Order</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.rejectButton]}
+                  onPress={() => handleStatusUpdate("Cancelled")}
+                  disabled={!!processingType}
+                >
+                  {processingType === "cancelled" ? (
+                    <ActivityIndicator color={colors.textInverted} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="close"
+                        size={20}
+                        color={colors.textInverted}
+                      />
+                      <Text style={styles.actionButtonText}>Reject Order</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+
+            {order.status === "Preparing" && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.readyButton]}
+                onPress={() => handleStatusUpdate("Ready")}
+                disabled={!!processingType}
+              >
+                {processingType === "ready" ? (
+                  <ActivityIndicator color={colors.textInverted} />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="fast-food"
+                      size={20}
+                      color={colors.textInverted}
+                    />
+                    <Text style={styles.actionButtonText}>Mark as Ready</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {order.status === "Ready" && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.completeButton]}
+                onPress={() => handleStatusUpdate("Completed")}
+                disabled={!!processingType}
+              >
+                {processingType === "completed" ? (
+                  <ActivityIndicator color={colors.textInverted} />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="checkmark-done"
+                      size={20}
+                      color={colors.textInverted}
+                    />
+                    <Text style={styles.actionButtonText}>Complete Order</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -636,11 +656,6 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-SemiBold",
   },
 
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: 16,
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -699,25 +714,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 8,
   },
-  requestButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    minWidth: 100,
-    alignItems: "center",
-  },
-  pendingButton: {
-    backgroundColor: colors.textSecondary,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  requestButtonText: {
-    color: colors.textInverted,
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
-  },
+
   pendingStatus: {
     color: colors.warning,
   },
@@ -764,35 +761,7 @@ const styles = StyleSheet.create({
     width: "20%",
     marginBottom: 12,
   },
-  searchInput: {
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    fontFamily: "Poppins-Regular",
-    borderWidth: 1,
-    borderColor: colors.borders,
-  },
-  agentCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    marginVertical: 8,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.borders,
-  },
-  agentAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-  },
-  agentInfo: {
-    flex: 1,
-    marginRight: 8,
-  },
+
   agentName: {
     fontFamily: "Poppins-SemiBold",
     fontSize: 16,
@@ -1037,6 +1006,108 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.errorText,
     fontSize: 16,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    padding: 16,
+    paddingBottom: 100, // Space for keyboard
+  },
+  searchInput: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    fontFamily: "Poppins-Medium",
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: colors.borders,
+    elevation: 2,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  agentCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    marginVertical: 8,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.borders,
+    elevation: 2,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  agentAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: 16,
+  },
+  agentInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  requestButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    minWidth: 120,
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    opacity: 1,
+  },
+  pendingButton: {
+    backgroundColor: colors.textSecondary,
+    opacity: 0.7,
+  },
+  requestButtonText: {
+    color: colors.textInverted,
+    fontSize: 14,
+    fontFamily: "Poppins-SemiBold",
+  },
+  assignedAgentAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  agentStatusContainer: {
+    flex: 1,
+  },
+  agentStatusText: {
+    color: colors.success,
+    fontFamily: "Poppins-Medium",
+    fontSize: 14,
+  },
+  requestItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    marginVertical: 4,
+  },
+  requestAgentAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  requestInfo: {
+    flex: 1,
+  },
+  requestStatusText: {
+    fontFamily: "Poppins-Medium",
+    fontSize: 12,
+    color: colors.textSecondary,
   },
 });
 
