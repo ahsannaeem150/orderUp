@@ -36,21 +36,63 @@ const RestaurantOrderDetailScreen = () => {
   const [prepTime, setPrepTime] = useState(30);
   const [searchQuery, setSearchQuery] = useState("");
   const [agents, setAgents] = useState([]);
-  const [isAssigning, setIsAssigning] = useState(false);
+  const [assigningAgentId, setAssigningAgentId] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [showSearch, setShowSearch] = useState(true);
+  const [clearingRequestId, setClearingRequestId] = useState(null);
 
-  console.log(order);
+  useEffect(() => {
+    const hasPendingOrRejected = order?.agentRequests?.some(
+      (req) => req.status === "Pending" || req.status === "Rejected"
+    );
+    const hasAcceptedAgent =
+      order?.agent ||
+      order?.agentRequests?.some((req) => req.status === "Accepted");
+
+    setShowSearch(!hasPendingOrRejected && !hasAcceptedAgent);
+  }, [order?.agentRequests, order?.agent]);
+  useEffect(() => {
+    const handleReassignmentDone = ({ clearedRequestId }) => {
+      setClearingRequestId(null);
+
+      const remainingRejectedOrPending = order.agentRequests?.some(
+        (req) =>
+          (req.status === "Pending" || req.status === "Rejected") &&
+          req._id !== clearedRequestId
+      );
+
+      if (!remainingRejectedOrPending) {
+        setShowSearch(true);
+      }
+    };
+
+    const handleReassignmentError = (error) => {
+      Alert.alert(
+        "Error",
+        error?.message || "Failed to clear rejected request"
+      );
+      setClearingRequestId(null);
+    };
+
+    socket.on("agent-reassignment-done", handleReassignmentDone);
+    socket.on("agent-reassignment-error", handleReassignmentError);
+
+    return () => {
+      socket.off("agent-reassignment-done", handleReassignmentDone);
+      socket.off("agent-reassignment-error", handleReassignmentError);
+    };
+  }, []);
+  console.log("order", order);
+  console.log("order", order?.agentRequests[0]?.agent);
   const loadOrder = useCallback(async () => {
     try {
       setIsLoading(true);
       let loadedOrder = isHistorical
         ? historicalOrders[orderId]
         : activeOrders[orderId];
-
       if (!loadedOrder) {
         loadedOrder = await fetchOrder(orderId, isHistorical === "true");
       }
-
       setOrder(loadedOrder);
       setError(null);
     } catch (err) {
@@ -68,6 +110,7 @@ const RestaurantOrderDetailScreen = () => {
     const handleOrderUpdate = (updatedOrder) => {
       if (updatedOrder._id === orderId) {
         setOrder(updatedOrder);
+        console.log("UPDATED", updatedOrder?.agentRequests);
         if (["Completed", "Cancelled"].includes(updatedOrder.status)) {
           moveToHistory(updatedOrder);
         } else {
@@ -80,9 +123,11 @@ const RestaurantOrderDetailScreen = () => {
     };
 
     socket.on("order-updated", handleOrderUpdate);
-    return () => socket.off("order-updated", handleOrderUpdate);
-  }, [orderId, moveToHistory]);
 
+    return () => {
+      socket.off("order-updated", handleOrderUpdate);
+    };
+  }, []);
   const debounce = (func, delay) => {
     let timeoutId;
     return (...args) => {
@@ -90,17 +135,29 @@ const RestaurantOrderDetailScreen = () => {
       timeoutId = setTimeout(() => func(...args), delay);
     };
   };
-
+  const handleClearRejectedRequest = async (requestId) => {
+    try {
+      setClearingRequestId(requestId);
+      socket.emit("request-agent-reassignment", {
+        orderId: order._id,
+        requestId,
+      });
+    } catch (err) {
+      Alert.alert("Error", "Failed to clear rejected request");
+      setClearingRequestId(null);
+    }
+  };
   useEffect(() => {
     const handleSearchResults = (data) => {
       setAgents(
         data.agents.map((agent) => ({
           ...agent,
           hasPendingRequest: order.agentRequests?.some(
-            (req) => req.agent._id === agent._id
+            (req) => req.agent._id === agent._id && req.status === "Pending"
           ),
         }))
       );
+
       setSearchLoading(false);
     };
 
@@ -117,7 +174,7 @@ const RestaurantOrderDetailScreen = () => {
       socket.off("search-agents-error", handleSearchError);
     };
   }, [order.agentRequests]);
-
+  console.log("agen", agents);
   // Update the search handler
   const handleSearchAgents = debounce((query) => {
     if (!query || query.length < 2) {
@@ -130,24 +187,16 @@ const RestaurantOrderDetailScreen = () => {
   }, 300);
 
   useEffect(() => {
-    const handleAssignmentSuccess = ({ agentId }) => {
-      setOrder((prev) => ({
-        ...prev,
-        agentRequests: [
-          ...prev.agentRequests,
-          {
-            agent: agents.find((a) => a._id === agentId),
-            status: "Pending",
-          },
-        ],
-      }));
+    const handleAssignmentSuccess = ({ agentId, newAgent }) => {
+      console.log("assin", agents);
+
       Alert.alert("Request Sent", "The agent has been notified");
-      setIsAssigning(false);
+      setAssigningAgentId(null);
     };
 
     const handleAssignmentError = ({ error }) => {
       Alert.alert("Error", error);
-      setIsAssigning(false);
+      setAssigningAgentId(null);
     };
 
     socket.on("assignment-request-sent", handleAssignmentSuccess);
@@ -159,20 +208,36 @@ const RestaurantOrderDetailScreen = () => {
     };
   }, [agents]);
 
-  // Update the handler
-  const handleSendAssignmentRequest = (agentId) => {
-    setIsAssigning(true);
-    socket.emit("send-assignment-request", {
-      orderId: order._id,
-      agentId,
-    });
-  };
-  useEffect(() => {
-    if (order.status !== "Pending") {
-      handleSearchAgents(searchQuery);
-    }
-  }, [searchQuery, order.status]);
+  const handleSendAssignmentRequest = async (agentId) => {
+    setAssigningAgentId(agentId);
 
+    try {
+      socket.emit("send-assignment-request", {
+        orderId: order._id,
+        agentId,
+      });
+    } catch (error) {
+      Alert.alert("Error", "Failed to send assignment request");
+    }
+  };
+
+  useEffect(() => {
+    const handleAssignmentResponse = (data) => {
+      if (data.status === "Rejected") {
+        setShowSearch(true);
+        Alert.alert(
+          "Agent Unavailable",
+          "The agent has rejected the request. Please try another agent."
+        );
+      }
+    };
+
+    socket.on("assignment-response", handleAssignmentResponse);
+
+    return () => {
+      socket.off("assignment-response", handleAssignmentResponse);
+    };
+  }, []);
   const handleStatusUpdate = async (newStatus) => {
     if (!order) return;
 
@@ -408,130 +473,167 @@ const RestaurantOrderDetailScreen = () => {
             </View>
           </View>
         </View>
-        {["Preparing", "Ready"].includes(order.status) && (
+        {["Preparing", "Ready"].includes(order?.status) && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Assign Delivery Agent</Text>
+            <Text style={styles.cardTitle}>Delivery Assignment</Text>
+            {order.agentRequests?.map((request) => (
+              <View
+                key={request._id}
+                style={[
+                  styles.requestContainer,
 
-            {/* Current assignment status */}
-            {order.agent ? (
-              <View style={styles.assignmentStatus}>
+                  request.status === "Rejected" && styles.rejectedRequest,
+
+                  request.status === "Accepted" && styles.acceptedRequest,
+                ]}
+              >
                 <Image
                   source={{
-                    uri: order.agent.profilePicture
-                      ? `${API_URL}/images/${order.agent.profilePicture}`
-                      : images.avatarPlaceholder,
+                    uri: `${API_URL}/images/${request.agent.profilePicture}`,
                   }}
-                  style={styles.assignedAgentAvatar}
+                  style={styles.requestAvatar}
                 />
-                <View style={styles.agentStatusContainer}>
-                  <Text style={styles.agentName}>
-                    {order.agent.firstName} {order.agent.lastName}
-                  </Text>
-                  <Text style={styles.agentStatusText}>Assigned</Text>
-                </View>
-              </View>
-            ) : order.agentRequests?.length > 0 ? (
-              <View style={styles.pendingRequests}>
-                <Text style={styles.sectionHeader}>Pending Requests:</Text>
-                {order.agentRequests.map((request) => (
-                  <View
-                    key={`${request.agent._id}-${order._id}`}
-                    style={styles.requestItem}
-                  >
-                    <Image
-                      source={{
-                        uri: request.agent.profilePicture
-                          ? `${API_URL}/images/${request.agent.profilePicture}`
-                          : images.avatarPlaceholder,
-                      }}
-                      style={styles.requestAgentAvatar}
-                    />
-                    <View style={styles.requestInfo}>
-                      <Text style={styles.agentName}>
-                        {request.agent.username}
-                      </Text>
-                      <Text style={styles.requestStatusText}>
+
+                <View style={styles.requestDetails}>
+                  <Text style={styles.agentName}>{request.agent.username}</Text>
+
+                  <View style={styles.requestMeta}>
+                    <View
+                      style={[
+                        styles.statusBadge,
+
+                        styles[`${request.status.toLowerCase()}Badge`],
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.statusBadgeText,
+
+                          styles[`${request.status.toLowerCase()}Text`],
+                        ]}
+                      >
                         {request.status}
                       </Text>
                     </View>
+
+                    <Text style={styles.requestTime}>
+                      {new Date(request.sentAt).toLocaleTimeString()}
+                    </Text>
                   </View>
-                ))}
+                </View>
+
+                {request.status === "Rejected" && (
+                  <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={() => handleClearRejectedRequest(request._id)}
+                    disabled={clearingRequestId === request._id}
+                  >
+                    {clearingRequestId === request._id ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.textSecondary}
+                      />
+                    ) : (
+                      <Ionicons
+                        name="close"
+                        size={20}
+                        color={colors.textSecondary}
+                      />
+                    )}
+                  </TouchableOpacity>
+                )}
               </View>
-            ) : (
+            ))}
+            {showSearch && (
               <>
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Search available agents..."
+                  placeholder="Search available riders..."
                   placeholderTextColor={colors.textSecondary}
                   value={searchQuery}
-                  onChangeText={setSearchQuery}
+                  onChangeText={(text) => {
+                    setSearchQuery(text);
+                    handleSearchAgents(text);
+                  }}
                 />
 
                 {searchLoading ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  </View>
+                  <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
                   <FlatList
                     scrollEnabled={false}
                     data={agents}
-                    keyExtractor={(item) => item?._id}
+                    keyExtractor={(item) => item._id}
                     renderItem={({ item }) => (
                       <View style={styles.agentCard}>
                         <Image
                           source={{
-                            uri: item.profilePicture
-                              ? `${API_URL}/images/${item.profilePicture}`
-                              : images.avatarPlaceholder,
+                            uri: `${API_URL}/images/${item.profilePicture}`,
                           }}
                           style={styles.agentAvatar}
                         />
+
                         <View style={styles.agentInfo}>
                           <Text style={styles.agentName}>
                             {item.firstName} {item.lastName}
                           </Text>
-                          <Text style={styles.agentDetails}>
+
+                          <Text style={styles.agentUsername}>
                             @{item.username}
                           </Text>
-                          <View style={styles.agentMeta}>
-                            <Text style={styles.agentDistance}>
-                              {Math.round(item.distance * 10) / 10} km away
-                            </Text>
-                            <Text style={styles.agentWorkload}>
-                              • Active Orders:{" "}
-                              {item.ordersAssigned?.length || 0}
+                        </View>
+
+                        {item.hasPendingRequest ? (
+                          <View
+                            style={[styles.statusBadge, styles.pendingBadge]}
+                          >
+                            <Text
+                              style={[
+                                styles.statusBadgeText,
+                                styles.pendingText,
+                              ]}
+                            >
+                              Pending
                             </Text>
                           </View>
-                        </View>
-                        <TouchableOpacity
-                          style={[
-                            styles.requestButton,
-                            item.hasPendingRequest && styles.pendingButton,
-                          ]}
-                          onPress={() => handleSendAssignmentRequest(item._id)}
-                          disabled={isAssigning || item.hasPendingRequest}
-                        >
-                          <Text style={styles.requestButtonText}>
-                            {item.hasPendingRequest
-                              ? "Request Sent"
-                              : "Send Request"}
-                          </Text>
-                        </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.assignButton}
+                            onPress={() =>
+                              handleSendAssignmentRequest(item._id)
+                            }
+                            disabled={assigningAgentId === item._id}
+                          >
+                            {assigningAgentId === item._id ? (
+                              <ActivityIndicator color={colors.textInverted} />
+                            ) : (
+                              <Text style={styles.assignButtonText}>
+                                Assign
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        )}
                       </View>
                     )}
                     ListEmptyComponent={
-                      <Text style={styles.noResultsText}>
-                        {searchQuery
-                          ? "No agents found"
-                          : "Search for available agents"}
-                      </Text>
+                      searchQuery.length >= 2 ? (
+                        <Text style={styles.noResultsText}>
+                          No riders found
+                        </Text>
+                      ) : (
+                        <Text style={styles.searchPrompt}>
+                          Type at least 2 characters to search
+                        </Text>
+                      )
                     }
                   />
                 )}
               </>
             )}
+            )
           </View>
         )}
+
         {/* Restaurant Actions */}
         {!isHistoricalOrder && (
           <View style={styles.card}>
@@ -628,6 +730,141 @@ const RestaurantOrderDetailScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  requestContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.borders,
+  },
+  acceptedRequest: {
+    borderColor: colors.success,
+
+    backgroundColor: colors.success + "10",
+  },
+  rejectedRequest: {
+    borderColor: colors.error,
+    backgroundColor: colors.error + "10",
+  },
+  requestAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  requestMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    gap: 8,
+  },
+  requestTime: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  clearButton: {
+    padding: 8,
+    marginLeft: "auto",
+  },
+  agentCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    marginVertical: 8,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.borders,
+  },
+
+  pendingButton: {
+    backgroundColor: colors.textSecondary,
+  },
+  assignButtonText: {
+    color: colors.textInverted,
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 14,
+  },
+  agentUsername: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  noResultsText: {
+    textAlign: "center",
+    color: colors.textSecondary,
+    paddingVertical: 16,
+  },
+
+  assignedAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 16,
+  },
+  assignedInfo: {
+    flex: 1,
+  },
+  assignedName: {
+    fontSize: 16,
+    fontFamily: "Poppins-SemiBold",
+    color: colors.textPrimary,
+  },
+  assignedStatus: {
+    fontSize: 14,
+    color: colors.success,
+    marginTop: 4,
+  },
+  requestsContainer: {
+    marginVertical: 8,
+  },
+  requestItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    marginVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.borders,
+  },
+
+  requestDetails: {
+    flex: 1,
+  },
+  requestStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
+    marginRight: 8,
+  },
+  acceptedStatus: {
+    color: colors.success,
+  },
+  rejectedStatus: {
+    color: colors.error,
+  },
+  statusTime: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  retryButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: "Poppins-SemiBold",
+    color: colors.textPrimary,
+    marginBottom: 12,
+  },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -718,17 +955,7 @@ const styles = StyleSheet.create({
   pendingStatus: {
     color: colors.warning,
   },
-  acceptedStatus: {
-    color: colors.success,
-  },
-  rejectedStatus: {
-    color: colors.error,
-  },
-  noResultsText: {
-    textAlign: "center",
-    color: colors.textSecondary,
-    paddingVertical: 16,
-  },
+
   sectionHeader: {
     fontFamily: "Poppins-SemiBold",
     color: colors.textPrimary,
@@ -772,17 +999,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.success,
   },
-  assignButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  assignButtonText: {
-    color: colors.textInverted,
-    fontFamily: "Poppins-SemiBold",
-    fontSize: 14,
-  },
+
   noAgentsText: {
     textAlign: "center",
     color: colors.textSecondary,
@@ -1028,21 +1245,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
   },
-  agentCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    marginVertical: 8,
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.borders,
-    elevation: 2,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-  },
+
   agentAvatar: {
     width: 56,
     height: 56,
@@ -1064,10 +1267,7 @@ const styles = StyleSheet.create({
     gap: 8,
     opacity: 1,
   },
-  pendingButton: {
-    backgroundColor: colors.textSecondary,
-    opacity: 0.7,
-  },
+
   requestButtonText: {
     color: colors.textInverted,
     fontSize: 14,
@@ -1087,14 +1287,6 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     fontSize: 14,
   },
-  requestItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    marginVertical: 4,
-  },
   requestAgentAvatar: {
     width: 40,
     height: 40,
@@ -1108,6 +1300,92 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  statusBadge: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    paddingVertical: 4,
+
+    paddingHorizontal: 8,
+
+    borderRadius: 8,
+
+    alignSelf: "flex-start",
+
+    marginTop: 4,
+  },
+
+  pendingBadge: {
+    backgroundColor: colors.warning + "20",
+
+    borderWidth: 1,
+
+    borderColor: colors.warning,
+  },
+
+  rejectedBadge: {
+    backgroundColor: colors.error + "20",
+
+    borderWidth: 1,
+
+    borderColor: colors.error,
+  },
+
+  acceptedBadge: {
+    backgroundColor: colors.success + "20",
+
+    borderWidth: 1,
+
+    borderColor: colors.success,
+  },
+
+  statusBadgeText: {
+    fontSize: 12,
+
+    fontFamily: "Poppins-Medium",
+
+    marginLeft: 4,
+  },
+  pendingText: {
+    color: colors.warning,
+  },
+  rejectedText: {
+    color: colors.error,
+  },
+  acceptedText: {
+    color: colors.success,
+  },
+
+  assignedContainer: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    padding: 16,
+
+    backgroundColor: colors.background,
+
+    borderRadius: 12,
+
+    borderWidth: 1,
+
+    borderColor: colors.success,
+
+    marginVertical: 8,
+  },
+
+  assignButton: {
+    backgroundColor: colors.primary,
+
+    paddingVertical: 8,
+
+    paddingHorizontal: 16,
+
+    borderRadius: 8,
+
+    marginLeft: "auto",
   },
 });
 

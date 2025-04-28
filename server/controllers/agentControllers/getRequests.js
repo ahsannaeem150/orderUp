@@ -36,7 +36,7 @@ export const getRequestsController = async (req, res) => {
       return res.status(404).json({ error: "Agent not found" });
     }
 
-    const requests = agent.assignmentRequests.map((request) => {
+    const requests = (agent.assignmentRequests || []).map((request) => {
       const order = request.order;
       return {
         _id: request._id,

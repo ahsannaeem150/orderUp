@@ -21,6 +21,7 @@ const OrderRequestsScreen = () => {
   const { currentRequest, setCurrentRequest } = useRequest();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingStates, setLoadingStates] = useState({});
   const [error, setError] = useState(null);
 
   const fetchRequests = useCallback(async () => {
@@ -38,10 +39,14 @@ const OrderRequestsScreen = () => {
   useEffect(() => {
     fetchRequests();
 
-    const handleNewRequest = (request) => {
-      setRequests((prev) => [...prev, request]);
+    const handleNewRequest = ({ request }) => {
+      console.log(request);
+      setRequests((prev) =>
+        prev.some((r) => r._id === request._id)
+          ? prev.map((r) => (r._id === request._id ? request : r))
+          : [...prev, request]
+      );
     };
-
     const handleRequestUpdate = (updatedRequest) => {
       setRequests((prev) =>
         prev.filter((req) => req._id !== updatedRequest._id)
@@ -52,29 +57,42 @@ const OrderRequestsScreen = () => {
       setRequests((prev) => prev.filter((req) => req.order._id !== orderId));
     };
 
+    socket.on("assignment-response-processed", ({ orderId, accept }) => {
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.order._id === orderId
+            ? { ...req, status: accept ? "Accepted" : "Rejected" }
+            : req
+        )
+      );
+      setLoadingStates((prev) => ({ ...prev, [orderId]: false }));
+    });
+
+    const assignmentResponseError = ({ error, orderId }) => {
+      setLoadingStates((prev) => ({ ...prev, [orderId]: false }));
+      Alert.alert("Error", error);
+    };
+
+    socket.on("assignment-response-error", assignmentResponseError);
     socket.on("assignment-request-removed", handleRequestRemoval);
     socket.on("new-assignment-request", handleNewRequest);
-    socket.on("assignment-request-updated", handleRequestUpdate);
+    socket.on("assignment-request-processed", handleRequestUpdate);
 
     return () => {
       socket.off("assignment-request-removed", handleRequestRemoval);
+      socket.off("assignment-response-error", assignmentResponseError);
       socket.off("new-assignment-request", handleNewRequest);
-      socket.off("assignment-request-updated", handleRequestUpdate);
+      socket.off("assignment-request-processed", handleRequestUpdate);
     };
   }, []);
 
-  const handleResponse = async (requestId, accept) => {
+  const handleResponse = async (orderId, accept) => {
     try {
-      socket.emit("respond-to-assignment", {
-        requestId,
-        accept,
-      });
-
-      // Optimistic update
-      setRequests((prev) => prev.filter((req) => req._id !== requestId));
+      setLoadingStates((prev) => ({ ...prev, [orderId]: true }));
+      socket.emit("respond-to-assignment", { orderId, accept });
     } catch (err) {
+      setLoadingStates((prev) => ({ ...prev, [orderId]: false }));
       Alert.alert("Error", "Failed to submit response");
-      fetchRequests();
     }
   };
 
@@ -124,6 +142,12 @@ const OrderRequestsScreen = () => {
               request={request}
               onRespond={handleResponse}
               onViewDetail={() => navigateToDetail(request)}
+              onRemove={(orderId) => {
+                setRequests((prev) =>
+                  prev.filter((req) => req.order._id !== orderId)
+                );
+              }}
+              isLoading={loadingStates[request.order._id] || false}
             />
           ))
         )}
@@ -132,8 +156,13 @@ const OrderRequestsScreen = () => {
   );
 };
 
-// Update the RequestCard component with additional user and order info
-const RequestCard = ({ request, onRespond, onViewDetail }) => {
+const RequestCard = ({
+  request,
+  onRespond,
+  onViewDetail,
+  onRemove,
+  isLoading,
+}) => {
   return (
     <TouchableOpacity onPress={onViewDetail}>
       <LinearGradient
@@ -142,6 +171,16 @@ const RequestCard = ({ request, onRespond, onViewDetail }) => {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
+        {/* Close button for responded requests */}
+        {request.status !== "Pending" && (
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => onRemove(request.order._id)}
+          >
+            <Ionicons name="close" size={24} color={colors.danger} />
+          </TouchableOpacity>
+        )}
+
         {/* User Information Section */}
         <View style={styles.userSection}>
           <Ionicons name="person-circle" size={24} color={colors.primary} />
@@ -207,25 +246,51 @@ const RequestCard = ({ request, onRespond, onViewDetail }) => {
             </Text>
           </View>
         </View>
+        {request.status === "Pending" ? (
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.button, styles.rejectButton]}
+              onPress={() => onRespond(request.order._id, false)}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <>
+                  <Ionicons name="close" size={20} color="white" />
+                  <Text style={styles.buttonText}>Decline</Text>
+                </>
+              )}
+            </TouchableOpacity>
 
-        {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.button, styles.rejectButton]}
-            onPress={() => onRespond(request._id, false)}
-          >
-            <Ionicons name="close" size={20} color="white" />
-            <Text style={styles.buttonText}>Decline</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.acceptButton]}
-            onPress={() => onRespond(request._id, true)}
-          >
-            <Ionicons name="checkmark" size={20} color="white" />
-            <Text style={styles.buttonText}>Accept</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={[styles.button, styles.acceptButton]}
+              onPress={() => onRespond(request.order._id, true)}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={20} color="white" />
+                  <Text style={styles.buttonText}>Accept</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.statusContainer}>
+            <Text
+              style={[
+                styles.statusText,
+                request.status === "Accepted" && styles.acceptedStatus,
+                request.status === "Rejected" && styles.rejectedStatus,
+              ]}
+            >
+              {request.status}
+            </Text>
+          </View>
+        )}
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -262,6 +327,13 @@ const styles = StyleSheet.create({
   detailSection: {
     flexDirection: "row",
     gap: 12,
+  },
+  removeContainer: {
+    alignItems: "center",
+    marginTop: 16,
+  },
+  removeButton: {
+    padding: 8,
   },
   detailContent: {
     flex: 1,
@@ -373,6 +445,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 1,
+  },
+  statusContainer: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: colors.background,
+    alignItems: "center",
+  },
+  statusText: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 16,
+  },
+  acceptedStatus: {
+    color: colors.success,
+  },
+  rejectedStatus: {
+    color: colors.danger,
   },
   restaurantName: {
     fontFamily: "Poppins-SemiBold",

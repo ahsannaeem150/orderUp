@@ -27,18 +27,21 @@ const agentSchema = new mongoose.Schema(
     },
     active: { type: Boolean, default: false },
     ordersAssigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "orders" }],
-    assignmentRequests: [
-      {
-        order: { type: mongoose.Schema.Types.ObjectId, ref: "orders" },
-        status: {
-          type: String,
-          enum: ["Pending", "Accepted", "Rejected"],
-          default: "Pending",
+    assignmentRequests: {
+      type: [
+        {
+          order: { type: mongoose.Schema.Types.ObjectId, ref: "orders" },
+          status: {
+            type: String,
+            enum: ["Pending", "Accepted", "Rejected"],
+            default: "Pending",
+          },
+          sentAt: Date,
+          respondedAt: Date,
         },
-        sentAt: Date,
-        respondedAt: Date,
-      },
-    ],
+      ],
+      default: [], // Add this line
+    },
   },
 
   { timestamps: true }

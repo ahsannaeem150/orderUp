@@ -23,12 +23,15 @@ const setupChangeStream = async (io) => {
             .findById(change.documentKey._id)
             .populate("user", "_id name phone profilePicture")
             .populate("restaurant", "_id name address logo")
+            .populate(
+              "agentRequests.agent",
+              "_id firstName lastName profilePicture username phone"
+            )
             .lean();
         }
         const restaurantId =
           order?.restaurant?._id?.toString() || order?.restaurant?.toString();
         const userId = order?.user?._id?.toString();
-
         console.log(change.documentKey._id);
         switch (change.operationType) {
           case "insert":
@@ -122,7 +125,7 @@ const socketIoSetup = (server) => {
     });
 
     socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.user.id);
+      console.log("User disconnected:", socket.user._id);
     });
   });
 
@@ -144,69 +147,64 @@ const socketIoSetup = (server) => {
       session.startTransaction();
 
       try {
-        // Update Order
-        const order = await orderModel.findByIdAndUpdate(
-          orderId,
-          {
-            $set: {
-              "agentRequests.$[elem].status": accept ? "Accepted" : "Rejected",
-              ...(accept && { agent: socket.user.id, assignedAt: new Date() }),
-            },
-          },
-          {
-            arrayFilters: [{ "elem.agent": socket.user.id }],
-            new: true,
-            session,
-          }
-        );
+        // 1. Find Order
+        const order = await orderModel.findById(orderId).session(session);
+        if (!order) throw new Error("Order not found");
 
-        // Update Agent
-        const agent = await agentModel.findByIdAndUpdate(
-          socket.user.id,
-          {
-            $set: {
-              "assignmentRequests.$[elem].status": accept
-                ? "Accepted"
-                : "Rejected",
-              "assignmentRequests.$[elem].respondedAt": new Date(),
-            },
-          },
-          {
-            arrayFilters: [{ "elem.order": orderId }],
-            new: true,
-            session,
-          }
+        // Update agentRequests inside order
+        const agentRequest = order.agentRequests.find((req) =>
+          req.agent.equals(socket.user._id)
         );
+        if (agentRequest) {
+          agentRequest.status = accept ? "Accepted" : "Rejected";
+        }
+
+        if (accept) {
+          order.agent = socket.user._id;
+          order.assignedAt = new Date();
+        }
+
+        await order.save({ session });
+
+        // 2. Find Agent
+        const agent = await agentModel
+          .findById(socket.user._id)
+          .session(session);
+        console.log(socket.user._id);
+        if (!agent) throw new Error("Agent not found");
+
+        // Update assignmentRequests inside agent
+        const assignmentRequest = agent.assignmentRequests.find((req) =>
+          req.order.equals(orderId)
+        );
+        if (assignmentRequest) {
+          assignmentRequest.status = accept ? "Accepted" : "Rejected";
+          assignmentRequest.respondedAt = new Date();
+        }
+
+        await agent.save({ session });
 
         await session.commitTransaction();
 
-        if (accept) {
-          await cleanupAssignmentRequests(orderId, io);
+        try {
+          socket.emit("assignment-response-processed", { orderId, accept });
+        } catch (cleanupError) {
+          console.error("Cleanup assignment error:", cleanupError);
         }
-
-        // Notify Restaurant
-        io.of("/restaurant")
-          .to(order.restaurant.toString())
-          .emit("order-updated", order);
-
-        // Notify Agent
-        socket.emit("assignment-response-processed", {
-          order,
-          request: agent.assignmentRequests.find(
-            (r) => r.order.toString() === orderId
-          ),
-        });
       } catch (err) {
         await session.abortTransaction();
         console.error("Assignment response error:", err);
-        socket.emit("assignment-response-error", "Failed to process response");
+        socket.emit("assignment-response-error", {
+          error: "Failed to process response",
+          orderId,
+        });
       } finally {
         session.endSession();
       }
     });
 
     socket.on("disconnect", () => {
-      console.log("Agent disconnected:", socket.user.id);
+      console.log("Agent disconnected:", socket.user._id);
     });
   });
   // Restaurant namespace
@@ -222,13 +220,33 @@ const socketIoSetup = (server) => {
       }
       socket.join(restaurantId);
     });
+    socket.on("request-agent-reassignment", async ({ orderId, requestId }) => {
+      try {
+        const order = await orderModel.findById(orderId);
 
+        if (!order) {
+          return socket.emit("agent-reassignment-error", {
+            message: "Order not found",
+          });
+        }
+
+        order.agentRequests = order.agentRequests.filter(
+          (req) => req._id.toString() !== requestId
+        );
+
+        await order.save();
+
+        socket.emit("agent-reassignment-done", { clearedRequestId: requestId });
+      } catch (error) {
+        socket.emit("agent-reassignment-error", { message: error.message });
+      }
+    });
     socket.on("send-assignment-request", async ({ orderId, agentId }) => {
       const session = await mongoose.startSession();
       session.startTransaction();
 
       try {
-        // Update Order
+        // 1. Always push to Order's agentRequests
         const order = await orderModel
           .findByIdAndUpdate(
             orderId,
@@ -243,43 +261,119 @@ const socketIoSetup = (server) => {
             },
             { new: true, session }
           )
-          .populate("agentRequests.agent");
+          .populate(
+            "agentRequests.agent",
+            "firstName lastName username profilePicture"
+          );
 
-        // Update Agent
-        const agent = await agentModel.findByIdAndUpdate(
-          agentId,
-          {
-            $push: {
-              assignmentRequests: {
-                order: orderId,
-                status: "Pending",
-                sentAt: new Date(),
+        // 2. Check if the agent already has a rejected request for this order
+        const agent = await agentModel.findById(agentId).session(session);
+
+        const existingRequest = agent.assignmentRequests.find(
+          (req) => req.order.toString() === orderId && req.status === "Rejected"
+        );
+
+        if (existingRequest) {
+          // 3a. If rejected request exists → update it to pending
+          await agentModel.updateOne(
+            {
+              _id: agentId,
+              "assignmentRequests._id": existingRequest._id,
+            },
+            {
+              $set: {
+                "assignmentRequests.$.status": "Pending",
+                "assignmentRequests.$.sentAt": new Date(),
               },
             },
-            $set: { active: true },
-          },
-          { new: true, session }
-        );
+            { session }
+          );
+        } else {
+          // 3b. Else push new assignment request
+          await agentModel.updateOne(
+            { _id: agentId },
+            {
+              $push: {
+                assignmentRequests: {
+                  order: orderId,
+                  status: "Pending",
+                  sentAt: new Date(),
+                },
+              },
+              $set: { active: true },
+            },
+            { session }
+          );
+        }
 
         await session.commitTransaction();
 
-        // Notify Agent
-        io.of("/agent")
-          .to(agentId)
-          .emit("new-assignment-request", {
-            order,
-            request: agent.assignmentRequests.find(
-              (r) => r.order.toString() === orderId
-            ),
-          });
+        // 4. Get updated populated request
+        const populatedAgent = await agentModel
+          .findById(agentId)
+          .populate({
+            path: "assignmentRequests.order",
+            populate: [
+              {
+                path: "restaurant",
+                select: "name phone address location logo",
+              },
+              {
+                path: "user",
+                select: "name phone address profilePicture location",
+              },
+              { path: "items.itemId", select: "name price image" },
+            ],
+          })
+          .select("assignmentRequests")
+          .lean();
 
-        // Notify Restaurant
+        const request = populatedAgent.assignmentRequests.find(
+          (r) => r.order._id.toString() === orderId
+        );
+
+        const transformedRequest = {
+          _id: request._id,
+          status: request.status,
+          order: {
+            _id: request.order._id,
+            totalAmount: request.order.totalAmount,
+            deliveryAddress: request.order.deliveryAddress,
+            createdAt: request.order.createdAt,
+            restaurant: {
+              _id: request.order.restaurant._id,
+              name: request.order.restaurant.name,
+              phone: request.order.restaurant.phone,
+              location: request.order.restaurant.location,
+              address: request.order.restaurant.address,
+              logo: request.order.restaurant.logo || null,
+            },
+            user: {
+              _id: request.order.user._id,
+              name: request.order.user.name,
+              phone: request.order.user.phone,
+              location: request.order.user.location,
+              address: request.order.user.address,
+              profilePicture: request.order.user.profilePicture || null,
+            },
+            items: request.order.items.map((item) => ({
+              name: item.itemId.name,
+              price: item.itemId.price,
+              image: item.itemId.image || null,
+              quantity: item.quantity,
+              total: item.itemId.price * item.quantity,
+            })),
+          },
+        };
+
+        // 5. Notify agent
+        io.of("/agent").to(agentId).emit("new-assignment-request", {
+          request: transformedRequest,
+        });
+
         socket.emit("assignment-request-sent", {
-          orderId,
           agentId,
-          request: order.agentRequests.find(
-            (r) => r.agent.toString() === agentId
-          ),
+          agent,
         });
       } catch (err) {
         await session.abortTransaction();
@@ -365,7 +459,10 @@ const socketIoSetup = (server) => {
         const agents = await agentModel
           .find({
             active: true,
-            $or: [{ username: searchRegex }],
+            $or: [
+              { username: searchRegex },
+              { "assignmentRequests.status": "Rejected" },
+            ],
           })
           .select("firstName lastName username profilePicture")
           .lean();
@@ -411,7 +508,7 @@ const socketIoSetup = (server) => {
     });
 
     socket.on("disconnect", () => {
-      console.log("Restaurant disconnected:", socket.user.id);
+      console.log("Restaurant disconnected:", socket.user._id);
     });
   });
 
@@ -419,30 +516,45 @@ const socketIoSetup = (server) => {
 };
 
 const cleanupAssignmentRequests = async (orderId, io) => {
-  const order = await orderModel.findById(orderId).lean();
-  if (!order) return;
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  // Find all pending agent requests for this order
-  const pendingRequests = order.agentRequests.filter(
-    (req) => req.status === "Pending"
-  );
+  try {
+    const order = await orderModel.findById(orderId).lean();
+    if (!order) return;
 
-  // Update all affected agents
-  for (const request of pendingRequests) {
-    await agentModel.updateOne(
-      { _id: request.agent, "assignmentRequests.order": orderId },
-      {
-        $set: {
-          "assignmentRequests.$.status": "Rejected",
-          "assignmentRequests.$.respondedAt": new Date(),
-        },
-      }
+    const pendingRequests = order.agentRequests.filter(
+      (req) => req.status === "Pending"
     );
 
-    // Notify agents through socket
-    io.of("/agent")
-      .to(request.agent.toString())
-      .emit("assignment-request-removed", { orderId });
+    // Update orders
+    await orderModel.findByIdAndUpdate(
+      orderId,
+      { $pull: { agentRequests: { status: "Pending" } } },
+      { session }
+    );
+
+    // Update agents
+    for (const request of pendingRequests) {
+      await agentModel.updateOne(
+        { _id: request.agent },
+        {
+          $pull: { assignmentRequests: { order: orderId, status: "Pending" } },
+        },
+        { session }
+      );
+
+      io.of("/agent")
+        .to(request.agent.toString())
+        .emit("assignment-request-removed", { orderId });
+    }
+
+    await session.commitTransaction();
+  } catch (err) {
+    await session.abortTransaction();
+    console.error("Cleanup error:", err);
+  } finally {
+    session.endSession();
   }
 };
 
