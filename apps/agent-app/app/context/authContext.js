@@ -1,34 +1,28 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import { createContext, useEffect, useState } from "react";
-import io from "socket.io-client";
+import { createContext, useEffect, useState, useRef } from "react";
+import { AppState } from "react-native";
+import { io } from "socket.io-client";
 
-//context
 const AuthContext = createContext();
 
-//provider
 const AuthProvider = ({ children }) => {
-  //global State
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState({
-    restaurant: undefined,
+    agent: undefined,
     token: "",
   });
-  const [item, setItem] = useState([]);
 
-  //SET INITIAL AXIOS URL
-  const ip = "192.168.100.51";
+  const ip = "192.168.106.106";
   // const API_URL = `https://orderup-server.onrender.com/api`;
-
   const API_URL = `http://${ip}:8080/api`;
   axios.defaults.baseURL = API_URL;
-
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
     const initializeSocket = async () => {
       if (state.token) {
-        const newSocket = io(`http://${ip}:8080/restaurant`, {
+        const newSocket = io(`http://${ip}:8080/agent`, {
           auth: {
             token: state.token,
           },
@@ -55,34 +49,37 @@ const AuthProvider = ({ children }) => {
     };
   }, [state.token]);
 
-  //GET initial storage data
   useEffect(() => {
-    const loadLocalStorageData = async () => {
-      let data = await AsyncStorage.getItem("@resAuth");
+    if (state?.agent && socket) {
+      socket.emit("join-agent-room", state?.agent?._id);
+    }
+  }, [socket, state]);
+
+  //LOAD STATE INFO
+  useEffect(() => {
+    const loadLocalStateData = async () => {
+      let data = await AsyncStorage.getItem("@auth");
       let loginData = JSON.parse(data);
       setState({
         ...loginData,
-        restaurant: loginData?.restaurant,
+        agent: loginData?.agent,
         token: loginData?.token,
       });
+      console.log("TOKEN", loginData?.token);
       setLoading(false);
-      console.log("Log in authContext state=> ", state);
-      console.log("Log in authContext loading=> ", loading);
     };
-
-    loadLocalStorageData();
+    loadLocalStateData();
   }, []);
-  useEffect(() => {
-    console.log("useEffect loading=> ", loading);
-  }, [loading]);
-  //UPDATE STORAGE INFO ON EVERY STATE CHANGE
-  useEffect(() => {
-    const updateStorage = async () => {
-      await AsyncStorage.setItem("@resAuth", JSON.stringify(state));
-      console.log("STATE UPDATED => ", state);
-    };
-    updateStorage();
-  }, [state]);
+
+  const updateState = async (state) => {
+    try {
+      await AsyncStorage.setItem("@auth", JSON.stringify(state));
+      console.log("STATE UPDATED:", state);
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -90,8 +87,7 @@ const AuthProvider = ({ children }) => {
         setState,
         loading,
         setLoading,
-        item,
-        setItem,
+        updateState,
         socket,
         API_URL,
       }}

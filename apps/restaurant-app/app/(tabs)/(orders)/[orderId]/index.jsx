@@ -82,8 +82,6 @@ const RestaurantOrderDetailScreen = () => {
       socket.off("agent-reassignment-error", handleReassignmentError);
     };
   }, []);
-  console.log("order", order);
-  console.log("order", order?.agentRequests[0]?.agent);
   const loadOrder = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -458,7 +456,7 @@ const RestaurantOrderDetailScreen = () => {
                 }}
               >
                 <Text style={styles.itemPrice}>
-                  Rs{(item.price * item.quantity).toFixed(2)}
+                  Rs{item.price * item.quantity}
                 </Text>
               </View>
             </View>
@@ -467,9 +465,7 @@ const RestaurantOrderDetailScreen = () => {
           <View style={styles.totalContainer}>
             <View style={[styles.totalRow, styles.grandTotal]}>
               <Text style={styles.totalLabel}>Total Amount</Text>
-              <Text style={styles.totalValue}>
-                Rs{order.totalAmount?.toFixed(2)}
-              </Text>
+              <Text style={styles.totalValue}>Rs{order.totalAmount}</Text>
             </View>
           </View>
         </View>
