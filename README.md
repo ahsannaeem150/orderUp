@@ -576,7 +576,7 @@ OrderUp is under active development. Here's a look at what’s coming soon:
 ### 💵 Payment & Orders
 
 - [ ] **Online Payment Integration**
-  - Stripe or Razorpay for card payments
+  - Jazzcash/Easypaisa or Mastercard/Visa for card payments
   - Cash on Delivery toggle
 
 - [ ] **Order Cancellation & Refunds**
