@@ -11,7 +11,7 @@ A full-stack multi-platform solution for online food ordering, built for three t
 ## 📚 Table of Contents
 
 - [About the Project](#-about-the-project)
-- [Project Structure](#-project-structure)
+- [Project Structure](#project-structure)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
 - [Screenshots & Demo](#-screenshots--demo)
@@ -30,7 +30,7 @@ A full-stack multi-platform solution for online food ordering, built for three t
 Built with a modern full-stack architecture, the platform includes:
 
 - A **Customer App** to browse restaurants, order food, and track deliveries in real-time.
-- A **Restaurant App** to manage menus, receive and process orders.
+- A **Restaurant App** to manage menus and receive and process orders.
 - An **Agent App** for delivery personnel to view, accept, and fulfill delivery tasks.
 - A **Backend API** that handles all user interactions, data management, authentication, and notifications.
 
@@ -41,7 +41,7 @@ OrderUp was built as a **Final Year Project (FYP)** to demonstrate real-world ap
 ### 🔍 Key Objectives
 
 - Provide a real-time, scalable food ordering experience.
-- Enable restaurants to independently manage their digital menus and track orders.
+- Enable restaurants to manage their digital menus and track orders independently.
 - Allow agents to interact with assigned delivery tasks with minimal overhead.
 - Implement **live delivery tracking** using the **Google Maps API** to show real-time location updates to both customers and restaurants.
 - Build a clean, modular architecture with long-term maintainability in mind.
@@ -58,6 +58,7 @@ The goal was not just to simulate a food ordering app, but to **create a working
 - Lack of real-time features like live delivery tracking in most academic food delivery projects.
 
 OrderUp is built to **go beyond prototypes** — with realistic flows, data persistence, and modular architecture to scale each part independently.
+---
 
 ## 🗂️ Project Structure
 
@@ -188,6 +189,8 @@ OrderUp is built using modern technologies across the full stack to ensure perfo
 
 > 📽️ A video walkthrough (YouTube/Loom) will be available soon.  
 > Stay tuned for a full-feature demo of all three apps in action.
+
+---
 
 ## 🛠️ Installation
 
