@@ -11,14 +11,14 @@ A full-stack multi-platform solution for online food ordering, built for three t
 ## 📚 Table of Contents
 
 - [About the Project](#-about-the-project)
-- [Project Structure](#project-structure)
+- [Project Structure](#️-project-structure)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
 - [Screenshots & Demo](#-screenshots--demo)
-- [Installation](#-installation)
+- [Installation](#️-installation)
 - [API Reference](#-api-reference)
 - [Usage](#-usage)
-- [Roadmap / Future Plans](#-roadmap--future-plans)
+- [Roadmap / Future Plans](#️-roadmap--future-plans)
 - [Known Issues / Limitations](#-known-issues--limitations)
 - [Author & Contact](#-author--contact)
 - [Acknowledgements](#-acknowledgements)
@@ -58,6 +58,7 @@ The goal was not just to simulate a food ordering app, but to **create a working
 - Lack of real-time features like live delivery tracking in most academic food delivery projects.
 
 OrderUp is built to **go beyond prototypes** — with realistic flows, data persistence, and modular architecture to scale each part independently.
+
 ---
 
 ## 🗂️ Project Structure
@@ -636,7 +637,7 @@ While OrderUp is fully functional across its core modules, a few areas are still
 
 ---
 
-> These limitations are known and being addressed in upcoming updates. Check the [Roadmap](#roadmap--future-plans) for more info.
+> These limitations are known and being addressed in upcoming updates. Check the [Roadmap](#️-roadmap--future-plans) for more info.
 ## 👨‍💻 Author & Contact
 
 Built with dedication and passion by:
