@@ -1,10 +1,12 @@
 // context/OrderContext.js
 import { createContext, useCallback, useContext, useState } from "react";
 import axios from "axios";
+import { AuthContext } from "./authContext";
 
 const OrderContext = createContext();
 
 export const OrderProvider = ({ children }) => {
+  const { state } = useContext(AuthContext);
   const [activeOrders, setActiveOrders] = useState({});
   const [historicalOrders, setHistoricalOrders] = useState({});
   const [currentOrder, setCurrentOrder] = useState(null);
@@ -13,8 +15,8 @@ export const OrderProvider = ({ children }) => {
   const fetchOrder = useCallback(async (orderId, isHistorical = false) => {
     try {
       const endpoint = isHistorical
-        ? `/restaurant/history/order/${orderId}`
-        : `/restaurant/orders/${orderId}`;
+        ? `/restaurant/${state.restaurant._id}/orders/history/${orderId}`
+        : `/restaurant/${state.restaurant._id}/orders/${orderId}`;
 
       const response = await axios.get(endpoint);
       const order = response.data;
@@ -35,7 +37,7 @@ export const OrderProvider = ({ children }) => {
   const fetchActiveOrders = useCallback(async (restaurantId) => {
     try {
       const response = await axios.get(
-        `/restaurant/orders/active/${restaurantId}`
+        `/restaurant/${restaurantId}/orders/active`
       );
       const ordersMap = response.data.reduce((acc, order) => {
         acc[order._id] = order;
@@ -52,7 +54,7 @@ export const OrderProvider = ({ children }) => {
   const fetchHistoricalOrders = useCallback(async (restaurantId) => {
     try {
       const response = await axios.get(
-        `/restaurant/${restaurantId}/history/orders`
+        `/restaurant/${restaurantId}/orders/history`
       );
       const ordersMap = response.data.reduce((acc, order) => {
         acc[order._id] = order;

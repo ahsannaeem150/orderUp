@@ -21,7 +21,7 @@ export const RestaurantProvider = ({ children }) => {
       if (validIds.length === 0) return;
 
       const response = await axios.post("/restaurants/batch", {
-        ids: validIds,
+        restaurantIds: validIds,
       });
 
       const newRestaurants = response.data.reduce((acc, restaurant) => {
@@ -32,7 +32,7 @@ export const RestaurantProvider = ({ children }) => {
       setRestaurants((prev) => ({ ...prev, ...newRestaurants }));
     } catch (error) {
       console.error("Batch fetch error:", error);
-      throw error; // Propagate error to components
+      throw error;
     }
   };
 

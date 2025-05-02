@@ -3,7 +3,7 @@ import { orderModel } from "../../models/orderModel.js";
 export const getSingleOrderController = async (req, res) => {
   try {
     const order = await orderModel
-      .findById(req.params.id)
+      .findById(req.params.orderId)
       .populate("user", "name email address location phone profilePicture")
       .populate("items.itemId", "name price")
       .populate({
