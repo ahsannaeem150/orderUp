@@ -27,11 +27,9 @@ const MenuItemsScreen = () => {
   const { fetchItemsBatch, loading, error } = useFetchItems();
   const { addToCart, getItemQuantityInCart } = useCart();
 
-  const restaurantItems = useMemo(() => {
-    return (currentRestaurant?.menu || []).map((menuItem) =>
-      getItem(menuItem._id)
-    );
-  }, [currentRestaurant?.menu, itemsCache]);
+  const restaurantItems = (currentRestaurant?.menu || [])
+    .map((menuItem) => getItem(menuItem._id))
+    .filter(Boolean);
 
   useEffect(() => {
     if (currentRestaurant?._id) {
@@ -173,7 +171,7 @@ const MenuItemsScreen = () => {
       ) : (
         <FlatList
           data={restaurantItems}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item) => item?._id || Math.random().toString()}
           renderItem={renderMenuItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}

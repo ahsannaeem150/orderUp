@@ -5,8 +5,6 @@ import { userModel } from "../../models/userModel.js";
 export const registerController = async (req, res) => {
   try {
     const { name, email, password, profilePicture } = req.body;
-    console.log("name", name);
-    console.log(req.body);
 
     //validation
     if (!name) {

@@ -469,6 +469,11 @@ const styles = StyleSheet.create({
     right: 12,
     zIndex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   statusContainer: {
     marginTop: 16,
     padding: 12,

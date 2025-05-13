@@ -38,7 +38,7 @@ export const useFetchItems = () => {
 
     if (neededIds.length > 0) {
       const response = await axios.post("/restaurant/items/batch", {
-        ids: neededIds,
+        itemIds: neededIds,
       });
       cacheItems(response.data);
     }

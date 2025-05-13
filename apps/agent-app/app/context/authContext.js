@@ -13,16 +13,16 @@ const AuthProvider = ({ children }) => {
     token: "",
   });
 
-  const ip = "192.168.100.51";
-  // const API_URL = `https://orderup-server.onrender.com/api`;
-  const API_URL = `http://${ip}:8080/api`;
+  // const ip = "192.168.100.51";
+  const API_URL = `https://orderup-server.onrender.com/api`;
+  // const API_URL = `http://${ip}:8080/api`;
   axios.defaults.baseURL = API_URL;
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
     const initializeSocket = async () => {
       if (state.token) {
-        const newSocket = io(`http://${ip}:8080/agent`, {
+        const newSocket = io(`https://orderup-server.onrender.com/agent`, {
           auth: {
             token: state.token,
           },
