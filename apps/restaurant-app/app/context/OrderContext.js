@@ -12,43 +12,51 @@ export const OrderProvider = ({ children }) => {
   const [currentOrder, setCurrentOrder] = useState(null);
 
   // Fetch single order (works for both active/historical)
-  const fetchOrder = useCallback(async (orderId, isHistorical = false) => {
-    try {
-      const endpoint = isHistorical
-        ? `/restaurant/${state.restaurant._id}/orders/history/${orderId}`
-        : `/restaurant/${state.restaurant._id}/orders/${orderId}`;
+  const fetchOrder = useCallback(
+    async (orderId, isHistorical = false) => {
+      try {
+        console.log("GSHGJHSGHJAS");
+        console.log(state);
+        const endpoint = isHistorical
+          ? `/restaurant/${state.restaurant._id}/order/history/${orderId}`
+          : `/restaurant/${state.restaurant._id}/order/${orderId}`;
 
-      const response = await axios.get(endpoint);
-      const order = response.data;
+        const response = await axios.get(endpoint);
+        const order = response.data;
 
-      if (isHistorical) {
-        setHistoricalOrders((prev) => ({ ...prev, [orderId]: order }));
-      } else {
-        setActiveOrders((prev) => ({ ...prev, [orderId]: order }));
+        if (isHistorical) {
+          setHistoricalOrders((prev) => ({ ...prev, [orderId]: order }));
+        } else {
+          setActiveOrders((prev) => ({ ...prev, [orderId]: order }));
+        }
+        return order;
+      } catch (error) {
+        console.error("Order fetch error:", error);
+        throw error;
       }
-      return order;
-    } catch (error) {
-      console.error("Order fetch error:", error);
-      throw error;
-    }
-  }, []);
+    },
+    [state]
+  );
 
   // Fetch all active orders for user
-  const fetchActiveOrders = useCallback(async (restaurantId) => {
-    try {
-      const response = await axios.get(
-        `/restaurant/${restaurantId}/orders/active`
-      );
-      const ordersMap = response.data.reduce((acc, order) => {
-        acc[order._id] = order;
-        return acc;
-      }, {});
-      setActiveOrders(ordersMap);
-    } catch (error) {
-      console.error("Active orders fetch error:", error);
-      throw error;
-    }
-  }, []);
+  const fetchActiveOrders = useCallback(
+    async (restaurantId) => {
+      try {
+        const response = await axios.get(
+          `/restaurant/${restaurantId}/orders/active`
+        );
+        const ordersMap = response.data.reduce((acc, order) => {
+          acc[order._id] = order;
+          return acc;
+        }, {});
+        setActiveOrders(ordersMap);
+      } catch (error) {
+        console.error("Active orders fetch error:", error);
+        throw error;
+      }
+    },
+    [state]
+  );
 
   // Fetch user's historical orders
   const fetchHistoricalOrders = useCallback(async (restaurantId) => {

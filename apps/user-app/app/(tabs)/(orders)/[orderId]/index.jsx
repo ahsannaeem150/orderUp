@@ -32,6 +32,9 @@ const OrderDetailScreen = () => {
         ? historicalOrders[orderId]
         : activeOrders[orderId];
 
+      console.log("oderif", orderId);
+      console.log("oderifsad", isHistorical);
+
       if (!loadedOrder) {
         loadedOrder = await fetchOrder(orderId, isHistorical === "true");
       }

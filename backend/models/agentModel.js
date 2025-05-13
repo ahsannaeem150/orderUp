@@ -26,7 +26,37 @@ const agentSchema = new mongoose.Schema(
       updatedAt: Date,
     },
     active: { type: Boolean, default: false },
-    ordersAssigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "orders" }],
+    ordersAssigned: {
+      type: [
+        {
+          order: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "orders",
+          },
+          assignedAt: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
+      default: [],
+    },
+
+    ordersHistory: {
+      type: [
+        {
+          order: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "orders",
+          },
+          completedAt: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
+      default: [],
+    },
     assignmentRequests: {
       type: [
         {
@@ -40,7 +70,7 @@ const agentSchema = new mongoose.Schema(
           respondedAt: Date,
         },
       ],
-      default: [], // Add this line
+      default: [],
     },
   },
 

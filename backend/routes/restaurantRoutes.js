@@ -4,7 +4,6 @@ import multer from "multer";
 import { registerController } from "../controllers/restaurantControllers/registerRestaurant.js";
 import { loginController } from "../controllers/restaurantControllers/loginRestaurant.js";
 import { uploadProfileController } from "../controllers/restaurantControllers/uploadProfilePicture.js";
-import { getProfilePictureController } from "../controllers/restaurantControllers/getProfilePicture.js";
 import { addMenuItemController } from "../controllers/restaurantControllers/itemUpload.js";
 import { getItemsController } from "../controllers/restaurantControllers/getItems.js";
 import { getItemController } from "../controllers/restaurantControllers/getItem.js";
@@ -58,11 +57,11 @@ router.get(
   getActiveOrdersController
 );
 router.get(
-  "/restaurant/:restaurantId/orders/:orderId",
+  "/restaurant/:restaurantId/order/:orderId",
   getSingleOrderController
 );
 router.get(
-  "/restaurant/:restaurantId/orders/history/:orderId",
+  "/restaurant/:restaurantId/order/history/:orderId",
   getHistoricOrderController
 );
 router.get(

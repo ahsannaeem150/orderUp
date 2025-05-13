@@ -15,9 +15,11 @@ import { router } from "expo-router";
 import axios from "axios";
 import { AuthContext } from "../../context/authContext";
 import { useRequest } from "../../context/RequestContext";
+import { useAgentOrders } from "../../context/OrderContext";
 
 const OrderRequestsScreen = () => {
   const { socket, state } = useContext(AuthContext);
+  const { assignedOrders, setAssignedOrders } = useAgentOrders();
   const { currentRequest, setCurrentRequest } = useRequest();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,11 +49,6 @@ const OrderRequestsScreen = () => {
           : [...prev, request]
       );
     };
-    const handleRequestUpdate = (updatedRequest) => {
-      setRequests((prev) =>
-        prev.filter((req) => req._id !== updatedRequest._id)
-      );
-    };
 
     const handleRequestRemoval = ({ orderId }) => {
       setRequests((prev) => prev.filter((req) => req.order._id !== orderId));
@@ -61,11 +58,32 @@ const OrderRequestsScreen = () => {
       setRequests((prev) =>
         prev.map((req) =>
           req.order._id === orderId
-            ? { ...req, status: accept ? "Accepted" : "Rejected" }
+            ? {
+                ...req,
+                status: accept ? "Accepted" : "Rejected",
+                ...(accept && { order: { ...req.order, status: "Accepted" } }),
+              }
             : req
         )
       );
       setLoadingStates((prev) => ({ ...prev, [orderId]: false }));
+
+      // If accepted, add to assignedOrders after confirmation
+      if (accept) {
+        const acceptedRequest = requests.find(
+          (req) => req.order._id === orderId
+        );
+        if (acceptedRequest) {
+          setAssignedOrders((prev) => [
+            ...prev,
+            {
+              ...acceptedRequest,
+              status: "Accepted",
+              order: { ...acceptedRequest.order, status: "Accepted" },
+            },
+          ]);
+        }
+      }
     });
 
     const assignmentResponseError = ({ error, orderId }) => {
@@ -76,19 +94,18 @@ const OrderRequestsScreen = () => {
     socket.on("assignment-response-error", assignmentResponseError);
     socket.on("assignment-request-removed", handleRequestRemoval);
     socket.on("new-assignment-request", handleNewRequest);
-    socket.on("assignment-request-processed", handleRequestUpdate);
 
     return () => {
       socket.off("assignment-request-removed", handleRequestRemoval);
       socket.off("assignment-response-error", assignmentResponseError);
       socket.off("new-assignment-request", handleNewRequest);
-      socket.off("assignment-request-processed", handleRequestUpdate);
     };
   }, []);
 
   const handleResponse = async (orderId, accept) => {
     try {
       setLoadingStates((prev) => ({ ...prev, [orderId]: true }));
+
       socket.emit("respond-to-assignment", { orderId, accept });
     } catch (err) {
       setLoadingStates((prev) => ({ ...prev, [orderId]: false }));

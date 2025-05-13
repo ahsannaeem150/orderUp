@@ -1,65 +1,51 @@
-import React, { createContext, useContext, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import axios from "axios";
-import mongoose from "mongoose";
+import { AuthContext } from "./authContext";
 
-const OrderContext = createContext();
+const AgentOrdersContext = createContext();
 
-export const OrderProvider = ({ children }) => {
-  const [orders, setOrders] = useState({});
-  const [currentOrder, setCurrentOrder] = useState({
-    _id: null,
-    menu: [],
-  });
+export const AgentOrdersProvider = ({ children }) => {
+  const { state, socket } = useContext(AuthContext);
+  const [assignedOrders, setAssignedOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const fetchOrders = async (ids) => {
+  const fetchAssignedOrders = async () => {
     try {
-      const validIds = ids.filter(
-        (id) => id && mongoose.Types.ObjectId.isValid(id) && !orders[id]
-      );
-
-      if (validIds.length === 0) return;
-
-      const response = await axios.post("/orders/batch", {
-        ids: validIds,
-      });
-
-      const newOrders = response.data.reduce((acc, order) => {
-        acc[order._id] = order;
-        return acc;
-      }, {});
-
-      setOrders((prev) => ({ ...prev, ...newOrders }));
+      const response = await axios.get(`/agent/${state.agent?._id}/orders`);
+      setAssignedOrders(response.data.orders);
     } catch (error) {
-      console.error("Batch fetch error:", error);
-      throw error; // Propagate error to components
+      console.error("Error fetching assigned orders:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const cacheOrders = (orders) => {
-    setOrders((prev) => ({
-      ...prev,
-      ...orders.reduce((acc, r) => {
-        acc[r._id] = r;
-        return acc;
-      }, {}),
-    }));
-  };
+  useEffect(() => {
+    if (state.agent?._id) {
+      fetchAssignedOrders();
+    }
+  }, [state.agent?._id]);
 
-  const getOrder = (id) => orders[id] || null;
+  const addOrder = useCallback((order) => {
+    setAssignedOrders((prev) => {
+      const exists = prev.some((o) => o._id === order._id);
+      return exists ? prev : [...prev, order];
+    });
+  }, []);
 
   return (
-    <OrderContext.Provider
-      value={{
-        cacheOrders,
-        fetchOrders,
-        getOrder,
-        currentOrder,
-        setCurrentOrder,
-      }}
+    <AgentOrdersContext.Provider
+      value={{ assignedOrders, loading, setAssignedOrders, addOrder }}
     >
       {children}
-    </OrderContext.Provider>
+    </AgentOrdersContext.Provider>
   );
 };
 
-export const useOrder = () => useContext(OrderContext);
+export const useAgentOrders = () => useContext(AgentOrdersContext);

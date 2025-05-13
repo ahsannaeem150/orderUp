@@ -89,9 +89,11 @@ const RestaurantOrderDetailScreen = () => {
         ? historicalOrders[orderId]
         : activeOrders[orderId];
       if (!loadedOrder) {
+        console.log("Fetching");
         loadedOrder = await fetchOrder(orderId, isHistorical === "true");
       }
       setOrder(loadedOrder);
+      console.log(loadedOrder);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -303,7 +305,7 @@ const RestaurantOrderDetailScreen = () => {
     "Pending",
     "Preparing",
     "Ready",
-    "OutForDelivery",
+    "InDelivery",
     "Completed",
   ];
   const currentStatusIndex = statusFlow.indexOf(order?.status);
@@ -626,7 +628,6 @@ const RestaurantOrderDetailScreen = () => {
                 )}
               </>
             )}
-            )
           </View>
         )}
 
@@ -976,8 +977,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 16,
-
-    flexWrap: "wrap",
   },
   milestone: {
     alignItems: "center",

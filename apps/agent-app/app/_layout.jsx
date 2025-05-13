@@ -4,8 +4,8 @@ import { useContext, useEffect } from "react";
 import React from "react";
 import { router, SplashScreen, Stack } from "expo-router";
 import { AuthContext, AuthProvider } from "./context/authContext";
-import { OrderProvider } from "./context/OrderContext";
 import { RequestProvider } from "./context/RequestContext";
+import { AgentOrdersProvider } from "./context/OrderContext";
 
 SplashScreen.preventAutoHideAsync();
 SplashScreen.hideAsync();
@@ -29,16 +29,15 @@ const RootLayout = () => {
   if (!fontsLoaded && !error) return null;
   return (
     <AuthProvider>
-      <OrderProvider>
+      <AgentOrdersProvider>
         <RequestProvider>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           </Stack>
         </RequestProvider>
-      </OrderProvider>
+      </AgentOrdersProvider>
     </AuthProvider>
   );
 };

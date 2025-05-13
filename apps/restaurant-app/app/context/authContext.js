@@ -17,7 +17,7 @@ const AuthProvider = ({ children }) => {
   const [item, setItem] = useState([]);
 
   //SET INITIAL AXIOS URL
-  const ip = "192.168.106.106";
+  const ip = "192.168.100.51";
   // const API_URL = `https://orderup-server.onrender.com/api`;
 
   const API_URL = `http://${ip}:8080/api`;

@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { OrderHistoryModel } from "../models/orderHistoryModel.js";
 import { agentModel } from "../models/agentModel.js";
 import mongoose from "mongoose";
+import { DeliveryTrackingModel } from "../models/deliveryTrackingModel.js";
 
 const setupChangeStream = async (io) => {
   try {
@@ -59,6 +60,65 @@ const setupChangeStream = async (io) => {
   }
 };
 
+const setupDeliveryTrackingChangeStream = async (io) => {
+  try {
+    console.log("Starting DeliveryTracking change stream");
+    const changeStream = DeliveryTrackingModel.watch([], {
+      fullDocument: "updateLookup",
+    });
+
+    changeStream.on("change", async (change) => {
+      try {
+        if (
+          change.operationType === "update" &&
+          change.updateDescription.updatedFields.path
+        ) {
+          const tracking = change.fullDocument;
+          if (!tracking || !tracking.active) return;
+
+          const order = await orderModel
+            .findById(tracking.order)
+            .select("user restaurant status")
+            .lean();
+
+          if (!order || order.status === "Completed") return;
+
+          const latestLocation = tracking.path[tracking.path.length - 1];
+
+          io.of("/user").to(order.user.toString()).emit("location-update", {
+            orderId: tracking.order.toString(),
+            location: latestLocation,
+          });
+
+          io.of("/restaurant")
+            .to(order.restaurant.toString())
+            .emit("location-update", {
+              orderId: tracking.order.toString(),
+              location: latestLocation,
+            });
+
+          io.of("/agent")
+            .to(tracking.agent.toString())
+            .emit("location-update", {
+              orderId: tracking.order.toString(),
+              location: latestLocation,
+            });
+        }
+      } catch (error) {
+        console.error("Error processing tracking change:", error);
+      }
+    });
+
+    changeStream.on("error", (error) => {
+      console.error("DeliveryTracking Change Stream error:", error);
+      setTimeout(() => setupDeliveryTrackingChangeStream(io), 5000);
+    });
+  } catch (err) {
+    console.error("DeliveryTracking Change Stream connection failed:", err);
+    setTimeout(() => setupDeliveryTrackingChangeStream(io), 5000);
+  }
+};
+
 const socketIoSetup = (server) => {
   const io = new Server(server, {
     cors: {
@@ -68,6 +128,7 @@ const socketIoSetup = (server) => {
   });
 
   setupChangeStream(io);
+  setupDeliveryTrackingChangeStream(io);
 
   // Authentication middleware
   const authenticate = (socket, next) => {
@@ -141,17 +202,81 @@ const socketIoSetup = (server) => {
       }
       socket.join(agentId);
     });
+    socket.on("update-location", async ({ orderId, lat, lng, stage }) => {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        const agentId = socket.user._id;
+
+        if (!orderId || !lat || !lng || !stage) {
+          throw new Error("Missing required fields");
+        }
+
+        const tracking = await DeliveryTrackingModel.findOneAndUpdate(
+          {
+            order: orderId,
+            agent: agentId,
+            active: true,
+          },
+          {
+            $push: {
+              path: {
+                lat: parseFloat(lat),
+                lng: parseFloat(lng),
+                stage,
+                timestamp: new Date(),
+              },
+            },
+          },
+          { new: true, session }
+        ).populate("order", "status");
+
+        if (!tracking) {
+          throw new Error("No active delivery found");
+        }
+
+        if (tracking.order.status === "Completed") {
+          throw new Error("Order already completed");
+        }
+
+        if (stage === "Delivered") {
+          tracking.active = false;
+          await tracking.save({ session });
+
+          await orderModel.findByIdAndUpdate(
+            orderId,
+            {
+              status: "Completed",
+              completedAt: new Date(),
+            },
+            { session }
+          );
+        }
+
+        await session.commitTransaction();
+
+        socket.emit("location-update-success", {
+          orderId,
+          location: tracking.path.slice(-1)[0],
+        });
+      } catch (error) {
+        await session.abortTransaction();
+        console.error("Location update error:", error);
+        socket.emit("location-update-error", { error: error.message });
+      } finally {
+        session.endSession();
+      }
+    });
 
     socket.on("respond-to-assignment", async ({ orderId, accept }) => {
       const session = await mongoose.startSession();
       session.startTransaction();
 
       try {
-        // 1. Find Order
         const order = await orderModel.findById(orderId).session(session);
         if (!order) throw new Error("Order not found");
 
-        // Update agentRequests inside order
         const agentRequest = order.agentRequests.find((req) =>
           req.agent.equals(socket.user._id)
         );
@@ -166,14 +291,11 @@ const socketIoSetup = (server) => {
 
         await order.save({ session });
 
-        // 2. Find Agent
         const agent = await agentModel
           .findById(socket.user._id)
           .session(session);
-        console.log(socket.user._id);
         if (!agent) throw new Error("Agent not found");
 
-        // Update assignmentRequests inside agent
         const assignmentRequest = agent.assignmentRequests.find((req) =>
           req.order.equals(orderId)
         );
@@ -182,15 +304,18 @@ const socketIoSetup = (server) => {
           assignmentRequest.respondedAt = new Date();
         }
 
+        if (accept) {
+          agent.ordersAssigned.push({
+            order: orderId,
+            assignedAt: new Date(),
+          });
+        }
+
         await agent.save({ session });
 
         await session.commitTransaction();
 
-        try {
-          socket.emit("assignment-response-processed", { orderId, accept });
-        } catch (cleanupError) {
-          console.error("Cleanup assignment error:", cleanupError);
-        }
+        socket.emit("assignment-response-processed", { orderId, accept });
       } catch (err) {
         await session.abortTransaction();
         console.error("Assignment response error:", err);
@@ -222,6 +347,7 @@ const socketIoSetup = (server) => {
     });
     socket.on("request-agent-reassignment", async ({ orderId, requestId }) => {
       try {
+        console.log("clearing agent request");
         const order = await orderModel.findById(orderId);
 
         if (!order) {

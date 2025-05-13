@@ -11,46 +11,32 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import colors from "../../../constants/colors";
+import { useAgentOrders } from "../../context/OrderContext";
 
 const RiderOrdersScreen = () => {
   const [activeSegment, setActiveSegment] = useState("current");
-
-  // Dummy Data
-  const orders = {
-    current: [
-      {
-        id: "#DLVR2984",
-        status: "picked_up",
-        restaurant: "Burger Kingdom",
-        customer: "John Carter",
-        pickupTime: "11:45 AM",
-        distance: "2.5 km",
-        earnings: "Rs 185",
-        progress: 0.6,
+  const { assignedOrders } = useAgentOrders();
+  console.log(assignedOrders);
+  const categorizeOrders = () => {
+    return assignedOrders.reduce(
+      (acc, order) => {
+        const status = order?.status?.toLowerCase();
+        const tracking = order.order.deliveryTracking?.path || [];
+        console.log(status);
+        if (["completed", "cancelled"].includes(status)) {
+          acc.history.push(order);
+        } else if (status === "outfordelivery" || tracking.length > 0) {
+          acc.current.push(order);
+        } else {
+          acc.upcoming.push(order);
+        }
+        return acc;
       },
-    ],
-    upcoming: [
-      {
-        id: "#DLVR3129",
-        status: "accepted",
-        restaurant: "Pizza Haven",
-        customer: "Sarah Smith",
-        pickupTime: "12:30 PM",
-        distance: "3.2 km",
-        earnings: "Rs 225",
-      },
-    ],
-    history: [
-      {
-        id: "#DLVR2871",
-        status: "completed",
-        restaurant: "Sushi Master",
-        customer: "Mike Johnson",
-        date: "2023-08-20",
-        earnings: "Rs 165",
-      },
-    ],
+      { current: [], upcoming: [], history: [] }
+    );
   };
+
+  const orders = categorizeOrders();
 
   const OrderSegment = ({ title, value }) => (
     <Pressable
@@ -71,70 +57,97 @@ const RiderOrdersScreen = () => {
     </Pressable>
   );
 
-  const CurrentOrderCard = ({ order }) => (
-    <View style={styles.currentCard}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.orderId}>{order.id}</Text>
-        <View style={[styles.statusBadge, styles[order.status]]}>
-          <Text style={styles.statusText}>
-            {order.status.replace("_", " ").toUpperCase()}
-          </Text>
+  const CurrentOrderCard = ({ order }) => {
+    const stages = order.order.deliveryTracking?.path || [];
+    const currentStage = stages[stages.length - 1]?.stage || "accepted";
+    const progressMap = {
+      EnRoute: 0.33,
+      PickedUp: 0.66,
+      Delivered: 1,
+    };
+
+    return (
+      <View style={styles.currentCard}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.orderId}>{order.order.orderNumber}</Text>
+          <View style={[styles.statusBadge, styles[currentStage]]}>
+            <Text style={styles.statusText}>
+              {currentStage.replace(/([A-Z])/g, " $1").toUpperCase()}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.orderInfo}>
+          <Ionicons name="restaurant" size={20} color={colors.textSecondary} />
+          <Text style={styles.infoText}>{order.order.restaurant.name}</Text>
+        </View>
+
+        <View style={styles.orderInfo}>
+          <Ionicons name="person" size={20} color={colors.textSecondary} />
+          <Text style={styles.infoText}>{order.order.user.name}</Text>
+        </View>
+
+        <View style={styles.progressContainer}>
+          <View style={styles.progressLabels}>
+            <Text style={styles.progressLabel}>Accepted</Text>
+            <Text style={styles.progressLabel}>Picked Up</Text>
+            <Text style={styles.progressLabel}>Delivered</Text>
+          </View>
+          <View style={styles.progressBar}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${progressMap[currentStage] * 100 || 0}%` },
+              ]}
+            />
+          </View>
+        </View>
+
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() =>
+              Linking.openURL(
+                `maps://app?daddr=${order.order.restaurant.location}`
+              )
+            }
+          >
+            <Ionicons name="navigate" size={20} color={colors.primary} />
+            <Text style={styles.actionText}>Navigate</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => Linking.openURL(`tel:${order.order.user.phone}`)}
+          >
+            <Ionicons name="call" size={20} color={colors.primary} />
+            <Text style={styles.actionText}>Contact</Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      <View style={styles.orderInfo}>
-        <Ionicons name="restaurant" size={20} color={colors.textSecondary} />
-        <Text style={styles.infoText}>{order.restaurant}</Text>
-      </View>
-
-      <View style={styles.orderInfo}>
-        <Ionicons name="person" size={20} color={colors.textSecondary} />
-        <Text style={styles.infoText}>{order.customer}</Text>
-      </View>
-
-      <View style={styles.progressContainer}>
-        <View style={styles.progressLabels}>
-          <Text style={styles.progressLabel}>Accepted</Text>
-          <Text style={styles.progressLabel}>Delivering</Text>
-          <Text style={styles.progressLabel}>Completed</Text>
-        </View>
-        <View style={styles.progressBar}>
-          <View
-            style={[styles.progressFill, { width: `${order.progress * 100}%` }]}
-          />
-        </View>
-      </View>
-
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="navigate" size={20} color={colors.primary} />
-          <Text style={styles.actionText}>Navigate</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="call" size={20} color={colors.primary} />
-          <Text style={styles.actionText}>Contact</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
+    );
+  };
   const UpcomingOrderCard = ({ order }) => (
     <View style={styles.upcomingCard}>
       <View style={styles.cardHeader}>
-        <Text style={styles.orderId}>{order.id}</Text>
-        <Text style={styles.earningText}>Earnings: {order.earnings}</Text>
+        <Text style={styles.orderId}>{order.order.orderNumber}</Text>
+        <Text style={styles.earningText}>
+          Total: Rs {order.order.totalAmount}
+        </Text>
       </View>
 
       <View style={styles.orderInfo}>
         <Ionicons name="time" size={16} color={colors.textSecondary} />
-        <Text style={styles.infoText}>Pickup at {order.pickupTime}</Text>
+        <Text style={styles.infoText}>
+          Created: {new Date(order.order.createdAt).toLocaleTimeString()}
+        </Text>
       </View>
 
       <View style={styles.orderInfo}>
         <Ionicons name="restaurant" size={16} color={colors.textSecondary} />
-        <Text style={styles.infoText}>{order.restaurant}</Text>
-        <Text style={styles.distanceText}>{order.distance}</Text>
+        <Text style={styles.infoText}>
+          {order.order.restaurant.address.address}
+        </Text>
       </View>
     </View>
   );
@@ -142,18 +155,22 @@ const RiderOrdersScreen = () => {
   const HistoryOrderCard = ({ order }) => (
     <View style={styles.historyCard}>
       <View style={styles.cardHeader}>
-        <Text style={styles.orderId}>{order.id}</Text>
-        <Text style={styles.earningText}>{order.earnings}</Text>
+        <Text style={styles.orderId}>{order.order.orderNumber}</Text>
+        <Text style={styles.earningText}>Rs {order.order.totalAmount}</Text>
       </View>
 
       <View style={styles.orderInfo}>
         <Ionicons name="restaurant" size={14} color={colors.textSecondary} />
-        <Text style={styles.infoText}>{order.restaurant}</Text>
+        <Text style={styles.infoText}>{order.order.restaurant.name}</Text>
       </View>
 
       <View style={styles.orderInfo}>
         <Ionicons name="calendar" size={14} color={colors.textSecondary} />
-        <Text style={styles.infoText}>{order.date}</Text>
+        <Text style={styles.infoText}>
+          {new Date(
+            order.order.completedAt || order.order.cancelledAt
+          ).toLocaleDateString()}
+        </Text>
       </View>
     </View>
   );
@@ -161,14 +178,12 @@ const RiderOrdersScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        {/* Segment Control */}
         <View style={styles.segmentContainer}>
           <OrderSegment title="Current" value="current" />
           <OrderSegment title="Upcoming" value="upcoming" />
           <OrderSegment title="History" value="history" />
         </View>
 
-        {/* Orders List */}
         <View style={styles.contentContainer}>
           {orders[activeSegment].length === 0 ? (
             <View style={styles.emptyContainer}>

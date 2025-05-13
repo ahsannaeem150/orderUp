@@ -11,27 +11,30 @@ export const OrderProvider = ({ children }) => {
   const [historicalOrders, setHistoricalOrders] = useState({});
   const [currentOrder, setCurrentOrder] = useState(null);
 
-  const fetchOrder = useCallback(async (orderId, isHistorical = false) => {
-    try {
-      const endpoint = isHistorical
-        ? `/user/${state.user._id}/orders/history/${orderId}`
-        : `/user/${state.user._id}/orders/${orderId}`;
+  const fetchOrder = useCallback(
+    async (orderId, isHistorical = false) => {
+      try {
+        const endpoint = isHistorical
+          ? `/user/${state.user._id}/order/history/${orderId}`
+          : `/user/${state.user._id}/order/${orderId}`;
 
-      const response = await axios.get(endpoint);
-      const order = response.data;
+        const response = await axios.get(endpoint);
+        const order = response.data;
 
-      if (isHistorical) {
-        setHistoricalOrders((prev) => ({ ...prev, [orderId]: order }));
-      } else {
-        setActiveOrders((prev) => ({ ...prev, [orderId]: order }));
+        if (isHistorical) {
+          setHistoricalOrders((prev) => ({ ...prev, [orderId]: order }));
+        } else {
+          setActiveOrders((prev) => ({ ...prev, [orderId]: order }));
+        }
+
+        return order;
+      } catch (error) {
+        console.error("Order fetch error:", error);
+        throw error;
       }
-
-      return order;
-    } catch (error) {
-      console.error("Order fetch error:", error);
-      throw error;
-    }
-  }, []);
+    },
+    [state]
+  );
 
   const fetchActiveOrders = useCallback(async (userId) => {
     try {

@@ -19,7 +19,7 @@ const AuthProvider = ({ children }) => {
 
   const appState = useRef(AppState.currentState);
 
-  const ip = "192.168.106.106";
+  const ip = "192.168.100.51";
   const API_URL = `http://${ip}:8080/api`;
   // const API_URL = `https://orderup-server.onrender.com/api`;
 
