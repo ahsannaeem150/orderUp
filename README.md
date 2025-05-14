@@ -7,7 +7,6 @@ A full-stack multi-platform solution for online food ordering, built for three t
 ![MongoDB](https://img.shields.io/badge/MongoDB-Database-brightgreen)
 ![Status](https://img.shields.io/badge/Status-In%20Progress-yellow)
 
-
 ## 📚 Table of Contents
 
 - [About the Project](#-about-the-project)
@@ -25,7 +24,7 @@ A full-stack multi-platform solution for online food ordering, built for three t
 
 ## 📦 About the Project
 
-**OrderUp** is an end-to-end food ordering and delivery platform that streamlines the experience for customers, restaurant owners, and delivery agents. 
+**OrderUp** is an end-to-end food ordering and delivery platform that streamlines the experience for customers, restaurant owners, and delivery agents.
 
 Built with a modern full-stack architecture, the platform includes:
 
@@ -154,7 +153,6 @@ OrderUp is built using modern technologies across the full stack to ensure perfo
 - **JWT (JSON Web Tokens)** – Used for secure authentication and role-based access control.
 - **Multer** – Handles multipart/form-data for image uploads.
 
-
 ### 🧪 Development Tools
 
 - **Postman** – For testing API endpoints during development.
@@ -170,20 +168,20 @@ OrderUp is built using modern technologies across the full stack to ensure perfo
 
 ### 👤 Customer App
 
-| Home Screen | Restaurant Page | Cart & Checkout |
-|-------------|------------------|-----------------|
+| Home Screen                           | Restaurant Page                                   | Cart & Checkout                               |
+| ------------------------------------- | ------------------------------------------------- | --------------------------------------------- |
 | ![Home](assets/screens/user-home.png) | ![Restaurant](assets/screens/user-restaurant.png) | ![Checkout](assets/screens/user-checkout.png) |
 
 ### 🏪 Restaurant App
 
-| Dashboard | Menu Management | Order Details |
-|-----------|------------------|----------------|
+| Dashboard                                             | Menu Management                             | Order Details                                 |
+| ----------------------------------------------------- | ------------------------------------------- | --------------------------------------------- |
 | ![Dashboard](assets/screens/restaurant-dashboard.png) | ![Menu](assets/screens/restaurant-menu.png) | ![Order](assets/screens/restaurant-order.png) |
 
 ### 🚚 Agent App
 
-| Assigned Orders | Map View | Status Updates |
-|------------------|----------|----------------|
+| Assigned Orders                            | Map View                             | Status Updates                             |
+| ------------------------------------------ | ------------------------------------ | ------------------------------------------ |
 | ![Orders](assets/screens/agent-orders.png) | ![Map](assets/screens/agent-map.png) | ![Status](assets/screens/agent-status.png) |
 
 ### 🎬 Live Demo
@@ -212,53 +210,71 @@ Follow these steps to set up the OrderUp ecosystem locally. You'll need to run t
 ### 🚀 Setup Instructions
 
 #### 1. Clone Repository
+
 ```bash
 git clone https://github.com/ahsannaeem150/orderUp.git
 cd orderUp
 ```
+
 ---
+
 #### 2. Backend Setup
+
 ```bash
 cd backend
 ```
+
 ```bash
 npm install
 ```
+
 ```bash
 # Create .env file
 # Edit .env with your credentials
 # (LOCAL_MONGO_URL, JWT_SECRET, PORT)
 ```
+
 ```bash
 npm start
 ```
+
 #### 3. App Setup
+
 ```bash
 cd apps/user-app
 ```
+
 ```bash
 npm install
 ```
+
 ```bash
 # Create .env file
 # Edit .env with your Google Maps API credentials
 # (ANDROID_API_KEY, IOS_API_KEY)
 ```
+
 ```bash
 # Edit app/context/authContext.js
 # Change ip variable to your Wifi's IPv4 address (type ipconfig in terminal to get your Wifi's IP)
 ```
+
 ```bash
 npx expo start
 ```
+
 ### 🌐 Environmental Variables
-#### 1. Backend ``` .env ``` Example
+
+#### 1. Backend `.env` Example
+
 ```bash
 PORT=5000
 LOCAL_MONGO_URL=mongodb://localhost:27017/orderup
 JWT_SECRET=your_jwt_secret_here
 ```
-#### 1. App ``` .env ``` Example
+
+#### 1. App `.env` Example
+
 ```bash
 ANDROID_API_KEY=ad8D8GHhsdgUbnsYkaAjnbSYjg78
 IOS_API_KEY=ad8D8GHhsdgUbnsYkaAjnbSYjg78
@@ -271,121 +287,128 @@ Endpoints are grouped by resource and user type. All routes are prefixed with `/
 ### 🔐 Authentication
 
 #### Customer
-| Endpoint | Method | Description | Parameters | 
-|----------|--------|-------------|------------|
-| `/auth/register` | POST | Register new customer | `email`, `password`, `name` |
-| `/auth/login` | POST | Customer login | `email`, `password` |
+
+| Endpoint         | Method | Description           | Parameters                  |
+| ---------------- | ------ | --------------------- | --------------------------- |
+| `/auth/register` | POST   | Register new customer | `email`, `password`, `name` |
+| `/auth/login`    | POST   | Customer login        | `email`, `password`         |
 
 #### Restaurant
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/auth/register/restaurant` | POST | Register restaurant | `name` , `email`, `password`, `phone` , `city` , `address` |
-| `/auth/login/restaurant` | POST | Restaurant login | `email`, `password` |
+
+| Endpoint                    | Method | Description         | Parameters                                                 |
+| --------------------------- | ------ | ------------------- | ---------------------------------------------------------- |
+| `/auth/register/restaurant` | POST   | Register restaurant | `name` , `email`, `password`, `phone` , `city` , `address` |
+| `/auth/login/restaurant`    | POST   | Restaurant login    | `email`, `password`                                        |
 
 #### Agent
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/auth/agent/register` | POST | Register delivery agent | `email`, `password`, `name` |
-| `/auth/agent/login` | POST | Agent login | `email`, `password` |
+
+| Endpoint               | Method | Description             | Parameters                  |
+| ---------------------- | ------ | ----------------------- | --------------------------- |
+| `/auth/agent/register` | POST   | Register delivery agent | `email`, `password`, `name` |
+| `/auth/agent/login`    | POST   | Agent login             | `email`, `password`         |
 
 ---
 
 ### 👤 Profile Management
 
 #### Customer
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/:id/profile/image` | PUT | Upload profile picture | `image` (file upload) |
-| `/user/:id/profile/update` | PUT | Update profile info | `username`, `phone` , `address`, `location`|
-| `/images/:imageId` | GET | Get Images | - |
+
+| Endpoint                   | Method | Description            | Parameters                                  |
+| -------------------------- | ------ | ---------------------- | ------------------------------------------- |
+| `/:id/profile/image`       | PUT    | Upload profile picture | `image` (file upload)                       |
+| `/user/:id/profile/update` | PUT    | Update profile info    | `username`, `phone` , `address`, `location` |
+| `/images/:imageId`         | GET    | Get Images             | -                                           |
 
 #### Restaurant
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/restaurant/:id/profile/:type` | PUT | Upload profile/cover image | `image` (file upload) |
-| `/restaurant/:id/update` | PUT | Update restaurant profile | `name`, `phone` , `address` , `location`, etc. |
 
+| Endpoint                        | Method | Description                | Parameters                                     |
+| ------------------------------- | ------ | -------------------------- | ---------------------------------------------- |
+| `/restaurant/:id/profile/:type` | PUT    | Upload profile/cover image | `image` (file upload)                          |
+| `/restaurant/:id/update`        | PUT    | Update restaurant profile  | `name`, `phone` , `address` , `location`, etc. |
 
 #### Agent
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/agent/:id/profile/image` | PUT | Upload agent profile picture | `image` (file upload) |
-| `/agent/:id/profile/update` | PUT | Update agent profile | `username`, `phone` , `address`, `location`|
+
+| Endpoint                    | Method | Description                  | Parameters                                  |
+| --------------------------- | ------ | ---------------------------- | ------------------------------------------- |
+| `/agent/:id/profile/image`  | PUT    | Upload agent profile picture | `image` (file upload)                       |
+| `/agent/:id/profile/update` | PUT    | Update agent profile         | `username`, `phone` , `address`, `location` |
 
 ---
 
 ### 🍔 Menu Items (Restaurant)
 
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/restaurant/:id/menuitems` | POST | Add new menu item | `name` ,`description` ,`price`,`costPrice` ,`stock` ,`maxStock` ,`minStock` ,`category` ,`tags` ,`supplierName` ,`supplierContact` ,`preparationTime` ,`unit` ,`expiryDate` + `image` |
-| `/restaurant/:id/items` | GET | Get all menu items | - |
-| `/restaurant/:restaurantId/item/:itemId` | GET | Get single menu item | - |
-| `/restaurant/:restaurantId/item/:itemId` | DELETE | Delete menu item | - |
-| `/restaurant/:restaurantId/items/:itemId` | PATCH | Update menu item |  `name` ,`description` ,`discount`,`discountStart`,`discountEnd`,`price` ,`costPrice` ,`stock` ,`maxStock` ,`minStock` ,`category` ,`tags` ,`supplierName` ,`supplierContact` ,`preparationTime` ,`unit` ,`expiryDate` + `image` |
+| Endpoint                                  | Method | Description          | Parameters                                                                                                                                                                                                                      |
+| ----------------------------------------- | ------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/restaurant/:id/menuitems`               | POST   | Add new menu item    | `name` ,`description` ,`price`,`costPrice` ,`stock` ,`maxStock` ,`minStock` ,`category` ,`tags` ,`supplierName` ,`supplierContact` ,`preparationTime` ,`unit` ,`expiryDate` + `image`                                           |
+| `/restaurant/:id/items`                   | GET    | Get all menu items   | -                                                                                                                                                                                                                               |
+| `/restaurant/:restaurantId/item/:itemId`  | GET    | Get single menu item | -                                                                                                                                                                                                                               |
+| `/restaurant/:restaurantId/item/:itemId`  | DELETE | Delete menu item     | -                                                                                                                                                                                                                               |
+| `/restaurant/:restaurantId/items/:itemId` | PATCH  | Update menu item     | `name` ,`description` ,`discount`,`discountStart`,`discountEnd`,`price` ,`costPrice` ,`stock` ,`maxStock` ,`minStock` ,`category` ,`tags` ,`supplierName` ,`supplierContact` ,`preparationTime` ,`unit` ,`expiryDate` + `image` |
 
 ---
 
 ### 🏪 Restaurant Operations (by Customer)
 
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/restaurants` | GET | List all restaurants (Customer) | - |
-| `/restaurants/batch` | POST | Get multiple restaurants by ID | `restaurantIds` array |
-| `/restaurant/items/:itemId` | GET | Get single restaurant item | - |
-| `/restaurant/items/batch` | POST | Get multiple items by ID | `itemIds` array |
+| Endpoint                    | Method | Description                     | Parameters            |
+| --------------------------- | ------ | ------------------------------- | --------------------- |
+| `/restaurants`              | GET    | List all restaurants (Customer) | -                     |
+| `/restaurants/batch`        | POST   | Get multiple restaurants by ID  | `restaurantIds` array |
+| `/restaurant/items/:itemId` | GET    | Get single restaurant item      | -                     |
+| `/restaurant/items/batch`   | POST   | Get multiple items by ID        | `itemIds` array       |
 
 ---
 
 ### 🛒 Orders & Checkout
 
 #### Customer
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/checkout` | POST | Create new order | `userId`, `name`, `phone` , `city` ,`address` ,`cart` ,`estimatedDeliveryTime`,`notes` |
-| `/user/:userId/orders/active` | GET | Get active orders | - |
-| `/user/:userId/orders/history` | GET | Get historic orders | - |
-| `/user/:userId/orders/:orderId` | GET | Get single order details | - |
-| `/user/:userId/orders/history/:orderId` | GET | Get single historic order | - |
+
+| Endpoint                               | Method | Description               | Parameters                                                                             |
+| -------------------------------------- | ------ | ------------------------- | -------------------------------------------------------------------------------------- |
+| `/checkout`                            | POST   | Create new order          | `userId`, `name`, `phone` , `city` ,`address` ,`cart` ,`estimatedDeliveryTime`,`notes` |
+| `/user/:userId/orders/active`          | GET    | Get active orders         | -                                                                                      |
+| `/user/:userId/orders/history`         | GET    | Get historic orders       | -                                                                                      |
+| `/user/:userId/order/:orderId`         | GET    | Get single order details  | -                                                                                      |
+| `/user/:userId/order/history/:orderId` | GET    | Get single historic order | -                                                                                      |
 
 #### Restaurant
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/restaurant/:restaurantId/orders/active` | GET | Get active orders | - |
-| `/restaurant/:restaurantId/orders/history` | GET | Get historic orders | - |
-| `/restaurant/:restaurantId/orders/:orderId` | GET | Get single order details | - |
-| `/restaurant/:restaurantId/orders/history/:orderId` | GET | Get single historic order | - |
+
+| Endpoint                                           | Method | Description               | Parameters |
+| -------------------------------------------------- | ------ | ------------------------- | ---------- |
+| `/restaurant/:restaurantId/orders/active`          | GET    | Get active orders         | -          |
+| `/restaurant/:restaurantId/orders/history`         | GET    | Get historic orders       | -          |
+| `/restaurant/:restaurantId/order/:orderId`         | GET    | Get single order details  | -          |
+| `/restaurant/:restaurantId/order/history/:orderId` | GET    | Get single historic order | -          |
 
 #### Agent
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/agent/:id/requests` | GET | Get delivery requests | - |
+
+| Endpoint              | Method | Description           | Parameters |
+| --------------------- | ------ | --------------------- | ---------- |
+| `/agent/:id/requests` | GET    | Get delivery requests | -          |
 
 ---
 
 ### 📝 Reviews & Ratings
 
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/restaurant/item/:itemId/reviews/:userId` | POST | Submit item review | `rating`, `comment` |
-| `/restaurant/item/:itemId/reviews` | GET | Get item reviews | - |
+| Endpoint                                   | Method | Description        | Parameters          |
+| ------------------------------------------ | ------ | ------------------ | ------------------- |
+| `/restaurant/item/:itemId/reviews/:userId` | POST   | Submit item review | `rating`, `comment` |
+| `/restaurant/item/:itemId/reviews`         | GET    | Get item reviews   | -                   |
 
 ---
 
 ### 🖼️ Media Handling
 
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/images/:imageId` | GET | Get any uploaded image | - |
-
+| Endpoint           | Method | Description            | Parameters |
+| ------------------ | ------ | ---------------------- | ---------- |
+| `/images/:imageId` | GET    | Get any uploaded image | -          |
 
 ---
 
 ### 🔍 Recommendations
 
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/recommendations/:itemID` | GET | Get recommended items | - |
+| Endpoint                   | Method | Description           | Parameters |
+| -------------------------- | ------ | --------------------- | ---------- |
+| `/recommendations/:itemID` | GET    | Get recommended items | -          |
 
 ---
 
@@ -399,55 +422,59 @@ OrderUp uses Socket.IO for real-time communication across the ecosystem. All con
 
 ### 📡 Connection Endpoints
 
-| Namespace       | Path              | Description                  |
-|-----------------|-------------------|------------------------------|
-| Customer        | `/user`           | User-specific order updates  |
-| Restaurant      | `/restaurant`     | Restaurant order management  |
-| Agent           | `/agent`          | Delivery assignment flows    |
+| Namespace  | Path          | Description                 |
+| ---------- | ------------- | --------------------------- |
+| Customer   | `/user`       | User-specific order updates |
+| Restaurant | `/restaurant` | Restaurant order management |
+| Agent      | `/agent`      | Delivery assignment flows   |
 
 ---
 
 ### 🔌 Socket Events
 
 #### 👤 Customer Events
-| Event               | Direction  | Description                                | Parameters                      |
-|---------------------|------------|--------------------------------------------|---------------------------------|
-| `join-user-room`    | Emit       | Join user's private room                   | `userId`                        |
-| `order-created`     | Receive    | New order confirmation                     | Full order object               |
-| `order-updated`     | Receive    | Live order status updates                  | Updated order object            |
-| `order-removed`     | Receive    | Order cancellation/completion              | `{orderId, status}`             |
-| `cancel-order`      | Emit       | Initiate order cancellation                | `orderId`, `cancellationReason` |
+
+| Event            | Direction | Description                   | Parameters                      |
+| ---------------- | --------- | ----------------------------- | ------------------------------- |
+| `join-user-room` | Emit      | Join user's private room      | `userId`                        |
+| `order-created`  | Receive   | New order confirmation        | Full order object               |
+| `order-updated`  | Receive   | Live order status updates     | Updated order object            |
+| `order-removed`  | Receive   | Order cancellation/completion | `{orderId, status}`             |
+| `cancel-order`   | Emit      | Initiate order cancellation   | `orderId`, `cancellationReason` |
 
 #### 🏪 Restaurant Events
-| Event                       | Direction  | Description                                | Parameters                      |
-|-----------------------------|------------|--------------------------------------------|---------------------------------|
-| `join-restaurant-room`      | Emit       | Join restaurant's private room             | `restaurantId`                  |
-| `order-created`             | Receive    | New order notification                     | Full order object               |
-| `order-updated`             | Receive    | Order status changes                       | Updated order object            |
-| `order-removed`             | Receive    | Order removal notification                 | `{orderId, status}`             |
-| `send-assignment-request`   | Emit       | Assign order to agent                      | `orderId`, `agentId`            |
-| `update-order-status`       | Emit       | Change order status                        | `orderId`, `status`             |
-| `search-agents`             | Emit       | Find available agents                      | `query` (name/username)         |
-| `new-assignment-request`    | Receive    | Confirm request sent to agent              | Agent+Order details             |
+
+| Event                     | Direction | Description                    | Parameters              |
+| ------------------------- | --------- | ------------------------------ | ----------------------- |
+| `join-restaurant-room`    | Emit      | Join restaurant's private room | `restaurantId`          |
+| `order-created`           | Receive   | New order notification         | Full order object       |
+| `order-updated`           | Receive   | Order status changes           | Updated order object    |
+| `order-removed`           | Receive   | Order removal notification     | `{orderId, status}`     |
+| `send-assignment-request` | Emit      | Assign order to agent          | `orderId`, `agentId`    |
+| `update-order-status`     | Emit      | Change order status            | `orderId`, `status`     |
+| `search-agents`           | Emit      | Find available agents          | `query` (name/username) |
+| `new-assignment-request`  | Receive   | Confirm request sent to agent  | Agent+Order details     |
 
 #### 🚚 Agent Events
-| Event                       | Direction  | Description                                | Parameters                      |
-|-----------------------------|------------|--------------------------------------------|---------------------------------|
-| `join-agent-room`           | Emit       | Join agent's private room                  | `agentId`                       |
-| `new-assignment-request`    | Receive    | New delivery request                       | Full request details            |
-| `respond-to-assignment`     | Emit       | Accept/reject delivery                     | `orderId`, `accept` (boolean)   |
-| `assignment-request-removed`| Receive    | Request cancellation                       | `orderId`                       |
+
+| Event                        | Direction | Description               | Parameters                    |
+| ---------------------------- | --------- | ------------------------- | ----------------------------- |
+| `join-agent-room`            | Emit      | Join agent's private room | `agentId`                     |
+| `new-assignment-request`     | Receive   | New delivery request      | Full request details          |
+| `respond-to-assignment`      | Emit      | Accept/reject delivery    | `orderId`, `accept` (boolean) |
+| `assignment-request-removed` | Receive   | Request cancellation      | `orderId`                     |
 
 ---
 
 ### 🌐 Global Events (Change Stream)
+
 Triggered by database changes:
 
-| Event               | Description                                | Broadcast To                |
-|---------------------|--------------------------------------------|-----------------------------|
-| `order-created`     | New order inserted                         | Customer + Restaurant rooms |
-| `order-updated`     | Order document updated                     | Customer + Restaurant rooms |
-| `order-removed`     | Order moved to history                     | Customer + Restaurant rooms |
+| Event           | Description            | Broadcast To                |
+| --------------- | ---------------------- | --------------------------- |
+| `order-created` | New order inserted     | Customer + Restaurant rooms |
+| `order-updated` | Order document updated | Customer + Restaurant rooms |
+| `order-removed` | Order moved to history | Customer + Restaurant rooms |
 
 ---
 
@@ -456,8 +483,8 @@ Triggered by database changes:
 ```javascript
 const socket = io("http://your-api-url", {
   auth: {
-    token: "USER_JWT_TOKEN" 
-  }
+    token: "USER_JWT_TOKEN",
+  },
 });
 
 // Join customer room
@@ -468,6 +495,7 @@ socket.on("order-updated", (order) => {
   console.log("Order status:", order.status);
 });
 ```
+
 ## 📱 Usage
 
 OrderUp is designed for three core user roles. Here's how each one interacts with the ecosystem:
@@ -537,11 +565,9 @@ OrderUp is designed for three core user roles. Here's how each one interacts wit
 
 ---
 
-
 ## 🛣️ Roadmap / Future Plans
 
 OrderUp is under active development. Here's a look at what’s coming soon:
-
 
 ### 💬 Communication
 
@@ -563,6 +589,7 @@ OrderUp is under active development. Here's a look at what’s coming soon:
 ### 📊 Analytics & Dashboards
 
 - [ ] **Sales Dashboard** for Restaurant Owners
+
   - Daily/weekly/monthly revenue
   - Popular items, order heatmaps
 
@@ -576,6 +603,7 @@ OrderUp is under active development. Here's a look at what’s coming soon:
 ### 💵 Payment & Orders
 
 - [ ] **Online Payment Integration**
+
   - Jazzcash/Easypaisa or Mastercard/Visa for card payments
   - Cash on Delivery toggle
 
@@ -588,9 +616,11 @@ OrderUp is under active development. Here's a look at what’s coming soon:
 ### 📲 User Experience
 
 - [ ] **Push Notifications**
+
   - New order updates, delivery status, promotions
 
 - [ ] **Favorite Restaurants & Items**
+
   - Personalized recommendations
 
 - [ ] **Dark Mode Support**
@@ -608,6 +638,7 @@ While OrderUp is fully functional across its core modules, a few areas are still
 
 - ⚠️ **No Push Notification System Yet**  
   Currently, users must manually check for updates in-app. Push support is planned.
+
 ---
 
 ### 🧑‍🍳 Restaurant App
@@ -638,18 +669,18 @@ While OrderUp is fully functional across its core modules, a few areas are still
 ---
 
 > These limitations are known and being addressed in upcoming updates. Check the [Roadmap](#️-roadmap--future-plans) for more info.
+
 ## 👨‍💻 Author & Contact
 
 Built with dedication and passion by:
 
-**Ahsan Naeem**   
+**Ahsan Naeem**  
 🎓 Bachelor's in Software Engineering (Final Year Student)  
 🌐 [GitHub](https://github.com/ahsannaeem150)  
 💼 [LinkedIn](https://www.linkedin.com/in/ahsan-naeem-ba2907288/)  
-📧 Email: ahsannaeem150@gmail.com  
+📧 Email: ahsannaeem150@gmail.com
 
 > Feel free to reach out for collaborations, feedback, or project discussions!
-
 
 ## 🙏 Acknowledgements
 

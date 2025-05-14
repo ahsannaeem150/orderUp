@@ -17,10 +17,10 @@ const AuthProvider = ({ children }) => {
   const [item, setItem] = useState([]);
 
   //SET INITIAL AXIOS URL
-  // const ip = "192.168.100.51";
-  const API_URL = `https://orderup-server.onrender.com/api`;
+  const ip = "192.168.63.31";
+  // const API_URL = `https://orderup-server.onrender.com/api`;
 
-  // const API_URL = `http://${ip}:8080/api`;
+  const API_URL = `http://${ip}:8080/api`;
   axios.defaults.baseURL = API_URL;
 
   const [socket, setSocket] = useState(null);
@@ -28,7 +28,7 @@ const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeSocket = async () => {
       if (state.token) {
-        const newSocket = io(`https://orderup-server.onrender.com/restaurant`, {
+        const newSocket = io(`http://${ip}:8080/restaurant`, {
           auth: {
             token: state.token,
           },
