@@ -163,6 +163,12 @@ const HomePage = () => {
           </View>
         }
       />
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push("/(home)/addItems/add-items")}
+      >
+        <AntDesign name="plus" size={24} color="white" />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -194,6 +200,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 20,
+    backgroundColor: colors.primary,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   card: {
     backgroundColor: "white",

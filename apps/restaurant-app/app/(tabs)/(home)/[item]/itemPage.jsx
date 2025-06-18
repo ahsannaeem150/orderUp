@@ -298,6 +298,7 @@ const ItemDetailsPage = () => {
     }
   };
 
+  // CORRECTED handleImageUpdate function
   const handleImageUpdate = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -305,28 +306,34 @@ const ItemDetailsPage = () => {
         quality: 0.8,
       });
 
-      if (!result.canceled) {
-        setLoading(true);
-        const formData = new FormData();
-        formData.append("operation", "image");
-        formData.append("image", {
-          uri: result.assets[0].uri,
-          name: "image.jpg",
-          type: "image/jpeg",
-        });
+      if (result.canceled || !result.assets[0]) return;
 
-        const response = await axios.patch(
-          `${API_URL}/restaurant/${state.restaurant._id}/items/${currentItem._id}`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
+      setLoading(true);
+      const localUri = result.assets[0].uri;
+      const filename = localUri.split("/").pop();
 
-        updateItem(response.data.item);
-      }
+      // Create a file-like object correctly
+      const file = {
+        uri: localUri,
+        name: filename,
+        type: `image/${filename.split(".").pop()}`,
+      };
+
+      const formData = new FormData();
+      formData.append("operation", "image");
+      formData.append("image", file);
+
+      const response = await axios.patch(
+        `${API_URL}/restaurant/${state.restaurant._id}/items/${currentItem._id}`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      updateItem(response.data.item);
     } catch (error) {
-      Alert.alert(
-        "Image update failed",
-        error.response?.data?.message || "Couldn't upload image"
+      console.error(
+        "Image upload error:",
+        error.response?.data || error.message
       );
     } finally {
       setLoading(false);
